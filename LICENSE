@@ -1,0 +1,46 @@
+SOURCE CODE LICENSE AGREEMENT
+
+Copyright (c) 2015-2023 TradingHours.com (https://tradinghours.com)
+
+You acknowledge that you have read this Source Code License Agreement (the "Agreement") and agree to all its terms and conditions.  By accessing and using the Source Code and Product, you agree to be bound by this Agreement.  If you do not agree to abide by the terms of this Agreement, you are not authorized to access or use the Source Code and Product.
+
+1. DEFINITIONS
+    1.1 "Product" shall mean the data products offered by TradingHours.com.
+    1.2 "Source Code" means, as it pertains to the Product, those statements in a computer language which, when processed by a compiler, assembler or interpreter, become executable by a computer and includes, without limitation, all comments, notes, flow charts, decision tables, argument lists and other human readable references relating to the operation, purpose, compilation, assembly or interpretation thereof.
+
+2. LICENSE GRANT
+TradingHours.com grants to Client, under all of TradingHours.com's intellectual property rights, a nonexclusive, nontransferable, irrevocable, perpetual, worldwide, royalty-free license, to (directly or indirectly) use or modify the Source Code to view the Product (the "Purpose").  Client must have an active subscription with TradingHours.com in order to use the Source Code to view the Product as Client is required to have an API key to download, view, and use the Product.  Client shall not utilize the Source Code for any reason other than for the Purpose.
+
+3. OWNERSHIP; COPYRIGHT 
+    3.1 As between the parties, TradingHours.com retains all title, and (except as expressly granted in this Agreement) all rights and interest in and to the Source Code, the format of TradingHours.com's data format, and any and all copies and portions thereof.  Client shall not publish their own data in a format compatible with the Source Code.
+    3.2 In the event Client provides TradingHours.com with any suggested code changes to the Source Code, TradingHours.com shall be the exclusive owner of all rights and interest to such changes.  TradingHours.com shall be the owner of any derivative works based on the Source Code.
+    3.3 Client shall reproduce and include any and all copyright notices and proprietary rights legends, as such notices and legends appear in the Product or Source Code, on any copy of the Product or Source Code, or portion thereof.
+    3.4 In the event Client provides any code to TradingHours.com repository, Client agrees that TradingHours.com shall be the owner of such code and shall own all title, rights, and interest in such code.
+
+4. WARRANTY DISCLAIMER; LIMITATION OF LIABILITY
+    4.1 TRADINGHOURS.COM MAKES NO WARRANTIES OR REPRESENTATIONS AS TO THE SOURCE CODE. TRADINGHOURS.COM DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INTERRUPTION OF USE AND FREEDOM FROM BUGS.
+    4.2 CLIENT ACKNOWLEDGES AND AGREES THAT THE CONSIDERATION DOES NOT INCLUDE ASSUMPTION BY TRADINGHOURS.COM OF THE RISK OF CLIENT'S CONSEQUENTIAL OR INCIDENTAL DAMAGES WHICH MAY ARISE IN CONNECTION WITH CLIENT'S USE OF THE PRODUCT OR SOURCE CODE.  ACCORDINGLY, CLIENT AGREES THAT TRADINGHOURS.COM SHALL NOT BE RESPONSIBLE TO CLIENT FOR ANY LOSS OF PROFIT OR INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE LICENSING OR USE OF THE PRODUCT OR SOURCE CODE.
+
+5. EXPORT CONTROL LAWS
+The Product and Source Code are subject to U.S. export control laws and may be subject to export or import regulations in other countries. Client agrees to strictly comply with all such laws and regulations.
+
+6. INDEMNIFICATION
+Client shall defend, indemnify and hold harmless TradingHours.com and its officers, directors, employees, shareholders, customers, agents, successors and assigns from and against any and all loss, damage, settlement or expense (including legal expenses), as incurred, resulting from or arising out of any third-party claim arising from Client's use of the Source Code. 
+
+7. TERM AND TERMINATION
+    7.1 Termination by TradingHours.com. This Agreement is effective until terminated. TradingHours.com may terminate this Agreement only in the event Client's material breach of this Agreement. 
+    7.2 Exclusive Remedy. Termination is not an exclusive remedy and all other remedies will be available whether or not the Agreement is terminated. The terminating party shall not be liable for any charges, damages, obligations or other costs incurred as a result of termination.
+
+8. ASSIGNMENT
+    8.1 TradingHours.com Assignment. TradingHours.com may assign this Agreement to a party that succeeds to all or substantially all the business or assets of TradingHours.com.
+    8.2 Client Assignment. Client shall not assign any right hereunder without TradingHours.com's written consent.
+
+9. GENERAL
+    9.1 Notice. Notices and all other communications contemplated by this Agreement shall be in writing and shall be deemed to have been duly given when personally delivered or when mailed by U.S. certified mail, return receipt requested and postage prepaid. 
+    9.2 Waiver. No provision of this Agreement shall be modified, waived or discharged unless the modification, waiver or discharge is agreed to in writing and signed by the appropriate parties. No waiver by either party or any breach of, or compliance with, any condition or provision of this Agreement by the other party shall be considered a waiver of any other condition or provision or of the same condition or provision at another time.
+    9.3 Governing Law. Any claim arising under or relating to this Agreement, shall be governed by the internal substantive laws of the State of Pennsylvania, without regard to principles of conflict of laws. Each party hereby agrees to jurisdiction and venue in the courts of the State of Pennsylvania or federal courts located in Pennsylvania for all disputes and litigation arising under or relating to this Agreement.
+    9.4 Independent Parties. TradingHours.com and Client are independent parties. Nothing in this Agreement shall be construed to make the parties partners or joint ventures or to make either party liable for the obligations, acts, omissions or activities of the other party.
+    9.5 Severability. The invalidity or unenforceability of any provision of this Agreement shall not affect the validity or enforceability of any other provision hereof, which shall remain in full force and effect.
+    9.6 Arbitration. Any controversy or claim arising out of or relating to this Agreement, or the breach thereof, shall be settled by arbitration in accordance with the Commercial Arbitration Rules of the American Arbitration Association. The arbitration hearing shall take place in Monroe County, Pennsylvania, and judgment on the award rendered by the arbitrator may be entered in any court having jurisdiction thereof. Notwithstanding the foregoing, in the event irreparable injury can be shown, either party may obtain injunctive relief exclusively in any court having jurisdiction thereof.
+    9.7 Injunctive Relief. Client acknowledges that a violation of the rights granted to it under this Agreement cannot be readily remedied in monetary damages in an action at law, and, accordingly, TradingHours.com will be entitled to seek and obtain equitable remedies from any court of competent jurisdiction, including, without limited to, to temporary or permanent injunctive relief, costs and reasonable attorneys' fees.
+    9.8 Attorneys' Fees. In any arbitration or litigation to enforce the terms of this Agreement, the prevailing party shall be entitled to collect its costs and fees, including reasonable attorneys' fees.
