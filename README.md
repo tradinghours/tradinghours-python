@@ -1,6 +1,6 @@
+![tradinghours-client-banner](https://github.com/tradinghours/tradinghours-python/assets/2868028/7e8e1097-60d9-436e-9335-b5cf6a1e4b09)
 
-
-# TradingHours.com - Official Python Client
+# TradingHours.com Python Library
 [TradingHours.com](https://www.tradinghours.com) licenses Market Holidays and Trading Hours data for over 900 exchanges and trading venues around the world. 
 This package allows clients to easily integrate our market holidays and trading hours data into existing applications.
 Using this package, data is downloaded from the TradingHours.com service and is then available for local, offline use.
