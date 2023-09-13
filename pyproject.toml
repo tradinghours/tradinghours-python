@@ -21,3 +21,25 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/tradinghours/tradinghours-python"
 "Bug Tracker" = "https://github.com/tradinghours/tradinghours-python/issues"
+
+[project.optional-dependencies]
+dev = [
+    'isort',
+    'flake8',
+    'flake8-pyproject',
+    'black',
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = 'E203'
+
+[tool.black]
+exclude = '''
+/(
+  | tests
+)/
+'''
