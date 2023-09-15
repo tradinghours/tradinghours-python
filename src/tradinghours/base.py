@@ -1,7 +1,14 @@
 import datetime
-from typing import Generic, TypeVar
+from typing import Generic, List, TypeVar
 
 T = TypeVar("T")
+
+
+class BaseObject:
+    """Base model objects"""
+
+    def __init__(self):
+        self.data = {}
 
 
 class Field(Generic[T]):
@@ -34,8 +41,27 @@ class DateField(Field[datetime.date]):
     pass
 
 
-class BaseObject:
-    """Base model objects"""
+class DateTimeField(Field[datetime.datetime]):
+    """Field of datetime type"""
 
-    def __init__(self):
-        self.data = {}
+    pass
+
+
+class TimeField(Field[datetime.time]):
+    """Field of time type"""
+
+    pass
+
+
+class ReferenceField(Field[BaseObject]):
+    """Field for referencing other BaseObject children"""
+
+    def __init__(self, referenced_type):
+        super().__init__()
+        self.referenced_type = referenced_type
+
+
+class ListField(Field[List[T]]):
+    """Field of a list with specific type"""
+
+    pass
