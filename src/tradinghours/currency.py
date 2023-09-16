@@ -1,4 +1,10 @@
-from tradinghours.base import BaseObject, BooleanField, DateField, StringField
+from tradinghours.base import (
+    BaseObject,
+    BooleanField,
+    DateField,
+    OlsonTimezoneField,
+    StringField,
+)
 
 
 class Currency(BaseObject):
@@ -19,7 +25,7 @@ class Currency(BaseObject):
     financial_capital = StringField()
     """City where the central bank is located."""
 
-    financial_capital_timezone = StringField()
+    financial_capital_timezone = OlsonTimezoneField()
     """Timezone Olson timezone identifier format."""
 
     weekend = StringField()

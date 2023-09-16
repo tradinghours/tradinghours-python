@@ -1,5 +1,7 @@
 import datetime
-from typing import Generic, List, TypeVar
+from typing import Any, Generic, List, TypeVar, cast
+
+from tradinghours.structure import OlsonTimezone
 
 T = TypeVar("T")
 
@@ -20,7 +22,11 @@ class Field(Generic[T]):
     def __get__(self, obj, objtype=None) -> T:
         if obj is None:
             return self
-        return obj.data[self.field_name]
+        value = obj.data[self.field_name]
+        return self.prepare(value)
+
+    def prepare(self, value: Any) -> T:
+        return cast(T, value)
 
 
 class StringField(Field[str]):
@@ -65,3 +71,10 @@ class ListField(Field[List[T]]):
     """Field of a list with specific type"""
 
     pass
+
+
+class OlsonTimezoneField(Field[OlsonTimezone]):
+    """Field of an Olson Timezone"""
+
+    def prepare(self, value) -> OlsonTimezone:
+        return OlsonTimezone.from_string(value)
