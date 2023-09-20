@@ -1,10 +1,18 @@
-from tradinghours.base import BaseObject, BooleanField, DateField, StringField
+from tradinghours.base import (
+    BaseObject,
+    BooleanField,
+    DateField,
+    FinIdField,
+    MicField,
+    StringField,
+    WeekdayPeriodField,
+)
 
 
 class Market(BaseObject):
     """One known market for TradingHours"""
 
-    fin_ud = StringField()
+    fin_id = FinIdField()
     """The FinID for the market."""
 
     country_code = StringField()
@@ -19,7 +27,7 @@ class Market(BaseObject):
     products = StringField()
     """Description of the products or securities group."""
 
-    mic = StringField()
+    mic = MicField()
     """The MIC for the market."""
 
     mic_extended = StringField()
@@ -40,14 +48,14 @@ class Market(BaseObject):
     timezone = StringField()
     """Gives the timezone the market utilizes."""
 
-    weekend_definition = StringField()
+    weekend_definition = WeekdayPeriodField()
     """Indicates the days of the week when the market regularly closed."""
 
 
 class MarketHoliday(BaseObject):
     """Holidays for a Market"""
 
-    fin_id = StringField()
+    fin_id = FinIdField()
     """The FinID for the market."""
 
     date = DateField()

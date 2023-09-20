@@ -1,7 +1,7 @@
 import datetime
 from typing import Any, Generic, List, TypeVar, cast
 
-from tradinghours.structure import OlsonTimezone
+from tradinghours.structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod
 
 T = TypeVar("T")
 
@@ -78,3 +78,31 @@ class OlsonTimezoneField(Field[OlsonTimezone]):
 
     def prepare(self, value) -> OlsonTimezone:
         return OlsonTimezone.from_string(value)
+
+
+class WeekdayField(Field[Weekday]):
+    """Field for a Weekday"""
+
+    def prepare(self, value) -> Weekday:
+        return Weekday.from_string(value)
+
+
+class WeekdayPeriodField(Field[WeekdayPeriod]):
+    """Field for period like Mon-Fri"""
+
+    def prepare(self, value) -> Weekday:
+        return WeekdayPeriod.from_string(value)
+
+
+class FinIdField(Field[FinId]):
+    """Field for a FinID"""
+
+    def prepare(self, value) -> FinId:
+        return FinId.from_string(value)
+
+
+class MicField(Field[Mic]):
+    """Field for a MIC"""
+
+    def prepare(self, value) -> Mic:
+        return Mic.from_string(value)

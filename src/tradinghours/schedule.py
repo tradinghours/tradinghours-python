@@ -6,6 +6,7 @@ from tradinghours.base import (
     ListField,
     StringField,
     TimeField,
+    WeekdayField,
 )
 
 
@@ -37,7 +38,7 @@ class DateSchedule(BaseObject):
     date = DateField()
     """The date for the data returned."""
 
-    day_of_week = StringField()
+    day_of_week = WeekdayField()
     """The day of the week for the data returned."""
 
     is_open = BooleanField()
