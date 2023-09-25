@@ -45,7 +45,7 @@ Data is updated daily.
 
 ### Get Market
 
-### Makret Details
+### Market Details
 
 ### Market Holidays
 
