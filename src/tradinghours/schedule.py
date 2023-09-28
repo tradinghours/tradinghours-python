@@ -3,13 +3,16 @@ from tradinghours.base import (
     BooleanField,
     DateField,
     DateTimeField,
+    FinIdField,
     ListField,
+    OlsonTimezoneField,
     StringField,
     TimeField,
     WeekdayField,
 )
 
 
+# TODO: consider renaming to ConcretePhase because of phase_type
 class Phase(BaseObject):
     """A period within a schedule"""
 
@@ -67,10 +70,19 @@ class PeriodSchedule(BaseObject):
     """Nested data of the schedule."""
 
 
+class Schedule(BaseObject):
+
+    fin_id = FinIdField()
+    schedule_group = StringField()
+    schedule_group_memo = StringField()
+    timezone = OlsonTimezoneField()
+    phase_type = 
+
+
 class RegularSchedule(BaseObject):
     """Repeating schedule for a market"""
 
-    day = StringField()
+    day = WeekdayField()
     """Day of the week in string format."""
 
     open = BooleanField()

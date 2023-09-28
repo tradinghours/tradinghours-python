@@ -1,7 +1,9 @@
+import csv
 import datetime
-from typing import Any, Generic, List, TypeVar, cast
+from typing import Any, Dict, Generator, Generic, List, Self, TypeVar, cast
 
-from tradinghours.structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod
+from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod
+from .util import snake_dict
 
 T = TypeVar("T")
 
@@ -9,8 +11,16 @@ T = TypeVar("T")
 class BaseObject:
     """Base model objects"""
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self, data: Dict):
+        self.data = data
+
+    @classmethod
+    def from_csv(cls, csv_file_path) -> Generator[Self]:
+        with open(csv_file_path, "r") as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                data = snake_dict(row)
+                yield cls(data)
 
 
 class Field(Generic[T]):
