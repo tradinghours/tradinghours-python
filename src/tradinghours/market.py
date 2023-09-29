@@ -5,7 +5,7 @@ from .base import (
     FinIdField,
     MicField,
     StringField,
-    WeekdayPeriodField,
+    WeekdaySetField,
 )
 
 
@@ -48,7 +48,7 @@ class Market(BaseObject):
     timezone = StringField()
     """Gives the timezone the market utilizes."""
 
-    weekend_definition = WeekdayPeriodField()
+    weekend_definition = WeekdaySetField()
     """Indicates the days of the week when the market regularly closed."""
 
 

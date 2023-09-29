@@ -4,7 +4,7 @@ from .base import (
     DateField,
     OlsonTimezoneField,
     StringField,
-    WeekdayPeriodField,
+    WeekdaySetField,
 )
 
 
@@ -29,7 +29,7 @@ class Currency(BaseObject):
     financial_capital_timezone = OlsonTimezoneField()
     """Timezone Olson timezone identifier format."""
 
-    weekend = WeekdayPeriodField()
+    weekend = WeekdaySetField()
     """Weekend definition. Most markets are Sat-Sun."""
 
 

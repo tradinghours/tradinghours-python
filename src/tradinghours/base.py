@@ -1,8 +1,8 @@
 import csv
 import datetime
-from typing import Any, Dict, Generator, Generic, List, Self, TypeVar, cast
+from typing import Any, Dict, Generator, Generic, List, Self, Tuple, Type, TypeVar, cast
 
-from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod
+from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod, WeekdaySet
 from .typing import StrOrPath
 from .util import snake_case, snake_dict
 
@@ -18,6 +18,13 @@ class BaseObject:
     def to_dict(self) -> Dict:
         return self.data
 
+    def to_tuple(self) -> Tuple:
+        all_values = []
+        for current_field in self.fields:
+            current_value = getattr(self, current_field.field_name)
+            all_values.append(current_value)
+        return tuple(all_values)
+
     @classmethod
     def from_csv(cls, path: StrOrPath) -> Generator[Self, None, None]:
         with open(path, "r", encoding="utf-8-sig", errors="replace") as file:
@@ -30,7 +37,10 @@ class BaseObject:
 class Field(Generic[T]):
     """Base field class"""
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner: Type[BaseObject], name):
+        if not hasattr(owner, "fields"):
+            owner.fields: List["Field"] = []
+        owner.fields.append(self)
         self.field_name = name
 
     def __get__(self, obj, objtype=None) -> T:
@@ -41,8 +51,11 @@ class Field(Generic[T]):
             value = obj.data[key]
         else:
             key = snake_case(objtype.__name__) + "_" + key
-            value = obj.data[key]
-        return self.prepare(value)
+            value = obj.data.get(key, None)
+        if value is None or value == "":
+            return value
+        else:
+            return self.prepare(value)
 
     def prepare(self, value: Any) -> T:
         return cast(T, value)
@@ -111,6 +124,13 @@ class WeekdayPeriodField(Field[WeekdayPeriod]):
 
     def prepare(self, value) -> Weekday:
         return WeekdayPeriod.from_string(value)
+
+
+class WeekdaySetField(Field[WeekdaySet]):
+    """Field for set of periods like Mon-Fri"""
+
+    def prepare(self, value) -> WeekdaySet:
+        return WeekdaySet.from_string(value)
 
 
 class FinIdField(Field[FinId]):

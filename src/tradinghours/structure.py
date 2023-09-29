@@ -1,18 +1,19 @@
 from dataclasses import dataclass, field
+from typing import Tuple
 
 
 @dataclass
 class OlsonTimezone:
     country: str
-    city: str
+    detail: str
 
     def __str__(self):
-        return f"{self.country}/{self.city}"
+        return f"{self.country}/{self.detail}"
 
     @classmethod
-    def from_string(cls, input_string):
-        country, city = input_string.split("/")
-        return cls(country, city)
+    def from_string(cls, input_string: str):
+        country, _, detail = input_string.partition("/")
+        return cls(country, detail)
 
 
 @dataclass
@@ -22,7 +23,7 @@ class Weekday:
 
     @classmethod
     def from_string(cls, input_string):
-        input_string = input_string.title()  # Convert to title case
+        input_string = input_string.title()
         if input_string in cls.WEEKDAYS:
             return cls(cls.WEEKDAYS.index(input_string))
         else:
@@ -39,16 +40,38 @@ class WeekdayPeriod:
 
     @classmethod
     def from_string(cls, input_string):
-        input_string = input_string.title()  # Convert to title case
-        if "-" in input_string and len(input_string) == 7:
+        if "-" in input_string:
             start, end = input_string.split("-")
             start_day = Weekday.from_string(start)
             end_day = Weekday.from_string(end)
             return cls(start_day, end_day)
-        raise ValueError("Invalid weekday period string")
+        else:
+            only_day = Weekday.from_string(input_string)
+            return cls(only_day, only_day)
 
     def __str__(self):
-        return f"{str(self.start_day)}-{str(self.end_day)}"
+        if self.start_day == self.end_day:
+            return str(self.start_day)
+        else:
+            return f"{str(self.start_day)}-{str(self.end_day)}"
+
+
+@dataclass
+class WeekdaySet:
+    periods: Tuple[WeekdayPeriod]
+
+    @classmethod
+    def from_string(cls, input_string):
+        all_period_str = input_string.split(",")
+        all_period = []
+        for period_str in all_period_str:
+            period = WeekdayPeriod.from_string(period_str)
+            all_period.append(period)
+        return cls(tuple(all_period))
+
+    def __str__(self):
+        periods = [str(p) for p in self.periods]
+        return ",".join(periods)
 
 
 @dataclass

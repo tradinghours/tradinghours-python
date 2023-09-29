@@ -1,14 +1,14 @@
-import json
+import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Generator, Generic, Iterator, Optional, Type, TypeVar
+from typing import Dict, Generator, Generic, Iterator, Optional, Tuple, Type, TypeVar
 
 from .base import BaseObject
 from .currency import Currency, CurrencyHoliday
 from .market import Market, MarketHoliday
 from .schedule import Schedule
 from .typing import StrOrPath
-from .util import StrEncoder, slugify
+from .util import slugify
 
 B = TypeVar("B", bound=BaseObject)
 T = TypeVar("T")
@@ -196,11 +196,11 @@ class Cluster:
     def delete(self):
         self.location.unlink(missing_ok=True)
 
-    def append(self, key: Optional[str], tuple: Dict):
-        record = [key, tuple]
-        with open(self.location, "a", encoding="utf-8") as file:
-            json.dump(record, file, cls=StrEncoder)
-            file.write("\n")
+    def append(self, key: Optional[str], data: Tuple):
+        record = [key, *data]
+        with open(self.location, "a", encoding="utf-8", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(record)
 
 
 class ClusterRegistry(Registry[Cluster]):
@@ -301,7 +301,7 @@ class Store:
         if cluster is None:
             cluster = "unique"
         cluster_obj = collection_obj.clusters.get(cluster)
-        cluster_obj.append(key, item.to_dict())
+        cluster_obj.append(key, item.to_tuple())
 
 
 if __name__ == "__main__":
