@@ -1,4 +1,4 @@
-from tradinghours.base import (
+from .base import (
     BaseObject,
     BooleanField,
     DateField,
@@ -71,12 +71,10 @@ class PeriodSchedule(BaseObject):
 
 
 class Schedule(BaseObject):
-
     fin_id = FinIdField()
     schedule_group = StringField()
     schedule_group_memo = StringField()
     timezone = OlsonTimezoneField()
-    phase_type = 
 
 
 class RegularSchedule(BaseObject):

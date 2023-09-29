@@ -1,4 +1,4 @@
-from tradinghours.base import (
+from .base import (
     BaseObject,
     BooleanField,
     DateField,
