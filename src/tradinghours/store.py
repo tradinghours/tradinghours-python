@@ -103,7 +103,8 @@ class DeclaredFile(SourceFile[B]):
             collection = self.resolve_collection(current)
             cluster = self.resolve_cluster(current)
             key = self.resolve_key(current)
-            store.store_item(current, collection, cluster=cluster, key=key)
+            data = current.to_tuple()
+            store.store_tuple(data, collection, cluster=cluster, key=key)
 
 
 class CurrencyFile(DeclaredFile[Currency]):
@@ -185,7 +186,7 @@ class Cluster:
 
     def __init__(self, location: Path):
         self._location = location
-        self._file = open(self.location, "a", encoding="utf-8", newline="")
+        self._file = open(self.location, "a+", encoding="utf-8", newline="")
         self._writer = csv.writer(self._file)
 
     @property
@@ -202,6 +203,14 @@ class Cluster:
     def append(self, key: Optional[str], data: Tuple):
         record = [key, *data]
         self._writer.writerow(record)
+
+    def iter_data(self) -> Generator[Tuple[str, Tuple], None, None]:
+        self._file.seek(0)
+        reader = csv.reader(self._file)
+        for row in reader:
+            key = row[0]
+            data = row[1:]
+            yield key, data
 
 
 class ClusterRegistry(Registry[Cluster]):
@@ -289,9 +298,9 @@ class Store:
             source = declared_class(data_folder)
             source.ingest(self)
 
-    def store_item(
+    def store_tuple(
         self,
-        item: BaseObject,
+        data: Tuple,
         collection,
         cluster: Optional[str] = None,
         key: Optional[str] = None,
@@ -300,7 +309,7 @@ class Store:
         if cluster is None:
             cluster = "unique"
         cluster_obj = collection_obj.clusters.get(cluster)
-        cluster_obj.append(key, item.to_tuple())
+        cluster_obj.append(key, data)
 
     def close(self):
         for current_collection in self.collections:
@@ -316,7 +325,16 @@ if __name__ == "__main__":
     store = Store(data_folder / "store")
     store.touch()
     store.ingest_all(data_folder)
-    store.close()
     elapsed = time.time() - start
+    print("Elapsed time", elapsed)
+
+    start = time.time()
+    collection = store.collections.get("markets")
+    cluster = collection.clusters.get("qa")
+    for key, current in cluster.iter_data():
+        print(key, current)
+    elapsed = time.time() - start
+
+    store.close()
 
     print("Elapsed time", elapsed)
