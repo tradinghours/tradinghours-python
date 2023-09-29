@@ -185,22 +185,23 @@ class Cluster:
 
     def __init__(self, location: Path):
         self._location = location
+        self._file = open(self.location, "a", encoding="utf-8", newline="")
+        self._writer = csv.writer(self._file)
 
     @property
     def location(self) -> Path:
         return self._location
 
-    def touch(self):
-        self.location.touch(exist_ok=True)
+    def close(self):
+        self._file.close()
 
-    def delete(self):
-        self.location.unlink(missing_ok=True)
+    def truncate(self):
+        self._file.seek(0)
+        self._file.truncate(0)
 
     def append(self, key: Optional[str], data: Tuple):
         record = [key, *data]
-        with open(self.location, "a", encoding="utf-8", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(record)
+        self._writer.writerow(record)
 
 
 class ClusterRegistry(Registry[Cluster]):
@@ -216,9 +217,7 @@ class ClusterRegistry(Registry[Cluster]):
 
     def create(self, slug: str) -> Cluster:
         location = self.folder / f"{slug}.dat"
-        cluster = Cluster(location)
-        cluster.touch()
-        return cluster
+        return Cluster(location)
 
 
 class Collection:
@@ -241,7 +240,7 @@ class Collection:
 
     def clear(self):
         for current in self._clusters:
-            current.delete()
+            current.truncate()
         self._clusters = ClusterRegistry(self.folder)
 
 
@@ -303,6 +302,11 @@ class Store:
         cluster_obj = collection_obj.clusters.get(cluster)
         cluster_obj.append(key, item.to_tuple())
 
+    def close(self):
+        for current_collection in self.collections:
+            for current_cluster in current_collection.clusters:
+                current_cluster.close()
+
 
 if __name__ == "__main__":
     import time
@@ -312,6 +316,7 @@ if __name__ == "__main__":
     store = Store(data_folder / "store")
     store.touch()
     store.ingest_all(data_folder)
+    store.close()
     elapsed = time.time() - start
 
     print("Elapsed time", elapsed)
