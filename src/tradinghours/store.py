@@ -204,7 +204,7 @@ class Cluster:
         record = [key, *data]
         self._writer.writerow(record)
 
-    def iter_data(self) -> Generator[Tuple[str, Tuple], None, None]:
+    def items(self) -> Generator[Tuple[str, Tuple], None, None]:
         self._file.seek(0)
         reader = csv.reader(self._file)
         for row in reader:
@@ -331,8 +331,9 @@ if __name__ == "__main__":
     start = time.time()
     collection = store.collections.get("markets")
     cluster = collection.clusters.get("qa")
-    for key, current in cluster.iter_data():
-        print(key, current)
+    for key, current in cluster.items():
+        market = Market.from_tuple(current)
+        print(key, market)
     elapsed = time.time() - start
 
     store.close()

@@ -26,12 +26,24 @@ class BaseObject:
         return tuple(all_values)
 
     @classmethod
+    def from_tuple(cls, data: Tuple) -> Self:
+        data_dict = {}
+        for index, current_field in enumerate(cls.fields):
+            current_value = data[index]
+            data_dict[current_field.field_name] = current_value
+        return cls(data_dict)
+
+    @classmethod
     def from_csv(cls, path: StrOrPath) -> Generator[Self, None, None]:
         with open(path, "r", encoding="utf-8-sig", errors="replace") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 data = snake_dict(row)
                 yield cls(data)
+
+    def __str__(self):
+        class_name = self.__class__.__name__
+        return f"{class_name} {self.to_tuple()}"
 
 
 class Field(Generic[T]):
