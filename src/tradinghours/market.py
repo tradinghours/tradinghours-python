@@ -1,3 +1,5 @@
+from typing import List, Self
+
 from .base import (
     BaseObject,
     BooleanField,
@@ -7,6 +9,8 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
+from .catalog import default_catalog
+from .structure import FinId
 
 
 class Market(BaseObject):
@@ -50,6 +54,28 @@ class Market(BaseObject):
 
     weekend_definition = WeekdaySetField()
     """Indicates the days of the week when the market regularly closed."""
+
+    def list_holidays(self, start, end) -> "MarketHoliday":
+        holidays = list(
+            default_catalog.filter(
+                MarketHoliday,
+                start,
+                end,
+                cluster=self.fin_id,
+            )
+        )
+        return holidays
+
+    @classmethod
+    def list_all(cls) -> List:
+        return list(default_catalog.list_all(Market))
+
+    @classmethod
+    def get_by_fin_id(cls, fin_id: FinId) -> Self:
+        found = default_catalog.get(Market, fin_id, cluster=fin_id.country)
+        if found.replaced_by:
+            found = default_catalog.get(Market, fin_id=found.replaced_by)
+        return found
 
 
 class MarketHoliday(BaseObject):

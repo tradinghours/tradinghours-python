@@ -88,9 +88,6 @@ class DeclaredFile(SourceFile[B]):
     def pre_ingest(self, store: "Store"):
         pass
 
-    def resolve_collection(self, item: Type[B]) -> str:
-        return self.name
-
     def resolve_cluster(self, item: Type[B]) -> Optional[str]:
         return None
 
@@ -100,7 +97,7 @@ class DeclaredFile(SourceFile[B]):
     def ingest(self, store: "Store"):
         self.pre_ingest(store)
         for current in self.load():
-            collection = self.resolve_collection(current)
+            collection = self.name
             cluster = self.resolve_cluster(current)
             key = self.resolve_key(current)
             data = current.to_tuple()
@@ -205,6 +202,7 @@ class Cluster:
         self._writer.writerow(record)
 
     def items(self) -> Generator[Tuple[str, Tuple], None, None]:
+        # TODO: seek EOF after start iterating
         self._file.seek(0)
         reader = csv.reader(self._file)
         for row in reader:
