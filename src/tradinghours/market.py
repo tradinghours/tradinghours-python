@@ -9,7 +9,6 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
-from .catalog import default_catalog
 from .structure import FinId
 
 
@@ -56,6 +55,8 @@ class Market(BaseObject):
     """Indicates the days of the week when the market regularly closed."""
 
     def list_holidays(self, start, end) -> "MarketHoliday":
+        from .catalog import default_catalog
+
         holidays = list(
             default_catalog.filter(
                 MarketHoliday,
@@ -68,10 +69,14 @@ class Market(BaseObject):
 
     @classmethod
     def list_all(cls) -> List:
+        from .catalog import default_catalog
+
         return list(default_catalog.list_all(Market))
 
     @classmethod
     def get_by_fin_id(cls, fin_id: FinId) -> Self:
+        from .catalog import default_catalog
+
         found = default_catalog.get(Market, fin_id, cluster=fin_id.country)
         if found.replaced_by:
             found = default_catalog.get(Market, fin_id=found.replaced_by)

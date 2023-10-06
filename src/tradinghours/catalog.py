@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Generator, Optional, Self, Type
 
+
 from .base import BaseObject
 from .store import Collection, DeclaredFile, Store
 
@@ -64,4 +65,12 @@ class Catalog:
         return cls(store)
 
 
-default_catalog = Catalog()
+default_catalog = Catalog.load_default()
+
+
+if __name__ == "__main__":
+    from tradinghours.market import Market
+
+    markets = default_catalog.list_all(Market)
+    for current in default_catalog.list_all(Market):
+        print(current)

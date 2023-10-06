@@ -161,6 +161,8 @@ class Registry(ABC, Generic[T]):
 
     def __init__(self):
         self._resources = {}
+        for name in self.discover():
+            self.get(name)
 
     def get(self, name: str) -> T:
         slug = slugify(name)
@@ -173,6 +175,9 @@ class Registry(ABC, Generic[T]):
     @abstractmethod
     def create(self, slug: str) -> T:
         raise NotImplementedError()
+
+    def discover(self):
+        pass
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._resources.values())
@@ -215,8 +220,8 @@ class ClusterRegistry(Registry[Cluster]):
     """Holds a series of clusters"""
 
     def __init__(self, folder: Path):
-        super().__init__()
         self._folder = folder
+        super().__init__()
 
     @property
     def folder(self) -> Path:
@@ -225,6 +230,11 @@ class ClusterRegistry(Registry[Cluster]):
     def create(self, slug: str) -> Cluster:
         location = self.folder / f"{slug}.dat"
         return Cluster(location)
+
+    def discover(self) -> Generator[str, None, None]:
+        for item in self.folder.iterdir():
+            if item.is_file():
+                yield item.name
 
 
 class Collection:
@@ -255,11 +265,11 @@ class CollectionRegistry(Registry[Collection]):
     """Holds a series of collections"""
 
     def __init__(self, root: Path):
-        super().__init__()
         self._root = root
+        super().__init__()
 
     @property
-    def root(self):
+    def root(self) -> Path:
         return self._root
 
     def create(self, slug: str) -> Collection:
@@ -267,6 +277,11 @@ class CollectionRegistry(Registry[Collection]):
         collection = Collection(folder)
         collection.touch()
         return collection
+
+    def discover(self) -> Generator[str, None, None]:
+        for item in self.root.iterdir():
+            if item.is_dir():
+                yield item.name
 
 
 class Store:

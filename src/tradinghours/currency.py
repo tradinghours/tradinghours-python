@@ -7,7 +7,6 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
-from .catalog import default_catalog
 
 
 class Currency(BaseObject):
@@ -35,6 +34,8 @@ class Currency(BaseObject):
     """Weekend definition. Most markets are Sat-Sun."""
 
     def list_holidays(self, start, end) -> "CurrencyHoliday":
+        from .catalog import default_catalog
+
         holidays = list(
             default_catalog.filter(
                 CurrencyHoliday,
@@ -47,6 +48,8 @@ class Currency(BaseObject):
 
     @classmethod
     def list_all(cls) -> List[Self]:
+        from .catalog import default_catalog
+
         return list(default_catalog.list_all(Currency))
 
 
