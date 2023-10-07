@@ -34,12 +34,9 @@ class BaseObject:
         return cls(data_dict)
 
     @classmethod
-    def from_csv(cls, path: StrOrPath) -> Generator[Self, None, None]:
-        with open(path, "r", encoding="utf-8-sig", errors="replace") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                data = snake_dict(row)
-                yield cls(data)
+    def from_dict(cls, data: Dict) -> Self:
+        normalized = snake_dict(data)
+        return cls(normalized)
 
     def __str__(self):
         class_name = self.__class__.__name__

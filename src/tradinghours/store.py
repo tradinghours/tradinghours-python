@@ -1,12 +1,9 @@
 import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Generator, Generic, Iterator, Optional, Tuple, Type, TypeVar
+from typing import Generator, Generic, Iterator, Optional, Tuple, Type, TypeVar
 
 from .base import BaseObject
-from .currency import Currency, CurrencyHoliday
-from .market import Market, MarketHoliday
-from .schedule import Schedule
 from .typing import StrOrPath
 from .util import slugify
 
@@ -61,99 +58,10 @@ class SourceFile(Generic[B]):
     def path(self) -> Path:
         return self._root / self.filename
 
-    def load(self) -> Generator[B, None, None]:
-        for current in self.model.from_csv(self.path):
-            yield current
-
-
-class DeclaredFile(SourceFile[B]):
-    """Well known source file"""
-
-    known_files: Dict[str, Type["DeclaredFile"]] = {}
-
-    name: str = None
-    model: Type[B] = None
-
-    def __init__(self, root: StrOrPath):
-        super().__init__(root, self.name, self.model)
-
-    def __init_subclass__(cls):
-        super().__init_subclass__()
-        if cls.name is None:
-            raise ValueError("name must be defined")
-        if cls.model is None:
-            raise ValueError("model must be defined")
-        cls.known_files[cls.name] = cls
-
-    def pre_ingest(self, store: "Store"):
-        pass
-
-    def resolve_cluster(self, item: Type[B]) -> Optional[str]:
-        return None
-
-    def resolve_key(self, item: Type[B]) -> Optional[str]:
-        return None
-
-    def ingest(self, store: "Store"):
-        self.pre_ingest(store)
-        for current in self.load():
-            collection = self.name
-            cluster = self.resolve_cluster(current)
-            key = self.resolve_key(current)
-            data = current.to_tuple()
-            store.store_tuple(data, collection, cluster=cluster, key=key)
-
-
-class CurrencyFile(DeclaredFile[Currency]):
-    name = "currencies"
-    model = Currency
-
-    def resolve_key(self, item: Currency) -> Optional[str]:
-        return item.code
-
-
-class CurrencyHolidayFile(DeclaredFile[CurrencyHoliday]):
-    name = "currency_holidays"
-    model = CurrencyHoliday
-
-    def resolve_cluster(self, item: CurrencyHoliday) -> Optional[str]:
-        return item.currency_code
-
-    def resolve_key(self, item: CurrencyHoliday) -> Optional[str]:
-        return item.date
-
-
-class MarketFile(DeclaredFile[Market]):
-    name = "markets"
-    model = Market
-
-    def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
-        return item.fin_id.country
-
-    def resolve_key(self, item: MarketHoliday) -> Optional[str]:
-        return str(item.fin_id)
-
-
-class MarketHolidayFile(DeclaredFile[MarketHoliday]):
-    name = "holidays"
-    model = MarketHoliday
-
-    def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
-        return str(item.fin_id)
-
-    def resolve_key(self, item: MarketHoliday) -> Optional[str]:
-        return item.date
-
-
-class ScheduleFile(DeclaredFile[Schedule]):
-    name = "schedules"
-    model = Schedule
-
-    def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
-        return str(item.fin_id)
-
-    def pre_ingest(self, store: "Store"):
-        store.clear_collection(self.name)
+    def load_iter(self) -> Generator[B, None, None]:
+        with open(self.path, "r", encoding="utf-8-sig", errors="replace") as file:
+            for row in csv.DictReader(file):
+                yield self.model.from_dict(row)
 
 
 class Registry(ABC, Generic[T]):
@@ -306,11 +214,6 @@ class Store:
         collection_obj = self.collections.get(name)
         collection_obj.clear()
 
-    def ingest_all(self, data_folder: Path):
-        for _, declared_class in DeclaredFile.known_files.items():
-            source = declared_class(data_folder)
-            source.ingest(self)
-
     def store_tuple(
         self,
         data: Tuple,
@@ -332,6 +235,8 @@ class Store:
 
 if __name__ == "__main__":
     import time
+
+    from .market import Market
 
     start = time.time()
     data_folder = Path(__file__).parent.parent.parent / "data"

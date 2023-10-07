@@ -1,9 +1,104 @@
 from pathlib import Path
-from typing import Generator, Optional, Self, Type
-
+from typing import Dict, Generator, Optional, Self, Type, TypeVar
 
 from .base import BaseObject
-from .store import Collection, DeclaredFile, Store
+from .currency import Currency, CurrencyHoliday
+from .market import Market, MarketHoliday
+from .schedule import Schedule
+from .store import Collection, SourceFile, Store
+from .typing import StrOrPath
+
+B = TypeVar("B", bound=BaseObject)
+
+
+class DeclaredFile(SourceFile[B]):
+    """Well known source file"""
+
+    known_files: Dict[str, Type["DeclaredFile"]] = {}
+
+    name: str = None
+    model: Type[B] = None
+
+    def __init__(self, root: StrOrPath):
+        super().__init__(root, self.name, self.model)
+
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if cls.name is None:
+            raise ValueError("name must be defined")
+        if cls.model is None:
+            raise ValueError("model must be defined")
+        cls.known_files[cls.name] = cls
+
+    def pre_ingest(self, store: "Store"):
+        pass
+
+    def resolve_cluster(self, item: Type[B]) -> Optional[str]:
+        return None
+
+    def resolve_key(self, item: Type[B]) -> Optional[str]:
+        return None
+
+    def ingest(self, store: "Store"):
+        self.pre_ingest(store)
+        for current in self.load_iter():
+            collection = self.name
+            cluster = self.resolve_cluster(current)
+            key = self.resolve_key(current)
+            data = current.to_tuple()
+            store.store_tuple(data, collection, cluster=cluster, key=key)
+
+
+class CurrencyFile(DeclaredFile[Currency]):
+    name = "currencies"
+    model = Currency
+
+    def resolve_key(self, item: Currency) -> Optional[str]:
+        return item.code
+
+
+class CurrencyHolidayFile(DeclaredFile[CurrencyHoliday]):
+    name = "currency_holidays"
+    model = CurrencyHoliday
+
+    def resolve_cluster(self, item: CurrencyHoliday) -> Optional[str]:
+        return item.currency_code
+
+    def resolve_key(self, item: CurrencyHoliday) -> Optional[str]:
+        return item.date
+
+
+class MarketFile(DeclaredFile[Market]):
+    name = "markets"
+    model = Market
+
+    def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
+        return item.fin_id.country
+
+    def resolve_key(self, item: MarketHoliday) -> Optional[str]:
+        return str(item.fin_id)
+
+
+class MarketHolidayFile(DeclaredFile[MarketHoliday]):
+    name = "holidays"
+    model = MarketHoliday
+
+    def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
+        return str(item.fin_id)
+
+    def resolve_key(self, item: MarketHoliday) -> Optional[str]:
+        return item.date
+
+
+class ScheduleFile(DeclaredFile[Schedule]):
+    name = "schedules"
+    model = Schedule
+
+    def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
+        return str(item.fin_id)
+
+    def pre_ingest(self, store: "Store"):
+        store.clear_collection(self.name)
 
 
 class Catalog:
@@ -19,6 +114,11 @@ class Catalog:
     @property
     def store(self) -> Store:
         return self._store
+
+    def ingest_all(self, data_folder: Path):
+        for _, declared_class in DeclaredFile.known_files.items():
+            source = declared_class(data_folder)
+            source.ingest(self.store)
 
     def find_model_collection(self, model: Type[BaseObject]) -> Collection:
         for name, declared in DeclaredFile.known_files.items():
