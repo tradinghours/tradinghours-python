@@ -125,10 +125,11 @@ class Catalog:
             if declared.model is model:
                 return self.store.collections.get(name)
 
-    def list_all(self, model: Type[BaseObject]) -> Generator[BaseObject, None, None]:
+    def list_all(self, model: Type[B]) -> Generator[B, None, None]:
         collection = self.find_model_collection(model)
         for cluster in collection.clusters:
-            for _, current in cluster.items():
+            cluster_data = cluster.load_all()
+            for _, current in cluster_data.items():
                 yield model.from_tuple(current)
 
     def get(
@@ -137,7 +138,8 @@ class Catalog:
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
         cluster = collection.clusters.get(cluster_name)
-        for current_key, data in cluster.items():
+        cluster_data = cluster.load_all()
+        for current_key, data in cluster_data.items():
             if current_key == key:
                 return model.from_tuple(data)
         return None
@@ -152,7 +154,8 @@ class Catalog:
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
         cluster = collection.clusters.get(cluster_name)
-        for current_key, data in cluster.items():
+        cluster_data = cluster.load_all()
+        for current_key, data in cluster_data.items():
             if current_key >= key_start and current_key <= key_end:
                 yield model.from_tuple(data)
         return None
@@ -162,6 +165,7 @@ class Catalog:
         # TODO: need to know all clusters on load
         data_folder = Path(__file__).parent.parent.parent / "data"
         store = Store(data_folder / "store")
+        store.touch()
         return cls(store)
 
 
@@ -171,6 +175,11 @@ default_catalog = Catalog.load_default()
 if __name__ == "__main__":
     from tradinghours.market import Market
 
-    markets = default_catalog.list_all(Market)
-    for current in default_catalog.list_all(Market):
-        print(current)
+    print("Importing...")
+    data_folder = Path(__file__).parent.parent.parent / "data"
+    default_catalog.ingest_all(data_folder)
+
+    print("Loading...")
+    loaded = list(default_catalog.list_all(Market))
+
+    print("Done", len(loaded))

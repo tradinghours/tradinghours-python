@@ -1,7 +1,7 @@
 import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Generator, Generic, Iterator, Optional, Tuple, Type, TypeVar
+from typing import Dict, Generator, Generic, Iterator, Optional, Tuple, Type, TypeVar
 
 from .base import BaseObject
 from .typing import StrOrPath
@@ -96,32 +96,30 @@ class Cluster:
 
     def __init__(self, location: Path):
         self._location = location
-        self._file = open(self.location, "a+", encoding="utf-8", newline="")
-        self._writer = csv.writer(self._file)
 
     @property
     def location(self) -> Path:
         return self._location
 
-    def close(self):
-        self._file.close()
-
     def truncate(self):
-        self._file.seek(0)
-        self._file.truncate(0)
+        with open(self.location, "a+", encoding="utf-8", newline="") as file:
+            file.seek(0)
+            file.truncate(0)
 
     def append(self, key: Optional[str], data: Tuple):
         record = [key, *data]
-        self._writer.writerow(record)
+        with open(self.location, "a+", encoding="utf-8", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(record)
 
-    def items(self) -> Generator[Tuple[str, Tuple], None, None]:
-        # TODO: seek EOF after start iterating
-        self._file.seek(0)
-        reader = csv.reader(self._file)
-        for row in reader:
-            key = row[0]
-            data = row[1:]
-            yield key, data
+    def load_all(self) -> Dict[str, Tuple]:
+        keyed_items = {}
+        with open(self.location, "r", encoding="utf-8", newline="") as file:
+            for row in csv.reader(file):
+                key = row[0]
+                data = row[1:]
+                keyed_items[key] = data
+        return keyed_items
 
 
 class ClusterRegistry(Registry[Cluster]):
@@ -140,9 +138,10 @@ class ClusterRegistry(Registry[Cluster]):
         return Cluster(location)
 
     def discover(self) -> Generator[str, None, None]:
-        for item in self.folder.iterdir():
-            if item.is_file():
-                yield item.name
+        if self.folder.exists():
+            for item in self.folder.iterdir():
+                if item.is_file():
+                    yield item.stem
 
 
 class Collection:
@@ -187,9 +186,10 @@ class CollectionRegistry(Registry[Collection]):
         return collection
 
     def discover(self) -> Generator[str, None, None]:
-        for item in self.root.iterdir():
-            if item.is_dir():
-                yield item.name
+        if self.root.exists():
+            for item in self.root.iterdir():
+                if item.is_dir():
+                    yield item.name
 
 
 class Store:
@@ -226,34 +226,3 @@ class Store:
             cluster = "unique"
         cluster_obj = collection_obj.clusters.get(cluster)
         cluster_obj.append(key, data)
-
-    def close(self):
-        for current_collection in self.collections:
-            for current_cluster in current_collection.clusters:
-                current_cluster.close()
-
-
-if __name__ == "__main__":
-    import time
-
-    from .market import Market
-
-    start = time.time()
-    data_folder = Path(__file__).parent.parent.parent / "data"
-    store = Store(data_folder / "store")
-    store.touch()
-    store.ingest_all(data_folder)
-    elapsed = time.time() - start
-    print("Elapsed time", elapsed)
-
-    start = time.time()
-    collection = store.collections.get("markets")
-    cluster = collection.clusters.get("qa")
-    for key, current in cluster.items():
-        market = Market.from_tuple(current)
-        print(key, market)
-    elapsed = time.time() - start
-
-    store.close()
-
-    print("Elapsed time", elapsed)
