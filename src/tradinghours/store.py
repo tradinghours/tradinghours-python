@@ -1,7 +1,17 @@
 import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Generator, Generic, Iterator, Optional, Tuple, Type, TypeVar
+from typing import (
+    Dict,
+    Generator,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 from .base import BaseObject
 from .typing import StrOrPath
@@ -94,8 +104,12 @@ class Registry(ABC, Generic[T]):
 class Cluster:
     """Manages one page file with items for a collection"""
 
-    def __init__(self, location: Path):
+    DEFAULT_CACHE_SIZE = 500
+
+    def __init__(self, location: Path, cache_size: Optional[int] = None):
         self._location = location
+        self._cached: List[str, Tuple] = []
+        self._cache_size = cache_size or self.DEFAULT_CACHE_SIZE
 
     @property
     def location(self) -> Path:
@@ -108,9 +122,15 @@ class Cluster:
 
     def append(self, key: Optional[str], data: Tuple):
         record = [key, *data]
+        self._cached.append(record)
+        if len(self._cached) >= self._cache_size:
+            self.flush()
+
+    def flush(self):
         with open(self.location, "a+", encoding="utf-8", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(record)
+            writer.writerows(self._cached)
+            self._cached = []
 
     def load_all(self) -> Dict[str, Tuple]:
         keyed_items = {}
@@ -226,3 +246,8 @@ class Store:
             cluster = "unique"
         cluster_obj = collection_obj.clusters.get(cluster)
         cluster_obj.append(key, data)
+
+    def flush(self):
+        for collection in self.collections:
+            for cluster in collection.clusters:
+                cluster.flush()

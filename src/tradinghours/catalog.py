@@ -119,6 +119,7 @@ class Catalog:
         for _, declared_class in DeclaredFile.known_files.items():
             source = declared_class(data_folder)
             source.ingest(self.store)
+        self.store.flush()
 
     def find_model_collection(self, model: Type[BaseObject]) -> Collection:
         for name, declared in DeclaredFile.known_files.items():
@@ -172,11 +173,16 @@ default_catalog = Catalog.load_default()
 
 
 if __name__ == "__main__":
+    from time import time
+
     from tradinghours.market import Market
 
     print("Importing...")
+    start = time()
     data_folder = Path(__file__).parent.parent.parent / "data"
     default_catalog.ingest_all(data_folder)
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed)
 
     print("Loading...")
     loaded = list(default_catalog.list_all(Market))
