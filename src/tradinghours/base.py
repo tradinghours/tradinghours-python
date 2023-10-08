@@ -1,10 +1,23 @@
-import csv
 import datetime
-from typing import Any, Dict, Generator, Generic, List, Self, Tuple, Type, TypeVar, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Self,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 
 from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod, WeekdaySet
-from .typing import StrOrPath
 from .util import snake_case, snake_dict
+
+if TYPE_CHECKING:
+    from .catalog import Catalog
 
 T = TypeVar("T")
 
@@ -37,6 +50,14 @@ class BaseObject:
     def from_dict(cls, data: Dict) -> Self:
         normalized = snake_dict(data)
         return cls(normalized)
+
+    @classmethod
+    def get_catalog(cls, catalog: Optional["Catalog"]) -> "Catalog":
+        if catalog is None:
+            from .catalog import default_catalog
+
+            return default_catalog
+        return catalog
 
     def __str__(self):
         class_name = self.__class__.__name__

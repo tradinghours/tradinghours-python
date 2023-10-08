@@ -162,7 +162,6 @@ class Catalog:
 
     @classmethod
     def load_default(cls) -> Self:
-        # TODO: need to know all clusters on load
         data_folder = Path(__file__).parent.parent.parent / "data"
         store = Store(data_folder / "store")
         store.touch()

@@ -1,4 +1,5 @@
 from typing import List, Self
+
 from .base import (
     BaseObject,
     BooleanField,
@@ -33,11 +34,10 @@ class Currency(BaseObject):
     weekend = WeekdaySetField()
     """Weekend definition. Most markets are Sat-Sun."""
 
-    def list_holidays(self, start, end) -> "CurrencyHoliday":
-        from .catalog import default_catalog
-
+    def list_holidays(self, start, end, catalog=None) -> "CurrencyHoliday":
+        catalog = self.get_catalog(catalog)
         holidays = list(
-            default_catalog.filter(
+            catalog.filter(
                 CurrencyHoliday,
                 cluster=self.currency_code,
                 key_from=start,
@@ -47,10 +47,9 @@ class Currency(BaseObject):
         return holidays
 
     @classmethod
-    def list_all(cls) -> List[Self]:
-        from .catalog import default_catalog
-
-        return list(default_catalog.list_all(Currency))
+    def list_all(cls, catalog=None) -> List[Self]:
+        catalog = cls.get_catalog(catalog)
+        return list(catalog.list_all(Currency))
 
 
 class CurrencyHoliday(BaseObject):
