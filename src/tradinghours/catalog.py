@@ -115,11 +115,19 @@ class Catalog:
     def store(self) -> Store:
         return self._store
 
-    def ingest_all(self, data_folder: Path):
+    def download(self):
+        self.store.download_data()
+
+    def ingest_all(self, csv_folder: Optional[Path] = None):
+        csv_folder = csv_folder or self.store.remote_folder / "csv"
         for _, declared_class in DeclaredFile.known_files.items():
-            source = declared_class(data_folder)
+            source = declared_class(csv_folder)
             source.ingest(self.store)
         self.store.flush()
+
+    def download_and_ingest(self):
+        self.store.download_data()
+        self.ingest_all()
 
     def find_model_collection(self, model: Type[BaseObject]) -> Collection:
         for name, declared in DeclaredFile.known_files.items():
@@ -163,9 +171,8 @@ class Catalog:
 
     @classmethod
     def load_default(cls) -> Self:
-        data_folder = Path(__file__).parent.parent.parent / "data"
-        store = Store(data_folder / "store")
-        store.touch()
+        folder = Path(__file__).parent.parent.parent / "store_dir"
+        store = Store(folder)
         return cls(store)
 
 
@@ -177,14 +184,22 @@ if __name__ == "__main__":
 
     from tradinghours.market import Market
 
-    print("Importing...")
+    print("\nDownloading...")
     start = time()
-    data_folder = Path(__file__).parent.parent.parent / "data"
-    default_catalog.ingest_all(data_folder)
+    default_catalog.download()
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 
-    print("Loading...")
-    loaded = list(default_catalog.list_all(Market))
+    print("\nImporting...")
+    start = time()
+    default_catalog.ingest_all()
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed)
 
-    print("Done", len(loaded))
+    print("\nLoading...")
+    start = time()
+    loaded = list(default_catalog.list_all(Market))
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed)
+
+    print("\nDone", len(loaded))

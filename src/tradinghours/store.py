@@ -1,4 +1,9 @@
 import csv
+import os
+import shutil
+import tempfile
+import urllib.request
+import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
@@ -19,6 +24,8 @@ from .util import slugify
 
 B = TypeVar("B", bound=BaseObject)
 T = TypeVar("T")
+
+DOWNLOAD_URL = "https://api.tradinghours.com/v3/download"
 
 
 class SourceFile(Generic[B]):
@@ -217,18 +224,33 @@ class Store:
 
     def __init__(self, root: Path):
         self._root = root
-        self._collections = CollectionRegistry(self._root)
+        self.touch()
+        self._collections = CollectionRegistry(self.data_folder)
 
     @property
     def root(self) -> Path:
         return self._root
 
     @property
+    def remote_folder(self) -> Path:
+        return self.root / "remote"
+
+    @property
+    def data_folder(self) -> Path:
+        return self.root / "data"
+
+    @property
     def collections(self) -> CollectionRegistry:
         return self._collections
 
+    @property
+    def token(self):
+        return os.getenv("TRADINGHOURS_TOKEN")
+
     def touch(self):
         self.root.mkdir(exist_ok=True)
+        self.remote_folder.mkdir(exist_ok=True)
+        self.data_folder.mkdir(exist_ok=True)
 
     def clear_collection(self, name: str):
         collection_obj = self.collections.get(name)
@@ -251,3 +273,19 @@ class Store:
         for collection in self.collections:
             for cluster in collection.clusters:
                 cluster.flush()
+
+    def download_data(self):
+        request = urllib.request.Request(DOWNLOAD_URL)
+        request.add_header("Authorization", f"Bearer {self.token}")
+
+        with urllib.request.urlopen(request) as response:
+            if response.getcode() == 200:
+                # Create a temporary file to save the downloaded ZIP
+                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                    shutil.copyfileobj(response, temp_file)
+
+                    # Unpack the ZIP file to the specified directory
+                    unzip_dir = self.root / "remote"
+                    unzip_dir.mkdir(parents=True, exist_ok=True)
+                    with zipfile.ZipFile(temp_file.name, "r") as zip_ref:
+                        zip_ref.extractall(unzip_dir)
