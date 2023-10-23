@@ -182,8 +182,6 @@ default_catalog = Catalog.load_default()
 if __name__ == "__main__":
     from time import time
 
-    from tradinghours.market import Market
-
     print("\nDownloading...")
     start = time()
     # default_catalog.download()
@@ -206,6 +204,12 @@ if __name__ == "__main__":
     start = time()
     loaded = list(us_market.list_holidays("2023-06-01", "2023-12-31"))
     elapsed = time() - start
-    print("Elapsed seconds", elapsed)
+    print("Elapsed seconds", elapsed, len(loaded))
 
-    print("\nDone", len(loaded))
+    print("\nListing Currencies...")
+    start = time()
+    loaded = list(Currency.list_all())
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed, len(loaded))
+
+    print("\nDone")
