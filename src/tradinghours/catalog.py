@@ -133,6 +133,7 @@ class Catalog:
         for name, declared in DeclaredFile.known_files.items():
             if declared.model is model:
                 return self.store.collections.get(name)
+        return None
 
     def list_all(self, model: Type[B]) -> Generator[B, None, None]:
         collection = self.find_model_collection(model)
@@ -190,7 +191,7 @@ if __name__ == "__main__":
 
     print("\nImporting...")
     start = time()
-    # default_catalog.ingest_all()
+    default_catalog.ingest_all()
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 
@@ -209,6 +210,12 @@ if __name__ == "__main__":
     print("\nListing Currencies...")
     start = time()
     loaded = list(Currency.list_all())
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed, len(loaded))
+
+    print("\nListing Schedules...")
+    start = time()
+    loaded = list(Schedule.list_all())
     elapsed = time() - start
     print("Elapsed seconds", elapsed, len(loaded))
 

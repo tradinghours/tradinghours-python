@@ -1,3 +1,4 @@
+from typing import List
 from .base import (
     BaseObject,
     BooleanField,
@@ -9,6 +10,7 @@ from .base import (
     StringField,
     TimeField,
     WeekdayField,
+    WeekdaySetField,
 )
 
 
@@ -71,10 +73,33 @@ class PeriodSchedule(BaseObject):
 
 
 class Schedule(BaseObject):
+    """Schedules definitions from TradingHours"""
+
     fin_id = FinIdField()
     schedule_group = StringField()
     schedule_group_memo = StringField()
     timezone = OlsonTimezoneField()
+    phase_type = StringField()
+    phase_name = StringField()
+    phase_memo = StringField()
+    days = WeekdaySetField()
+    start = TimeField()
+    end = TimeField()
+    offset_days = StringField()
+    duration = StringField()
+    min_start = TimeField()
+    max_start = TimeField()
+    min_end = TimeField()
+    max_end = TimeField()
+    in_force_start_date = DateField()
+    in_force_end_date = DateField()
+    season_start = StringField()
+    season_end = StringField()
+
+    @classmethod
+    def list_all(cls, catalog=None) -> List:
+        catalog = cls.get_catalog(catalog)
+        return list(catalog.list_all(Schedule))
 
 
 class RegularSchedule(BaseObject):
