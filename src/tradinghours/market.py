@@ -1,4 +1,4 @@
-from typing import List, Self
+from typing import Generator, List, Self
 
 from .base import (
     BaseObject,
@@ -54,14 +54,16 @@ class Market(BaseObject):
     weekend_definition = WeekdaySetField()
     """Indicates the days of the week when the market regularly closed."""
 
-    def list_holidays(self, start, end, catalog=None) -> "MarketHoliday":
+    def list_holidays(
+        self, start, end, catalog=None
+    ) -> Generator["MarketHoliday", None, None]:
         catalog = self.get_catalog(catalog)
         holidays = list(
             catalog.filter(
                 MarketHoliday,
                 start,
                 end,
-                cluster=self.fin_id,
+                cluster=str(self.fin_id),
             )
         )
         return holidays

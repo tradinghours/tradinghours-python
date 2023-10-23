@@ -186,19 +186,25 @@ if __name__ == "__main__":
 
     print("\nDownloading...")
     start = time()
-    default_catalog.download()
+    # default_catalog.download()
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 
     print("\nImporting...")
     start = time()
-    default_catalog.ingest_all()
+    # default_catalog.ingest_all()
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 
-    print("\nLoading...")
+    print("\nLoading Market...")
     start = time()
-    loaded = list(default_catalog.list_all(Market))
+    us_market: Market = default_catalog.get(Market, "US.IEX", "us")
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed)
+
+    print("\nListing Holidays...")
+    start = time()
+    loaded = list(us_market.list_holidays("2023-06-01", "2023-12-31"))
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 
