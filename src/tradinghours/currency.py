@@ -51,6 +51,11 @@ class Currency(BaseObject):
         catalog = cls.get_catalog(catalog)
         return list(catalog.list_all(Currency))
 
+    @classmethod
+    def get(cls, code, catalog=None) -> "Currency":
+        catalog = cls.get_catalog(catalog)
+        return catalog.get(cls, code)
+
 
 class CurrencyHoliday(BaseObject):
     """Holiday for an specific currency"""
