@@ -14,17 +14,16 @@ from .base import (
 )
 
 
-# TODO: consider renaming to ConcretePhase because of phase_type
-class Phase(BaseObject):
+class ConcretePhase(BaseObject):
     """A period within a schedule"""
 
-    type = StringField()
+    phase_type = StringField()
     """Well known options"""
 
-    name = StringField()
+    phase_name = StringField()
     """Describes the name for the phase type."""
 
-    memo = StringField()
+    phase_memo = StringField()
     """If applicable, will have additional description or information."""
 
     status = StringField()
@@ -55,7 +54,7 @@ class DateSchedule(BaseObject):
     holiday = StringField()
     """Describes the holiday, if any."""
 
-    schedule = ListField[Phase]()
+    schedule = ListField[ConcretePhase]()
     """Nested data of the schedule."""
 
 
@@ -68,7 +67,7 @@ class PeriodSchedule(BaseObject):
     end = DateTimeField()
     """The end date for the data returned."""
 
-    schedule = ListField[Phase]()
+    schedule = ListField[ConcretePhase]()
     """Nested data of the schedule."""
 
 
@@ -95,6 +94,19 @@ class Schedule(BaseObject):
     in_force_end_date = DateField()
     season_start = StringField()
     season_end = StringField()
+
+    def intersects_with(self, start, end) -> bool:
+        if self.in_force_start_date is None and self.in_force_end_date is None:
+            return True
+        elif self.in_force_start_date is None:
+            return self.in_force_end_date >= start
+        elif self.in_force_end_date is None:
+            return self.in_force_start_date <= end
+        else:
+            return self.in_force_start_date <= end and self.in_force_end_date >= start
+
+    def happens_at(self, some_date) -> bool:
+        return self.intersects_with(some_date, some_date)
 
     @classmethod
     def list_all(cls, catalog=None) -> List:

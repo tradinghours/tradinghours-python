@@ -1,4 +1,8 @@
+from datetime import timedelta
+import datetime
 from typing import Generator, List, Self
+
+from .schedule import ConcretePhase, Schedule
 
 from .base import (
     BaseObject,
@@ -53,6 +57,47 @@ class Market(BaseObject):
 
     weekend_definition = WeekdaySetField()
     """Indicates the days of the week when the market regularly closed."""
+
+    def generate_schedules(
+        self, start, end, catalog=None
+    ) -> Generator[ConcretePhase, None, None]:
+        catalog = self.get_catalog(catalog)
+
+        # Get schedules happening in the period to be considered
+        schedules_listing = catalog.list(Schedule, cluster=str(self.fin_id))
+        intersecting_schedules: List[Schedule] = []
+        for _, current in schedules_listing:
+            if current.intersects_with(start, end):
+                intersecting_schedules.append(current)
+
+        # Iterate from start to end date, generating phases
+        current_date: datetime.date = start
+        while current_date <= end:
+            date_schedules = sorted(
+                filter(
+                    lambda fs: fs.happens_at(current_date),
+                    intersecting_schedules,
+                ),
+                key=lambda ss: ss.start,
+            )
+
+            # Generate phases for current date
+            for current_schedule in date_schedules:
+                date_str = current_date.isoformat() + "T"
+                start_str = date_str + current_schedule.start.isoformat()
+                end_str = date_str + current_schedule.end.isoformat()
+                yield ConcretePhase(
+                    dict(
+                        phase_type=current_schedule.phase_type,
+                        phase_name=current_schedule.phase_name,
+                        phase_memo=current_schedule.phase_memo,
+                        start=start_str,
+                        end=end_str,
+                    )
+                )
+
+            # Next date, please
+            current_date += timedelta(days=1)
 
     def list_holidays(
         self, start, end, catalog=None

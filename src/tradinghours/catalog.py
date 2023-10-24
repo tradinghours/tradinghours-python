@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Generator, Optional, Self, Type, TypeVar
+from typing import Dict, Generator, Optional, Self, Tuple, Type, TypeVar
 
 from .base import BaseObject
 from .currency import Currency, CurrencyHoliday
@@ -142,6 +142,17 @@ class Catalog:
             for _, current in cluster_data.items():
                 yield model.from_tuple(current)
 
+    def list(
+        self, model: Type[B], cluster: Optional[str] = None
+    ) -> Generator[Tuple[str, B], None, None]:
+        collection = self.find_model_collection(model)
+        cluster_name = cluster or "default"
+        cluster = collection.clusters.get(cluster_name)
+        cluster_data = cluster.load_all()
+        for current_key, data in cluster_data.items():
+            yield current_key, model.from_tuple(data)
+        return None
+
     def get(
         self, model: Type[BaseObject], key: str, cluster: Optional[str] = None
     ) -> Optional[BaseObject]:
@@ -182,6 +193,7 @@ default_catalog = Catalog.load_default()
 
 if __name__ == "__main__":
     from time import time
+    from datetime import date
 
     print("\nDownloading...")
     start = time()
@@ -216,6 +228,13 @@ if __name__ == "__main__":
     print("\nListing Schedules...")
     start = time()
     loaded = list(Schedule.list_all())
+    elapsed = time() - start
+    print("Elapsed seconds", elapsed, len(loaded))
+
+    print("\nGenerating Schedules...")
+    start = time()
+    for concrete in us_market.generate_schedules(date(2023, 9, 1), date(2023, 9, 30)):
+        print(concrete)
     elapsed = time() - start
     print("Elapsed seconds", elapsed, len(loaded))
 

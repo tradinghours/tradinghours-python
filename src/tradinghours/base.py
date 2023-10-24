@@ -83,7 +83,7 @@ class Field(Generic[T]):
             key = snake_case(objtype.__name__) + "_" + key
             value = obj.data.get(key, None)
         if value is None or value == "":
-            return value
+            return None
         else:
             return self.prepare(value)
 
@@ -106,19 +106,22 @@ class BooleanField(Field[bool]):
 class DateField(Field[datetime.date]):
     """Field of date type"""
 
-    pass
+    def prepare(self, value) -> datetime.date:
+        return datetime.date.fromisoformat(value)
 
 
 class DateTimeField(Field[datetime.datetime]):
     """Field of datetime type"""
 
-    pass
+    def prepare(self, value) -> datetime.datetime:
+        return datetime.datetime.fromisoformat(value)
 
 
 class TimeField(Field[datetime.time]):
     """Field of time type"""
 
-    pass
+    def prepare(self, value) -> datetime.time:
+        return datetime.time.fromisoformat(value)
 
 
 class ReferenceField(Field[BaseObject]):
