@@ -13,6 +13,8 @@ from .base import (
     WeekdayField,
     WeekdaySetField,
 )
+from .typing import StrOrDate
+from .validate import validate_date_arg, validate_range_args
 
 
 class ConcretePhase(BaseObject):
@@ -96,7 +98,11 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
-    def intersects_with(self, start, end) -> bool:
+    def intersects_with(self, start: StrOrDate, end: StrOrDate) -> bool:
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
         if self.in_force_start_date is None and self.in_force_end_date is None:
             return True
         elif self.in_force_start_date is None:
@@ -106,7 +112,8 @@ class Schedule(BaseObject):
         else:
             return self.in_force_start_date <= end and self.in_force_end_date >= start
 
-    def happens_at(self, some_date) -> bool:
+    def happens_at(self, some_date: StrOrDate) -> bool:
+        some_date = validate_date_arg("some_date", some_date)
         return self.intersects_with(some_date, some_date)
 
     @classmethod

@@ -87,7 +87,7 @@ class Field(Generic[T]):
         else:
             return self.prepare(value)
 
-    def prepare(self, value: Any) -> T:
+    def prepare(self, value: str) -> T:
         return cast(T, value)
 
 
@@ -106,21 +106,21 @@ class BooleanField(Field[bool]):
 class DateField(Field[datetime.date]):
     """Field of date type"""
 
-    def prepare(self, value) -> datetime.date:
+    def prepare(self, value: str) -> datetime.date:
         return datetime.date.fromisoformat(value)
 
 
 class DateTimeField(Field[datetime.datetime]):
     """Field of datetime type"""
 
-    def prepare(self, value) -> datetime.datetime:
+    def prepare(self, value: str) -> datetime.datetime:
         return datetime.datetime.fromisoformat(value)
 
 
 class TimeField(Field[datetime.time]):
     """Field of time type"""
 
-    def prepare(self, value) -> datetime.time:
+    def prepare(self, value: str) -> datetime.time:
         return datetime.time.fromisoformat(value)
 
 
@@ -141,40 +141,40 @@ class ListField(Field[List[T]]):
 class OlsonTimezoneField(Field[OlsonTimezone]):
     """Field of an Olson Timezone"""
 
-    def prepare(self, value) -> OlsonTimezone:
+    def prepare(self, value: str) -> OlsonTimezone:
         return OlsonTimezone.from_string(value)
 
 
 class WeekdayField(Field[Weekday]):
     """Field for a Weekday"""
 
-    def prepare(self, value) -> Weekday:
+    def prepare(self, value: str) -> Weekday:
         return Weekday.from_string(value)
 
 
 class WeekdayPeriodField(Field[WeekdayPeriod]):
     """Field for period like Mon-Fri"""
 
-    def prepare(self, value) -> Weekday:
+    def prepare(self, value: str) -> Weekday:
         return WeekdayPeriod.from_string(value)
 
 
 class WeekdaySetField(Field[WeekdaySet]):
     """Field for set of periods like Mon-Fri"""
 
-    def prepare(self, value) -> WeekdaySet:
+    def prepare(self, value: str) -> WeekdaySet:
         return WeekdaySet.from_string(value)
 
 
 class FinIdField(Field[FinId]):
     """Field for a FinID"""
 
-    def prepare(self, value) -> FinId:
+    def prepare(self, value: str) -> FinId:
         return FinId.from_string(value)
 
 
 class MicField(Field[Mic]):
     """Field for a MIC"""
 
-    def prepare(self, value) -> Mic:
+    def prepare(self, value: str) -> Mic:
         return Mic.from_string(value)

@@ -1,4 +1,3 @@
-import datetime
 from datetime import timedelta
 from typing import Generator, List, Self
 
@@ -12,7 +11,8 @@ from .base import (
     WeekdaySetField,
 )
 from .schedule import ConcretePhase, Schedule
-from .structure import FinId
+from .typing import StrOrDate, StrOrFinId
+from .validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 
 class Market(BaseObject):
@@ -57,9 +57,15 @@ class Market(BaseObject):
     weekend_definition = WeekdaySetField()
     """Indicates the days of the week when the market regularly closed."""
 
+    replaced_by = FinIdField()
+
     def generate_schedules(
         self, start, end, catalog=None
     ) -> Generator[ConcretePhase, None, None]:
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
         catalog = self.get_catalog(catalog)
 
         # Get schedules happening in the period to be considered
@@ -70,7 +76,7 @@ class Market(BaseObject):
                 intersecting_schedules.append(current)
 
         # Iterate from start to end date, generating phases
-        current_date: datetime.date = start
+        current_date = start
         while current_date <= end:
             date_schedules = sorted(
                 filter(
@@ -99,14 +105,18 @@ class Market(BaseObject):
             current_date += timedelta(days=1)
 
     def list_holidays(
-        self, start, end, catalog=None
+        self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> Generator["MarketHoliday", None, None]:
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
         catalog = self.get_catalog(catalog)
         holidays = list(
             catalog.filter(
                 MarketHoliday,
-                start,
-                end,
+                start.isoformat(),
+                end.isoformat(),
                 cluster=str(self.fin_id),
             )
         )
@@ -118,10 +128,12 @@ class Market(BaseObject):
         return list(catalog.list_all(Market))
 
     @classmethod
-    def get_by_fin_id(cls, fin_id: FinId, catalog=None) -> Self:
-        found = catalog.get(Market, fin_id, cluster=fin_id.country)
-        if found.replaced_by:
-            found = catalog.get(Market, fin_id=found.replaced_by)
+    def get_by_fin_id(cls, finid: StrOrFinId, catalog=None) -> Self:
+        finid = validate_finid_arg("finid", finid)
+        catalog = cls.get_catalog(catalog)
+        found = catalog.get(Market, str(finid), cluster=finid.country)
+        if found and found.replaced_by:
+            found = catalog.get(Market, str(found.replaced_by), cluster=finid.country)
         return found
 
 

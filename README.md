@@ -68,20 +68,16 @@ for market in Market.list_all():
 
 ```python
 from tradinghours.market imort Market
-from tradinghours.structure import FinId
 
-fin_id = FinId(country='US', acronym='IEX')
-market = Market.get_by_fin_id(fin_id)
+market = Market.get_by_fin_id('US.IEX')
 ```
 
 ### Market Holidays
 
 ```python
 from tradinghours.market imort Market
-from tradinghours.structure import FinId
 
-fin_id = FinId(country='US', acronym='IEX')
-market = Market.get_by_fin_id(fin_id)
+market = Market.get_by_fin_id('US.IEX')
 for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
     print(holiday)
 ```
@@ -90,11 +86,9 @@ for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
 
 ```python
 from tradinghours.market imort Market
-from tradinghours.structure import FinId
 
-fin_id = FinId(country='US', acronym='IEX')
-market = Market.get_by_fin_id(fin_id)
-for concrete_phase in market.generate_schedules(date(2023, 9, 1), date(2023, 9, 30)):
+market = Market.get_by_fin_id('US.IEX')
+for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
     print(concrete_phase)
 ```
 

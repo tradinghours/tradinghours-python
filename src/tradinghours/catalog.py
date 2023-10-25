@@ -154,8 +154,8 @@ class Catalog:
         return None
 
     def get(
-        self, model: Type[BaseObject], key: str, cluster: Optional[str] = None
-    ) -> Optional[BaseObject]:
+        self, model: Type[B], key: str, cluster: Optional[str] = None
+    ) -> Optional[B]:
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
         cluster = collection.clusters.get(cluster_name)
@@ -167,11 +167,11 @@ class Catalog:
 
     def filter(
         self,
-        model: Type[BaseObject],
+        model: Type[B],
         key_start: str,
         key_end: str,
         cluster: Optional[str] = None,
-    ) -> Generator[BaseObject, None, None]:
+    ) -> Generator[B, None, None]:
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
         cluster = collection.clusters.get(cluster_name)

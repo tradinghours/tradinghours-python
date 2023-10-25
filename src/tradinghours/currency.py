@@ -8,6 +8,8 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
+from .typing import StrOrDate
+from .validate import validate_date_arg, validate_range_args, validate_str_arg
 
 
 class Currency(BaseObject):
@@ -34,14 +36,20 @@ class Currency(BaseObject):
     weekend = WeekdaySetField()
     """Weekend definition. Most markets are Sat-Sun."""
 
-    def list_holidays(self, start, end, catalog=None) -> "CurrencyHoliday":
+    def list_holidays(
+        self, start: StrOrDate, end: StrOrDate, catalog=None
+    ) -> "CurrencyHoliday":
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
         catalog = self.get_catalog(catalog)
         holidays = list(
             catalog.filter(
                 CurrencyHoliday,
                 cluster=self.currency_code,
-                key_from=start,
-                key_to=end,
+                key_from=start.isoformat(),
+                key_to=end.isoformat(),
             )
         )
         return holidays
@@ -52,7 +60,8 @@ class Currency(BaseObject):
         return list(catalog.list_all(Currency))
 
     @classmethod
-    def get(cls, code, catalog=None) -> "Currency":
+    def get(cls, code: str, catalog=None) -> "Currency":
+        code = validate_str_arg("code", code)
         catalog = cls.get_catalog(catalog)
         return catalog.get(cls, code)
 
