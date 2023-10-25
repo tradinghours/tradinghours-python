@@ -1,8 +1,5 @@
 import csv
 import os
-import shutil
-import tempfile
-import urllib.request
 import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -19,6 +16,7 @@ from typing import (
 )
 
 from .base import BaseObject
+from .remote import default_data_manager
 from .typing import StrOrPath
 from .util import slugify
 
@@ -275,17 +273,4 @@ class Store:
                 cluster.flush()
 
     def download_data(self):
-        request = urllib.request.Request(DOWNLOAD_URL)
-        request.add_header("Authorization", f"Bearer {self.token}")
-
-        with urllib.request.urlopen(request) as response:
-            if response.getcode() == 200:
-                # Create a temporary file to save the downloaded ZIP
-                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                    shutil.copyfileobj(response, temp_file)
-
-                    # Unpack the ZIP file to the specified directory
-                    unzip_dir = self.root / "remote"
-                    unzip_dir.mkdir(parents=True, exist_ok=True)
-                    with zipfile.ZipFile(temp_file.name, "r") as zip_ref:
-                        zip_ref.extractall(unzip_dir)
+        default_data_manager.download()

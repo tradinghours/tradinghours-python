@@ -192,12 +192,12 @@ default_catalog = Catalog.load_default()
 
 
 if __name__ == "__main__":
-    from time import time
     from datetime import date
+    from time import time
 
     print("\nDownloading...")
     start = time()
-    # default_catalog.download()
+    default_catalog.download()
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 

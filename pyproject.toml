@@ -30,6 +30,9 @@ dev = [
     'black',
 ]
 
+[project.scripts]
+tradinghours = "tradinghours.console:main"
+
 [tool.isort]
 profile = "black"
 

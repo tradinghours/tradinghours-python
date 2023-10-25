@@ -51,7 +51,8 @@ export TRADINGHOURS_TOKEN=<your-token-goes-here>
 ### Importing Data
 
 ```console
-python -m tradinghours.import
+python -m tradinghours.console status
+python -m tradinghours.console import
 ```
 
 ### List Markets

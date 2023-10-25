@@ -1,4 +1,5 @@
 from typing import List
+
 from .base import (
     BaseObject,
     BooleanField,

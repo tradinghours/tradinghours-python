@@ -1,8 +1,6 @@
-from datetime import timedelta
 import datetime
+from datetime import timedelta
 from typing import Generator, List, Self
-
-from .schedule import ConcretePhase, Schedule
 
 from .base import (
     BaseObject,
@@ -13,6 +11,7 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
+from .schedule import ConcretePhase, Schedule
 from .structure import FinId
 
 
