@@ -23,19 +23,25 @@ def create_parser():
 
 
 def run_status(args):
-    last_updated = default_data_manager.fetch_last_updated()
+    remote_timestamp = default_data_manager.remote_timestamp
+    local_timestamp = default_data_manager.local_timestamp
     if args.bare:
-        print(last_updated.isoformat())
+        print("remote:", remote_timestamp.isoformat())
+        print("local:", local_timestamp.isoformat())
     else:
-        print("Remote Last Updated:", last_updated)
+        print("TradingHours Data Status:")
+        print("  Remote Timestamp:  ", remote_timestamp)
+        print("  Local Timestamp:   ", local_timestamp)
 
 
 def run_import(args):
-    if args.force or True:
+    if args.force or default_data_manager.needs_download:
         print("Downloading...")
         default_data_manager.download()
         print("Ingesting...")
         default_catalog.ingest_all()
+    else:
+        print("Local data is up-to-date.")
 
 
 def main(args):

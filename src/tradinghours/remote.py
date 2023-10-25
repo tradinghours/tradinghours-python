@@ -5,7 +5,9 @@ import shutil
 import tempfile
 import zipfile
 from contextlib import contextmanager
+from functools import cached_property
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
@@ -50,14 +52,30 @@ class DataManager:
     """Manages accessing remote data"""
 
     def __init__(self, client, root):
-        self.client = client
-        self.root = root
+        self.client: Client = client
+        self.root: Path = root
 
-    def fetch_last_updated(self) -> datetime.datetime:
+    @cached_property
+    def remote_timestamp(self) -> datetime.datetime:
         data = default_client.get_json("last-updated")
-        last_updated_str = data["last_updated"]
-        last_updated = datetime.datetime.fromisoformat(last_updated_str)
-        return last_updated
+        last_updated = data["last_updated"]
+        timestamp = datetime.datetime.fromisoformat(last_updated)
+        return timestamp
+
+    @cached_property
+    def local_timestamp(self) -> Optional[datetime.datetime]:
+        version_file = self.root / "VERSION.txt"
+        if version_file.exists():
+            timestamp_format = "Generated at %a, %d %b %Y %H:%M:%S %z"
+            content = version_file.read_text()
+            line = content.splitlines()[0]
+            timestamp = datetime.datetime.strptime(line, timestamp_format)
+            return timestamp
+        return None
+
+    @cached_property
+    def needs_download(self) -> bool:
+        return self.remote_timestamp > self.local_timestamp
 
     def download(self):
         self.root.mkdir(parents=True, exist_ok=True)
@@ -72,8 +90,3 @@ default_data_manager = DataManager(
     default_client,
     Path(__file__).parent / "store_dir" / "remote",
 )
-
-
-if __name__ == "__main__":
-    last_updated = default_data_manager.fetch_last_updated()
-    print("Remote Last Updated", last_updated)
