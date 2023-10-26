@@ -3,7 +3,7 @@ from typing import Dict, Generator, Optional, Self, Tuple, Type, TypeVar
 
 from .base import BaseObject
 from .currency import Currency, CurrencyHoliday
-from .market import Market, MarketHoliday
+from .market import Market, MarketHoliday, MicMapping
 from .schedule import Schedule
 from .store import Collection, SourceFile, Store
 from .typing import StrOrPath
@@ -88,6 +88,14 @@ class MarketHolidayFile(DeclaredFile[MarketHoliday]):
 
     def resolve_key(self, item: MarketHoliday) -> Optional[str]:
         return item.date
+
+
+class MicMappingFile(DeclaredFile[MicMapping]):
+    name = "mic-mapping"
+    model = MicMapping
+
+    def resolve_key(self, item: MicMapping) -> Optional[str]:
+        return item.mic
 
 
 class ScheduleFile(DeclaredFile[Schedule]):
@@ -183,7 +191,7 @@ class Catalog:
 
     @classmethod
     def load_default(cls) -> Self:
-        folder = Path(__file__).parent.parent.parent / "store_dir"
+        folder = Path(__file__).parent / "store_dir"
         store = Store(folder)
         return cls(store)
 

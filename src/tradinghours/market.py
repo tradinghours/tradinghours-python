@@ -12,7 +12,12 @@ from .base import (
 )
 from .schedule import ConcretePhase, Schedule
 from .typing import StrOrDate, StrOrFinId
-from .validate import validate_date_arg, validate_finid_arg, validate_range_args
+from .validate import (
+    validate_date_arg,
+    validate_finid_arg,
+    validate_range_args,
+    validate_str_arg,
+)
 
 
 class Market(BaseObject):
@@ -60,7 +65,7 @@ class Market(BaseObject):
     replaced_by = FinIdField()
 
     def generate_schedules(
-        self, start, end, catalog=None
+        self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> Generator[ConcretePhase, None, None]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
@@ -128,13 +133,22 @@ class Market(BaseObject):
         return list(catalog.list_all(Market))
 
     @classmethod
-    def get_by_fin_id(cls, finid: StrOrFinId, catalog=None) -> Self:
+    def get_by_finid(cls, finid: StrOrFinId, catalog=None) -> Self:
         finid = validate_finid_arg("finid", finid)
         catalog = cls.get_catalog(catalog)
         found = catalog.get(Market, str(finid), cluster=finid.country)
         if found and found.replaced_by:
             found = catalog.get(Market, str(found.replaced_by), cluster=finid.country)
         return found
+
+    @classmethod
+    def get_by_mic(cls, mic: str, catalog=None) -> Self:
+        mic = validate_str_arg("mic", mic)
+        catalog = cls.get_catalog(catalog)
+        found = catalog.get(MicMapping, mic)
+        if found:
+            return cls.get_by_finid(found.fin_id)
+        return None
 
 
 class MarketHoliday(BaseObject):
@@ -163,3 +177,13 @@ class MarketHoliday(BaseObject):
 
     memo = StringField()
     """A description or additional details about the holiday."""
+
+
+class MicMapping(BaseObject):
+    """Mapping from MIC to FinId"""
+
+    mic = StringField()
+    """Market Identification Code"""
+
+    fin_id = FinIdField()
+    """TradingHours FinId"""

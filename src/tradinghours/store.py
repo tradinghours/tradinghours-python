@@ -263,7 +263,7 @@ class Store:
     ):
         collection_obj = self.collections.get(collection)
         if cluster is None:
-            cluster = "unique"
+            cluster = "default"
         cluster_obj = collection_obj.clusters.get(cluster)
         cluster_obj.append(key, data)
 

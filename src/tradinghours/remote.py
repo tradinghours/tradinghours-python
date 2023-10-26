@@ -75,7 +75,9 @@ class DataManager:
 
     @cached_property
     def needs_download(self) -> bool:
-        return self.remote_timestamp > self.local_timestamp
+        if self.local_timestamp:
+            return self.remote_timestamp > self.local_timestamp
+        return True
 
     def download(self):
         self.root.mkdir(parents=True, exist_ok=True)
