@@ -56,18 +56,20 @@ You just need to run the following command to download and import official data.
 
 ```console
 $ tradinghours import
-Downloading...
-Ingesting...
+Downloading..... (0.824s)
+Ingesting.......................... (12.066s)
 ```
 
 You can then check current data status with the following subcommand:
 
 ```console
 $ tradinghours status --extended
+Collecting timestamps.... (0.213s)
 TradingHours Data Status:
-  Remote Timestamp:   Wed Oct 25 19:25:56 2023
-  Local Timestamp:    Wed Oct 25 20:09:42 2023
+  Remote Timestamp:   Thu Oct 26 02:08:17 2023
+  Local Timestamp:    Thu Oct 26 03:12:40 2023
 
+Reading local data.... (0.426s)
 Extended Information:
   Currencies count:   30
   Markets count:      1012
