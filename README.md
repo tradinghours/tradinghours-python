@@ -46,6 +46,8 @@ pip install tradinghours
 export TRADINGHOURS_TOKEN=<your-token-goes-here>
 ```
 
+If you have an active subscription, [click here to get your API key](https://www.tradinghours.com/user/api-tokens).
+
 ## Usage
 
 ### Importing Data
