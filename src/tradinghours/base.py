@@ -12,6 +12,7 @@ from typing import (
     cast,
 )
 
+from .exceptions import PrepareError
 from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod, WeekdaySet
 from .util import snake_case, snake_dict
 
@@ -84,7 +85,13 @@ class Field(Generic[T]):
         if value is None or value == "":
             return None
         else:
+            return self.safe_prepare(value)
+
+    def safe_prepare(self, value: str) -> T:
+        try:
             return self.prepare(value)
+        except Exception as error:
+            raise PrepareError(self, value, inner=error)
 
     def prepare(self, value: str) -> T:
         return cast(T, value)

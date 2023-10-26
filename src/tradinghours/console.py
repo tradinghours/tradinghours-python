@@ -1,12 +1,26 @@
 import argparse
 import time
+import traceback
 from contextlib import contextmanager
+from textwrap import wrap
 from threading import Thread
 
+from tradinghours import __version__
 from tradinghours.catalog import default_catalog
 from tradinghours.currency import Currency
+from tradinghours.exceptions import TradingHoursError
 from tradinghours.market import Market
 from tradinghours.remote import default_data_manager
+
+EXIT_CODE_EXPECTED_ERROR = 1
+EXIT_CODE_UNKNOWN_ERROR = 2
+
+
+def print_help(text):
+    lines = wrap(text, initial_indent="  ", subsequent_indent="  ")
+    print("\n  --")
+    print("\n".join(lines))
+    print()
 
 
 @contextmanager
@@ -91,6 +105,39 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = create_parser()
-    args = parser.parse_args()
-    main(args)
+    try:
+        # Main console entrypoint
+        parser = create_parser()
+        args = parser.parse_args()
+        main(args)
+
+    # Handle generic errors gracefully
+    except Exception as error:
+        # TradingHours errors with help messages are simpler
+        if isinstance(error, TradingHoursError) and error.help_message:
+            print("ERROR:", error.detail)
+            print_help(error.help_message)
+            exit(EXIT_CODE_EXPECTED_ERROR)
+
+        # Other errors will generate a traceback dump
+        error_message = f"ERROR: {error}"
+        print(error_message)
+
+        try:
+            # Try saving extra information to local file
+            traceback_info = traceback.format_exc()
+            version_message = f"\nVERSION: {__version__}"
+            with open("debug.txt", "w") as debug_file:
+                debug_file.write(error_message)
+                debug_file.write(version_message)
+                debug_file.write("\n\nTraceback:\n")
+                debug_file.write(traceback_info)
+            print_help(
+                "Details about this error were saved to debug.txt file. You can "
+                "submit it to the support team for further investigation. Feel "
+                "free also to submit the file in a new GitHub issue.",
+            )
+        except Exception as error:
+            print("Failed saving debug information.", error)
+        finally:
+            exit(EXIT_CODE_UNKNOWN_ERROR)

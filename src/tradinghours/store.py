@@ -14,16 +14,11 @@ from typing import (
     TypeVar,
 )
 
-from tradinghours.validate import (
-    validate_path_arg,
-    validate_str_arg,
-    validate_subclass_arg,
-)
-
 from .base import BaseObject
 from .config import main_config
 from .typing import StrOrPath
 from .util import slugify
+from .validate import validate_path_arg, validate_str_arg, validate_subclass_arg
 
 B = TypeVar("B", bound=BaseObject)
 T = TypeVar("T")

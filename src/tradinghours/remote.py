@@ -7,17 +7,14 @@ from contextlib import contextmanager
 from functools import cached_property
 from pathlib import Path
 from typing import Optional
+from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
-from tradinghours.typing import StrOrPath
-from tradinghours.validate import validate_instance_arg, validate_path_arg
-
 from .config import main_config
-
-
-class ClientError(Exception):
-    pass
+from .exceptions import ClientError, TokenError
+from .typing import StrOrPath
+from .validate import validate_instance_arg, validate_path_arg
 
 
 class Client:
@@ -32,10 +29,13 @@ class Client:
         url = urljoin(self.base_url, path)
         request = Request(url)
         request.add_header("Authorization", f"Bearer {self.token}")
-        with urlopen(request) as response:
-            if response.getcode() != 200:
-                raise ClientError("Unexpected HTTP status")
-            yield response
+        try:
+            with urlopen(request) as response:
+                yield response
+        except HTTPError as error:
+            if error.code == 401:
+                raise TokenError("Token is missing or invalid")
+            raise ClientError("Error getting server response", inner=error)
 
     @contextmanager
     def download_temporary(self, path):

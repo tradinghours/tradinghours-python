@@ -2,6 +2,7 @@
 data/
 store_dir/
 .DS_Store
+debug.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
