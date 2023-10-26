@@ -50,9 +50,25 @@ export TRADINGHOURS_TOKEN=<your-token-goes-here>
 
 ### Importing Data
 
+You just need to run the following command to download and import official data. Remember that you need to have a valid **TRADINGHOURS_TOKEN** environment variable.
+
 ```console
-python -m tradinghours.console status
-python -m tradinghours.console import
+$ tradinghours import
+Downloading...
+Ingesting...
+```
+
+You can then check current data status with the following subcommand:
+
+```console
+$ tradinghours status --extended
+TradingHours Data Status:
+  Remote Timestamp:   2023-10-25 19:25:56+00:00
+  Local Timestamp:    2023-10-25 20:09:42+00:00
+
+Extended Information:
+  Currencies count:   30
+  Markets count:      1012
 ```
 
 ### List Markets

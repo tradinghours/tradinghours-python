@@ -1,6 +1,8 @@
 import argparse
 
 from tradinghours.catalog import default_catalog
+from tradinghours.currency import Currency
+from tradinghours.market import Market
 from tradinghours.remote import default_data_manager
 
 
@@ -13,7 +15,9 @@ def create_parser():
 
     # "status" subcommand
     status_parser = subparsers.add_parser("status", help="Get status")
-    status_parser.add_argument("--bare", action="store_true", help="Print bare status")
+    status_parser.add_argument(
+        "--extended", action="store_true", help="Show more information"
+    )
 
     # "import" subcommand
     import_parser = subparsers.add_parser("import", help="Import data")
@@ -25,13 +29,19 @@ def create_parser():
 def run_status(args):
     remote_timestamp = default_data_manager.remote_timestamp
     local_timestamp = default_data_manager.local_timestamp
-    if args.bare:
-        print("remote:", remote_timestamp.isoformat())
-        print("local:", local_timestamp.isoformat())
-    else:
-        print("TradingHours Data Status:")
-        print("  Remote Timestamp:  ", remote_timestamp)
-        print("  Local Timestamp:   ", local_timestamp)
+    print("TradingHours Data Status:")
+    print("  Remote Timestamp:  ", remote_timestamp)
+    print("  Local Timestamp:   ", local_timestamp)
+    print()
+    if args.extended:
+        if local_timestamp:
+            print("Extended Information:")
+            all_currencies = list(Currency.list_all())
+            print("  Currencies count:  ", len(all_currencies))
+            all_markets = list(Market.list_all())
+            print("  Markets count:     ", len(all_markets))
+        else:
+            print("No local data to show extended information")
 
 
 def run_import(args):
