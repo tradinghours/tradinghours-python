@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Generator, List, Self
+from typing import Generator, List
 
 from .base import (
     BaseObject,
@@ -133,7 +133,7 @@ class Market(BaseObject):
         return list(catalog.list_all(Market))
 
     @classmethod
-    def get_by_finid(cls, finid: StrOrFinId, catalog=None) -> Self:
+    def get_by_finid(cls, finid: StrOrFinId, catalog=None) -> "Market":
         finid = validate_finid_arg("finid", finid)
         catalog = cls.get_catalog(catalog)
         found = catalog.get(Market, str(finid), cluster=finid.country)
@@ -142,7 +142,7 @@ class Market(BaseObject):
         return found
 
     @classmethod
-    def get_by_mic(cls, mic: str, catalog=None) -> Self:
+    def get_by_mic(cls, mic: str, catalog=None) -> "Market":
         mic = validate_str_arg("mic", mic)
         catalog = cls.get_catalog(catalog)
         found = catalog.get(MicMapping, mic)
@@ -151,7 +151,7 @@ class Market(BaseObject):
         return None
 
     @classmethod
-    def get(cls, identifier: str, catalog=None) -> Self:
+    def get(cls, identifier: str, catalog=None) -> "Market":
         identifier = validate_str_arg("identifier", identifier)
         catalog = cls.get_catalog(catalog)
         if "." in identifier:

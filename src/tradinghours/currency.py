@@ -1,4 +1,4 @@
-from typing import List, Self
+from typing import List
 
 from .base import (
     BaseObject,
@@ -55,7 +55,7 @@ class Currency(BaseObject):
         return holidays
 
     @classmethod
-    def list_all(cls, catalog=None) -> List[Self]:
+    def list_all(cls, catalog=None) -> List["Currency"]:
         catalog = cls.get_catalog(catalog)
         return list(catalog.list_all(Currency))
 

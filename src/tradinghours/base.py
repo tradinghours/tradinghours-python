@@ -5,7 +5,6 @@ from typing import (
     Generic,
     List,
     Optional,
-    Self,
     Tuple,
     Type,
     TypeVar,
@@ -39,7 +38,7 @@ class BaseObject:
         return tuple(all_values)
 
     @classmethod
-    def from_tuple(cls, data: Tuple) -> Self:
+    def from_tuple(cls, data: Tuple):
         data_dict = {}
         for index, current_field in enumerate(cls.fields):
             current_value = data[index]
@@ -47,7 +46,7 @@ class BaseObject:
         return cls(data_dict)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> Self:
+    def from_dict(cls, data: Dict):
         normalized = snake_dict(data)
         return cls(normalized)
 
