@@ -1,5 +1,6 @@
 import datetime
-from typing import TYPE_CHECKING, Any, Tuple, TypeVar
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Tuple, Type, TypeVar
 
 if TYPE_CHECKING:
     from .structure import FinId
@@ -39,5 +40,31 @@ def validate_finid_arg(name: str, value: Any) -> "FinId":
     if isinstance(value, str):
         value = FinId.from_string(value)
     if not isinstance(value, FinId):
+        raise TypeError(f"Invalid {name} type")
+    return value
+
+
+def validate_path_arg(name: str, value: Any) -> Path:
+    if value is None:
+        raise ValueError(f"Missing {name}")
+    if isinstance(value, str):
+        value = Path(value)
+    if not isinstance(value, Path):
+        raise TypeError(f"Invalid {name} type")
+    return value
+
+
+def validate_subclass_arg(name: str, value: Any, baseclass: Type[T]) -> Type[T]:
+    if value is None:
+        raise ValueError(f"Missing {name}")
+    if not issubclass(value, baseclass):
+        raise TypeError(f"Invalid {name} type")
+    return value
+
+
+def validate_instance_arg(name: str, value: Any, baseclass: Type[T]) -> T:
+    if value is None:
+        raise ValueError(f"Missing {name}")
+    if not isinstance(value, baseclass):
         raise TypeError(f"Invalid {name} type")
     return value

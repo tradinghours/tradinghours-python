@@ -1,11 +1,11 @@
-from pathlib import Path
-from typing import Dict, Generator, Optional, Self, Tuple, Type, TypeVar
+from typing import Dict, Generator, Optional, Tuple, Type, TypeVar
 
 from .base import BaseObject
 from .currency import Currency, CurrencyHoliday
 from .market import Market, MarketHoliday, MicMapping
+from .remote import default_data_manager
 from .schedule import Schedule
-from .store import Collection, SourceFile, Store
+from .store import Collection, SourceFile, Store, default_store
 from .typing import StrOrPath
 
 B = TypeVar("B", bound=BaseObject)
@@ -123,19 +123,11 @@ class Catalog:
     def store(self) -> Store:
         return self._store
 
-    def download(self):
-        self.store.download_data()
-
-    def ingest_all(self, csv_folder: Optional[Path] = None):
-        csv_folder = csv_folder or self.store.remote_folder / "csv"
+    def ingest_all(self):
         for _, declared_class in DeclaredFile.known_files.items():
-            source = declared_class(csv_folder)
+            source = declared_class(default_data_manager.csv_dir)
             source.ingest(self.store)
         self.store.flush()
-
-    def download_and_ingest(self):
-        self.store.download_data()
-        self.ingest_all()
 
     def find_model_collection(self, model: Type[BaseObject]) -> Collection:
         for name, declared in DeclaredFile.known_files.items():
@@ -189,14 +181,8 @@ class Catalog:
                 yield model.from_tuple(data)
         return None
 
-    @classmethod
-    def load_default(cls) -> Self:
-        folder = Path(__file__).parent / "store_dir"
-        store = Store(folder)
-        return cls(store)
 
-
-default_catalog = Catalog.load_default()
+default_catalog = Catalog(default_store)
 
 
 if __name__ == "__main__":
@@ -205,7 +191,7 @@ if __name__ == "__main__":
 
     print("\nDownloading...")
     start = time()
-    default_catalog.download()
+    default_data_manager.download()
     elapsed = time() - start
     print("Elapsed seconds", elapsed)
 

@@ -1,6 +1,5 @@
 import csv
 import os
-import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
@@ -15,43 +14,28 @@ from typing import (
     TypeVar,
 )
 
+from tradinghours.validate import (
+    validate_path_arg,
+    validate_str_arg,
+    validate_subclass_arg,
+)
+
 from .base import BaseObject
-from .remote import default_data_manager
+from .config import main_config
 from .typing import StrOrPath
 from .util import slugify
 
 B = TypeVar("B", bound=BaseObject)
 T = TypeVar("T")
 
-DOWNLOAD_URL = "https://api.tradinghours.com/v3/download"
-
 
 class SourceFile(Generic[B]):
     """Represents a file to be imported"""
 
     def __init__(self, root: StrOrPath, name: str, model: Type[B]):
-        if name is None:
-            raise ValueError("name is missing")
-        if isinstance(name, str):
-            self._name = name
-        else:
-            raise TypeError("name must be str")
-
-        if root is None:
-            raise ValueError("root is missing")
-        if isinstance(root, str):
-            self._root = Path(root)
-        elif isinstance(root, Path):
-            self._root = root
-        else:
-            raise TypeError("root must be str or Path")
-
-        if model is None:
-            raise ValueError("model is missing")
-        if issubclass(model, BaseObject):
-            self._model: BaseObject = model
-        else:
-            raise TypeError("model must be a BaseObject")
+        self._name = validate_str_arg("name", name)
+        self._root = validate_path_arg("root", root)
+        self._model = validate_subclass_arg("model", model, BaseObject)
 
     @property
     def name(self) -> str:
@@ -111,8 +95,8 @@ class Cluster:
 
     DEFAULT_CACHE_SIZE = 500
 
-    def __init__(self, location: Path, cache_size: Optional[int] = None):
-        self._location = location
+    def __init__(self, location: StrOrPath, cache_size: Optional[int] = None):
+        self._location = validate_path_arg("location", location)
         self._cached: List[str, Tuple] = []
         self._cache_size = cache_size or self.DEFAULT_CACHE_SIZE
 
@@ -150,8 +134,8 @@ class Cluster:
 class ClusterRegistry(Registry[Cluster]):
     """Holds a series of clusters"""
 
-    def __init__(self, folder: Path):
-        self._folder = folder
+    def __init__(self, folder: StrOrPath):
+        self._folder = validate_path_arg("folder", folder)
         super().__init__()
 
     @property
@@ -172,8 +156,8 @@ class ClusterRegistry(Registry[Cluster]):
 class Collection:
     """Manages a collection of items in a store"""
 
-    def __init__(self, folder: Path):
-        self._folder = folder
+    def __init__(self, folder: StrOrPath):
+        self._folder = validate_path_arg("folder", folder)
         self._clusters = ClusterRegistry(folder)
 
     @property
@@ -196,8 +180,8 @@ class Collection:
 class CollectionRegistry(Registry[Collection]):
     """Holds a series of collections"""
 
-    def __init__(self, root: Path):
-        self._root = root
+    def __init__(self, root: StrOrPath):
+        self._root = validate_path_arg("root", root)
         super().__init__()
 
     @property
@@ -220,22 +204,14 @@ class CollectionRegistry(Registry[Collection]):
 class Store:
     """Manages data loaded into memory"""
 
-    def __init__(self, root: Path):
-        self._root = root
+    def __init__(self, root: StrOrPath):
+        self._root = validate_path_arg("root", root)
         self.touch()
-        self._collections = CollectionRegistry(self.data_folder)
+        self._collections = CollectionRegistry(self._root)
 
     @property
     def root(self) -> Path:
         return self._root
-
-    @property
-    def remote_folder(self) -> Path:
-        return self.root / "remote"
-
-    @property
-    def data_folder(self) -> Path:
-        return self.root / "data"
 
     @property
     def collections(self) -> CollectionRegistry:
@@ -246,9 +222,7 @@ class Store:
         return os.getenv("TRADINGHOURS_TOKEN")
 
     def touch(self):
-        self.root.mkdir(exist_ok=True)
-        self.remote_folder.mkdir(exist_ok=True)
-        self.data_folder.mkdir(exist_ok=True)
+        self.root.mkdir(parents=True, exist_ok=True)
 
     def clear_collection(self, name: str):
         collection_obj = self.collections.get(name)
@@ -272,5 +246,5 @@ class Store:
             for cluster in collection.clusters:
                 cluster.flush()
 
-    def download_data(self):
-        default_data_manager.download()
+
+default_store = Store(main_config.get("data", "local_dir"))

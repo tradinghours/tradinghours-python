@@ -1,6 +1,5 @@
 import datetime
 import json
-import os
 import shutil
 import tempfile
 import zipfile
@@ -11,7 +10,10 @@ from typing import Optional
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
-BASE_URL = "https://api.tradinghours.com/v3/"
+from tradinghours.typing import StrOrPath
+from tradinghours.validate import validate_instance_arg, validate_path_arg
+
+from .config import main_config
 
 
 class ClientError(Exception):
@@ -51,9 +53,17 @@ class Client:
 class DataManager:
     """Manages accessing remote data"""
 
-    def __init__(self, client, root):
-        self.client: Client = client
-        self.root: Path = root
+    def __init__(self, client: Client, root: StrOrPath):
+        self.client = validate_instance_arg("client", client, Client)
+        self._root = validate_path_arg("root", root)
+
+    @property
+    def root(self) -> Path:
+        return self._root
+
+    @property
+    def csv_dir(self) -> Path:
+        return self.root / "csv"
 
     @cached_property
     def remote_timestamp(self) -> datetime.datetime:
@@ -86,9 +96,12 @@ class DataManager:
                 zip_ref.extractall(self.root)
 
 
-default_client = Client(os.getenv("TRADINGHOURS_TOKEN"), BASE_URL)
+default_client = Client(
+    main_config.get("api", "token"),
+    main_config.get("api", "base_url"),
+)
 
 default_data_manager = DataManager(
     default_client,
-    Path(__file__).parent / "store_dir" / "remote",
+    main_config.get("data", "remote_dir"),
 )
