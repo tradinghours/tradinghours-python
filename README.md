@@ -69,7 +69,9 @@ for market in Market.list_all():
 ```python
 from tradinghours.market imort Market
 
-market = Market.get_by_finid('US.IEX')
+# Get by either FinID or MIC
+market = Market.get('US.IEX')
+market = Market.get('IEXG')
 ```
 
 ### Market Holidays

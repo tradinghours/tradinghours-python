@@ -150,6 +150,16 @@ class Market(BaseObject):
             return cls.get_by_finid(found.fin_id)
         return None
 
+    @classmethod
+    def get(cls, identifier: str, catalog=None) -> Self:
+        identifier = validate_str_arg("identifier", identifier)
+        catalog = cls.get_catalog(catalog)
+        if "." in identifier:
+            found = cls.get_by_finid(identifier)
+        else:
+            found = cls.get_by_mic(identifier)
+        return found
+
 
 class MarketHoliday(BaseObject):
     """Holidays for a Market"""
