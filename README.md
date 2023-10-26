@@ -63,8 +63,8 @@ You can then check current data status with the following subcommand:
 ```console
 $ tradinghours status --extended
 TradingHours Data Status:
-  Remote Timestamp:   2023-10-25 19:25:56+00:00
-  Local Timestamp:    2023-10-25 20:09:42+00:00
+  Remote Timestamp:   Wed Oct 25 19:25:56 2023
+  Local Timestamp:    Wed Oct 25 20:09:42 2023
 
 Extended Information:
   Currencies count:   30

@@ -30,8 +30,8 @@ def run_status(args):
     remote_timestamp = default_data_manager.remote_timestamp
     local_timestamp = default_data_manager.local_timestamp
     print("TradingHours Data Status:")
-    print("  Remote Timestamp:  ", remote_timestamp)
-    print("  Local Timestamp:   ", local_timestamp)
+    print("  Remote Timestamp:  ", remote_timestamp.ctime())
+    print("  Local Timestamp:   ", local_timestamp.ctime())
     print()
     if args.extended:
         if local_timestamp:
