@@ -7,7 +7,7 @@ PROJECT_PATH = Path(__file__).parent
 # Define default settings in this dictionary
 default_settings = {
     "api": {
-        "token": os.getenv("TRADINGHOURS_TOKEN", None),
+        "token": os.getenv("TRADINGHOURS_TOKEN", ""),
         "base_url": "https://api.tradinghours.com/v3/",
     },
     "data": {
