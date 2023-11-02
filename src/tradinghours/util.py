@@ -1,15 +1,19 @@
 import json
 import re
 
+from .validate import validate_instance_arg, validate_str_arg
+
 
 def snake_case(text):
+    text = validate_str_arg("text", text, strip=True)
     if "-" in text:
         text = text.replace("-", "_")
-    words = re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)", text)
+    words = re.findall(r"[A-Z]?[a-z]+|[A-Z]+|[a-z]+", text)
     return "_".join(words).lower()
 
 
 def snake_dict(data: dict):
+    data = validate_instance_arg("data", data, dict)
     snake_data = {}
     for key, value in data.items():
         snake_key = snake_case(key)
@@ -18,6 +22,7 @@ def snake_dict(data: dict):
 
 
 def slugify(name):
+    name = validate_str_arg("name", name, strip=True)
     slug = []
     just_added_dash = False
 

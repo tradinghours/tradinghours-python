@@ -24,11 +24,13 @@ def validate_range_args(start: T, end: T) -> Tuple[T, T]:
     return start, end
 
 
-def validate_str_arg(name: str, value: Any) -> str:
+def validate_str_arg(name: str, value: Any, strip=True) -> str:
     if value is None:
         raise ValueError(f"Missing {name}")
     if not isinstance(value, str):
         raise TypeError(f"Invalid {name} type")
+    if strip:
+        value = value.strip()
     return value
 
 
