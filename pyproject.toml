@@ -28,6 +28,7 @@ dev = [
     'flake8',
     'flake8-pyproject',
     'black',
+    'coverage[toml]',
 ]
 
 [project.scripts]
@@ -46,3 +47,6 @@ exclude = '''
   | tests
 )/
 '''
+
+[tool.coverage.run]
+omit = [ 'tests/*' ]
