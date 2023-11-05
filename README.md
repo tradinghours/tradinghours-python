@@ -1,10 +1,11 @@
-![tradinghours-client-banner](https://github.com/tradinghours/tradinghours-python/assets/2868028/839859a1-ff8c-48a3-8ed9-7e11a76ee446)
+<div align="center">
+<img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
+<h1>TradingHours.com Python Library</h1>
+</div>
 
-# TradingHours.com Python Library
-
-[TradingHours.com](https://www.tradinghours.com) licenses Market Holidays and Trading Hours data for over 900 exchanges and trading venues around the world.
-This package allows clients to easily integrate our market holidays and trading hours data into existing applications.
-Using this package, data is downloaded from the TradingHours.com service and is then available for local, offline use.
+[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over 900 exchanges and trading venues around the world.
+This library allows clients to easily integrate our market holidays and trading hours data into existing applications.
+This packages downlods all available data from TradingHours.com and then allows you to work with the data locally. 
 
 **A paid subscription is required to use this package**
 
@@ -99,7 +100,7 @@ market = Market.get('IEXG')
 ```python
 from tradinghours.market imort Market
 
-market = Market.get_by_finid('US.IEX')
+market = Market.get('US.IEX')
 for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
     print(holiday)
 ```
@@ -109,7 +110,7 @@ for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
 ```python
 from tradinghours.market imort Market
 
-market = Market.get_by_mic('IEXG')
+market = Market.get('IEXG')
 for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
     print(concrete_phase)
 ```
