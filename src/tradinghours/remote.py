@@ -30,8 +30,7 @@ class Client:
         request = Request(url)
         request.add_header("Authorization", f"Bearer {self.token}")
         try:
-            with urlopen(request) as response:
-                yield response
+            yield urlopen(request)
         except HTTPError as error:
             if error.code == 401:
                 raise TokenError("Token is missing or invalid")
@@ -40,8 +39,10 @@ class Client:
     @contextmanager
     def download_temporary(self, path):
         with self.get_response(path) as response:
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile() as temp_file:
                 shutil.copyfileobj(response, temp_file)
+                temp_file.flush()
+                temp_file.seek(0)
                 yield temp_file
 
     def get_json(self, path):

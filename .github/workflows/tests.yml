@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - githubactions
+      - download-zip-tests
 
 jobs:
   tests:
@@ -23,6 +23,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Decode ZIP file
+        run: |
+          echo ${{ secrets.BASE64_ENCODED_ZIP }} | base64 --decode > sample_data.zip
+          unzip sample_data.zip -d tests/fixtures/remote
+
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
@@ -40,6 +45,11 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Decode ZIP file
+        run: |
+          echo ${{ secrets.BASE64_ENCODED_ZIP }} | base64 --decode > sample_data.zip
+          unzip sample_data.zip -d tests/fixtures/remote
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
