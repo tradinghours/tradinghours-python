@@ -97,19 +97,15 @@ def run_import(args):
         print("Local data is up-to-date.")
 
 
-def main(args):
-    if args.command == "status":
-        run_status(args)
-    elif args.command == "import":
-        run_import(args)
-
-
-if __name__ == "__main__":
+def main():
     try:
         # Main console entrypoint
         parser = create_parser()
         args = parser.parse_args()
-        main(args)
+        if args.command == "status":
+            run_status(args)
+        elif args.command == "import":
+            run_import(args)
 
     # Handle generic errors gracefully
     except Exception as error:
@@ -141,3 +137,7 @@ if __name__ == "__main__":
             print("Failed saving debug information.", error)
         finally:
             exit(EXIT_CODE_UNKNOWN_ERROR)
+
+
+if __name__ == "__main__":
+    main()
