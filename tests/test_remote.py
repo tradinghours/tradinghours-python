@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from urllib.request import HTTPError
 
 from tradinghours.exceptions import ClientError, TokenError
-from tradinghours.remote import Client, DataManager, default_client
+from tradinghours.remote import Client, DataManager
 
 
 class TestClientResponse(unittest.TestCase):
@@ -48,15 +48,31 @@ class ClientTestCase(unittest.TestCase):
             self._client = Client(token="test_token", base_url="http://example.com")
         return self._client
 
-    def patchResponse(self, content_or_exception):
-        if isinstance(content_or_exception, Exception):
-            mock_response = MagicMock()
-            mock_response.__enter__.side_effect = content_or_exception
-        else:
-            content = content_or_exception.encode("utf-8")
-            mock_response = MagicMock()
-            mock_response.__enter__.return_value.read.side_effect = [content, b""]
-            mock_response.__enter__.return_value.__exit__.return_value = False
+    def patchResponse(self, content):
+        content = content.encode("utf-8")
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value.read.side_effect = [content, b""]
+        mock_response.__enter__.return_value.__exit__.return_value = False
+        patcher = patch(
+            "tradinghours.remote.Client.get_response", return_value=mock_response
+        )
+        return patcher
+
+    def patchResponseError(self, exception):
+        mock_response = MagicMock()
+        mock_response.__enter__.side_effect = exception
+        patcher = patch(
+            "tradinghours.remote.Client.get_response", return_value=mock_response
+        )
+        return patcher
+
+    def patchResponseFile(self, file_path):
+        with open(file_path, "rb") as file:
+            content = file.read()
+
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value.read.side_effect = [content, b""]
+        mock_response.__enter__.return_value.__exit__.return_value = False
         patcher = patch(
             "tradinghours.remote.Client.get_response", return_value=mock_response
         )
@@ -70,12 +86,12 @@ class TestClientJson(ClientTestCase):
             self.assertEqual(data, {"key": "value"})
 
     def test_get_json_token_error(self):
-        with self.patchResponse(TokenError("Token is missing or invalid")):
+        with self.patchResponseError(TokenError("Token is missing or invalid")):
             with self.assertRaises(TokenError):
                 self.client.get_json("/test")
 
     def test_get_json_client_error(self):
-        with self.patchResponse(ClientError("Error getting server response")):
+        with self.patchResponseError(ClientError("Error getting server response")):
             with self.assertRaises(ClientError):
                 self.client.get_json("/test")
 
@@ -88,13 +104,13 @@ class TestClientDownload(ClientTestCase):
                 self.assertEqual(content, '{"key": "value"}')
 
     def test_download_temporary_token_error(self):
-        with self.patchResponse(TokenError("Token is missing or invalid")):
+        with self.patchResponseError(TokenError("Token is missing or invalid")):
             with self.assertRaises(TokenError):
                 with self.client.download_temporary("/test"):
                     pass
 
     def test_download_temporary_client_error(self):
-        with self.patchResponse(ClientError("Error getting server response")):
+        with self.patchResponseError(ClientError("Error getting server response")):
             with self.assertRaises(ClientError):
                 with self.client.download_temporary("/test"):
                     pass
@@ -128,7 +144,7 @@ class TestDataManager(ClientTestCase):
         self.assertEqual(self.manager.remote_timestamp, expected_datetime)
 
     def test_download(self):
-        with self.patchResponse("file_content") as patcher:
+        with self.patchResponseFile("sample_data.zip") as patcher:
             self.manager.download()
 
         patcher.stop()
