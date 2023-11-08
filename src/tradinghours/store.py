@@ -118,11 +118,14 @@ class Cluster:
 
     def load_all(self) -> Dict[str, Tuple]:
         keyed_items = {}
+        next_key = 1
         with open(self.location, "r", encoding="utf-8", newline="") as file:
             for row in csv.reader(file):
-                key = row[0]
+                key = row[0] or str(next_key)
+                next_key += 1
                 data = row[1:]
-                keyed_items[key] = data
+                if key:
+                    keyed_items[key] = data
         return keyed_items
 
 

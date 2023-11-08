@@ -147,8 +147,8 @@ class Catalog:
     ) -> Generator[Tuple[str, B], None, None]:
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
-        cluster = collection.clusters.get(cluster_name)
-        cluster_data = cluster.load_all()
+        cluster_obj = collection.clusters.get(cluster_name)
+        cluster_data = cluster_obj.load_all()
         for current_key, data in cluster_data.items():
             yield current_key, model.from_tuple(data)
         return None

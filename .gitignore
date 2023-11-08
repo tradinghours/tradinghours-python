@@ -4,6 +4,8 @@ store_dir/
 .DS_Store
 debug.txt
 *.zip
+tests/local
+tests/fixtures/remote
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
