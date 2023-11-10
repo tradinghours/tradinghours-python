@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Tuple, Type, TypeVar
 
 if TYPE_CHECKING:
-    from .structure import FinId
+    from .structure import FinId, Weekday
 
 T = TypeVar("T")
 
@@ -42,6 +42,24 @@ def validate_finid_arg(name: str, value: Any) -> "FinId":
     if isinstance(value, str):
         value = FinId.from_string(value)
     if not isinstance(value, FinId):
+        raise TypeError(f"Invalid {name} type")
+    return value
+
+
+def validate_weekday_arg(name: str, value: Any) -> "Weekday":
+    from .structure import Weekday
+
+    if value is None:
+        raise ValueError(f"Missing {name}")
+    if isinstance(value, str):
+        value = Weekday.from_string(value)
+    if isinstance(value, int):
+        value = Weekday(value)
+    if isinstance(value, datetime.date):
+        value = Weekday(value.weekday())
+    if isinstance(value, datetime.datetime):
+        value = Weekday(value.weekday())
+    if not isinstance(value, Weekday):
         raise TypeError(f"Invalid {name} type")
     return value
 

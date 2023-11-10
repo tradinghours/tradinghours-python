@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Tuple
 
+from .typing import WeekdaySpec
+from .validate import validate_weekday_arg
+
 
 @dataclass
 class OlsonTimezone:
@@ -18,7 +21,7 @@ class OlsonTimezone:
 
 @dataclass
 class Weekday:
-    WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     ordinal: int
 
     @classmethod
@@ -37,6 +40,12 @@ class Weekday:
 class WeekdayPeriod:
     start_day: Weekday
     end_day: Weekday
+
+    def matches(self, other: WeekdaySpec) -> bool:
+        other = validate_weekday_arg("other", other)
+        after_start = other.ordinal >= self.start_day.ordinal
+        before_end = other.ordinal <= self.end_day.ordinal
+        return after_start and before_end
 
     @classmethod
     def from_string(cls, input_string):
@@ -59,6 +68,13 @@ class WeekdayPeriod:
 @dataclass
 class WeekdaySet:
     periods: Tuple[WeekdayPeriod]
+
+    def matches(self, other: WeekdaySpec) -> bool:
+        other = validate_weekday_arg("other", other)
+        for current in self.periods:
+            if current.matches(other):
+                return True
+        return False
 
     @classmethod
     def from_string(cls, input_string):

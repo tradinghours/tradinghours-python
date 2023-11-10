@@ -64,7 +64,13 @@ class BaseObject:
 
     def __str__(self):
         class_name = self.__class__.__name__
-        return f"{class_name} {self.to_tuple()}"
+        all_str = []
+        for current_field in self.fields:
+            current_value = getattr(self, current_field.field_name)
+            if current_value:
+                all_str.append(str(current_value))
+        fields_str = " ".join(all_str)
+        return f"{class_name} {fields_str}"
 
 
 class Field(Generic[T]):

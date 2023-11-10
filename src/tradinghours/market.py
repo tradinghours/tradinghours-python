@@ -75,10 +75,10 @@ class Market(BaseObject):
 
         # Get schedules happening in the period to be considered
         schedules_listing = catalog.list(Schedule, cluster=str(self.fin_id))
-        intersecting_schedules: List[Schedule] = []
+        inforce_schedules: List[Schedule] = []
         for _, current in schedules_listing:
-            if current.intersects_with(start, end):
-                intersecting_schedules.append(current)
+            if current.is_in_force(start, end):
+                inforce_schedules.append(current)
 
         # Iterate from start to end date, generating phases
         current_date = start
@@ -86,7 +86,7 @@ class Market(BaseObject):
             date_schedules = sorted(
                 filter(
                     lambda fs: fs.happens_at(current_date),
-                    intersecting_schedules,
+                    inforce_schedules,
                 ),
                 key=lambda ss: ss.start,
             )

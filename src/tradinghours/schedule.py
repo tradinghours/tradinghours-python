@@ -98,7 +98,7 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
-    def intersects_with(self, start: StrOrDate, end: StrOrDate) -> bool:
+    def is_in_force(self, start: StrOrDate, end: StrOrDate) -> bool:
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
@@ -114,7 +114,14 @@ class Schedule(BaseObject):
 
     def happens_at(self, some_date: StrOrDate) -> bool:
         some_date = validate_date_arg("some_date", some_date)
-        return self.intersects_with(some_date, some_date)
+        happens = bool(
+            self.is_in_force(
+                some_date,
+                some_date,
+            )
+            and self.days.matches(some_date)
+        )
+        return happens
 
     @classmethod
     def list_all(cls, catalog=None) -> List:
