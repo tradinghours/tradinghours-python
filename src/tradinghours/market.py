@@ -1,5 +1,6 @@
+import datetime
 from datetime import timedelta
-from typing import Generator, List
+from typing import Dict, Generator, List
 
 from .base import (
     BaseObject,
@@ -80,19 +81,62 @@ class Market(BaseObject):
             if current.is_in_force(start, end):
                 inforce_schedules.append(current)
 
+        # Holidays work as exceptions to the rule
+        holidays_listing = self.list_holidays(start, end)
+        keyed_holidays: Dict[datetime.date, MarketHoliday] = {}
+        for current in holidays_listing:
+            keyed_holidays[current.date] = current
+
         # Iterate from start to end date, generating phases
         current_date = start
         while current_date <= end:
-            date_schedules = sorted(
-                filter(
-                    lambda fs: fs.happens_at(current_date),
-                    inforce_schedules,
-                ),
-                key=lambda ss: ss.start,
+            # Find holiday for current date
+            if holiday := keyed_holidays.get(current_date):
+                schedule_group = holiday.schedule.lower()
+            else:
+                schedule_group = "regular"
+
+            # Get schedules for current date
+            valid_schedules = inforce_schedules
+
+            # Filter Schedule Group
+            valid_schedules = filter(
+                lambda s: s.schedule_group.lower() == schedule_group,
+                valid_schedules,
             )
 
+            # Filter In Force
+            valid_schedules = filter(
+                lambda s: s.is_in_force(current_date, current_date),
+                valid_schedules,
+            )
+
+            # Filter Weekday
+            valid_schedules = filter(
+                lambda s: s.days.matches(current_date),
+                valid_schedules,
+            )
+
+            # Iterate through valid schedules
+            for schedule in inforce_schedules:
+                # Determ
+                pass
+
+            # Sort them by start date
+            valid_schedules = sorted(
+                valid_schedules,
+                key=lambda s: s.start,
+            )
+
+            print("\n", current_date.isoformat())
+
             # Generate phases for current date
-            for current_schedule in date_schedules:
+            for current_schedule in valid_schedules:
+                print(
+                    current_schedule.start.isoformat(),
+                    current_schedule.end.isoformat(),
+                    current_schedule,
+                )
                 date_str = current_date.isoformat() + "T"
                 start_str = date_str + current_schedule.start.isoformat()
                 end_str = date_str + current_schedule.end.isoformat()
@@ -111,7 +155,7 @@ class Market(BaseObject):
 
     def list_holidays(
         self, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> Generator["MarketHoliday", None, None]:
+    ) -> List["MarketHoliday"]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
