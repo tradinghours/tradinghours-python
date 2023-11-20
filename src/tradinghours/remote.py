@@ -93,7 +93,7 @@ class DataManager:
     def download(self):
         self.root.mkdir(parents=True, exist_ok=True)
         with default_client.download_temporary("download") as temp_file:
-            with zipfile.ZipFile(temp_file.name, "r") as zip_ref:
+            with zipfile.ZipFile(temp_file, "r") as zip_ref:
                 zip_ref.extractall(self.root)
 
 
