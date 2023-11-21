@@ -51,3 +51,22 @@ class TestCase002(EdgeCase):
         date = "2023-11-11"
         expected = []
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase003(EdgeCase):
+    """ "
+
+    Test there are correct schedules on an irregular schedule
+
+
+    """
+
+    def test_case(self):
+        fin_id = "US.NYSE"
+        date = "2023-11-24"
+        expected = [
+            "Pre-Trading Session",
+            "Primary Trading Session",
+            "Post-Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
