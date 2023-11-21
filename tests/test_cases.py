@@ -106,3 +106,20 @@ class TestCase005(EdgeCase):
             "Primary Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase006(EdgeCase):
+    """
+
+    Test there are not schedules coming from the proceeding day when there is a holiday, but normally there would be an overnight schedule
+
+    """
+
+    def test_case(self):
+        fin_id = "US.CME.EQUITY.USINDEX1"
+        date = "2023-12-25"
+        expected = [
+            "Pre-Open",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
