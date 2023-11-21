@@ -88,3 +88,21 @@ class TestCase004(EdgeCase):
             "Primary Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase005(EdgeCase):
+    """
+
+    Test there are correct schedules with schedule coming from the proceeding day, Irregular Schedule (overnight)
+
+    """
+
+    def test_case(self):
+        fin_id = "US.CME.EQUITY.USINDEX1"
+        date = "2023-11-23"
+        expected = [
+            "Primary Trading Session",
+            "Pre-Open",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
