@@ -37,3 +37,17 @@ class TestCase001(EdgeCase):
             "Post-Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase002(EdgeCase):
+    """
+
+    Check there are not schedules on a closed open day, no holiday
+
+    """
+
+    def test_case(self):
+        fin_id = "US.NYSE"
+        date = "2023-11-11"
+        expected = []
+        self.assertDateSchedule(fin_id, date, expected)
