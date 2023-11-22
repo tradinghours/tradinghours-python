@@ -143,3 +143,36 @@ class TestCase007(EdgeCase):
             "Primary Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase008(EdgeCase):
+    """
+    Test the correct schedule for the day of the week is returned for schedule
+    with different hours on different days of the week
+
+    """
+
+    def test_case_thu(self):
+        fin_id = "US.CBOE.VIX"
+        date = "2020-10-15"
+        expected = [
+            "Trading-at-Last",
+            "Primary Trading Session",
+            "Primary Trading Session",
+            "Post-Trading Session",
+            "Pre-Open",
+            "Trading-at-Last",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
+
+    def test_case_fri(self):
+        fin_id = "US.CBOE.VIX"
+        date = "2020-10-16"
+        expected = [
+            "Trading-at-Last",
+            "Primary Trading Session",
+            "Primary Trading Session",
+            "Post-Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
