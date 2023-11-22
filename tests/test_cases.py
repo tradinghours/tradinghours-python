@@ -127,16 +127,19 @@ class TestCase006(EdgeCase):
 
 class TestCase007(EdgeCase):
     """
-    Test there are correct schedules on a working Weekend (If Saturday is set as Regular in the holidays table, but the regular schedule is normally M-F, ignore the day of week.)
+
+    Test there are correct schedules on a working Weekend (If Saturday is set
+    as Regular in the holidays table, but the regular schedule is normally
+    M-F, ignore the day of week.)
 
     """
 
     def test_case(self):
-        fin_id = CN.CIBM
-        date = "2020-01-18"
+        fin_id = "CN.CIBM"
+        date = "2020-01-19"
         expected = [
-            "start 2020-01-18",
-            "end 2020-01-18",
-            "schedule",
+            "Primary Trading Session",
+            "Intermission",
+            "Primary Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
