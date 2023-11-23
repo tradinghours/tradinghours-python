@@ -176,3 +176,48 @@ class TestCase008(EdgeCase):
             "Post-Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase009(EdgeCase):
+    """
+
+    Test there are correct schedules on irregular day when the irregular schedule
+    does have a schedule for the current day of the week
+
+    """
+
+    def test_case_sun(self):
+        fin_id = "US.CME.AGRI.DAIRY1"
+        date = "2022-01-16"
+        expected = [
+            "Pre-Open",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
+
+    def test_case_mon(self):
+        fin_id = "US.CME.AGRI.DAIRY1"
+        date = "2022-01-17"
+        expected = [
+            "Pre-Open",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
+
+    def test_case_reg_sun(self):
+        fin_id = "US.CME.AGRI.DAIRY1"
+        date = "2022-01-09"
+        expected = [
+            "Pre-Open",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
+
+    def test_case_reg_mon(self):
+        fin_id = "US.CME.AGRI.DAIRY1"
+        date = "2022-01-10"
+        expected = [
+            "Primary Trading Session",
+            "Pre-Open",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)
