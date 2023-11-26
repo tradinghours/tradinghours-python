@@ -93,8 +93,13 @@ class Market(BaseObject):
             # Find holiday for current date
             if holiday := keyed_holidays.get(current_date):
                 schedule_group = holiday.schedule.lower()
+                if schedule_group.lower() == "regular":
+                    ignore_weekday = True
+                else:
+                    ignore_weekday = False
             else:
                 schedule_group = "regular"
+                ignore_weekday = False
 
             # Get schedules for current date
             valid_schedules = all_schedules
@@ -111,7 +116,10 @@ class Market(BaseObject):
                 filter(
                     lambda t: t[0],
                     map(
-                        lambda s: s.happens_at(current_date) + (s,),
+                        lambda s: s.happens_at(
+                            current_date, ignore_weekday=ignore_weekday
+                        )
+                        + (s,),
                         valid_schedules,
                     ),
                 ),
@@ -120,7 +128,7 @@ class Market(BaseObject):
             # Sort them by start date
             happening_schedules = sorted(
                 happening_schedules,
-                key=lambda t: t[0],
+                key=lambda t: (t[0], t[1].start),
             )
 
             # Generate phases for current date
