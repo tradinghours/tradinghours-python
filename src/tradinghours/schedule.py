@@ -1,4 +1,5 @@
-from typing import List
+import datetime
+from typing import List, Tuple
 
 from .base import (
     BaseObject,
@@ -6,6 +7,7 @@ from .base import (
     DateField,
     DateTimeField,
     FinIdField,
+    IntegerField,
     ListField,
     OlsonTimezoneField,
     StringField,
@@ -14,7 +16,7 @@ from .base import (
     WeekdaySetField,
 )
 from .typing import StrOrDate
-from .validate import validate_date_arg, validate_range_args
+from .validate import validate_date_arg, validate_int_arg, validate_range_args
 
 
 class ConcretePhase(BaseObject):
@@ -87,7 +89,7 @@ class Schedule(BaseObject):
     days = WeekdaySetField()
     start = TimeField()
     end = TimeField()
-    offset_days = StringField()
+    offset_days = IntegerField()
     duration = StringField()
     min_start = TimeField()
     max_start = TimeField()
@@ -112,8 +114,11 @@ class Schedule(BaseObject):
         else:
             return self.in_force_start_date <= end and self.in_force_end_date >= start
 
-    def happens_at(self, some_date: StrOrDate) -> bool:
+    def happens_at(
+        self, some_date: StrOrDate, offset: int = None
+    ) -> Tuple[bool, datetime.date]:
         some_date = validate_date_arg("some_date", some_date)
+        offset = validate_int_arg("offset", offset, default=self.offset_days)
         happens = bool(
             self.is_in_force(
                 some_date,
@@ -121,7 +126,10 @@ class Schedule(BaseObject):
             )
             and self.days.matches(some_date)
         )
-        return happens
+        if offset > 0 and not happens:
+            previous_date = some_date - datetime.timedelta(days=1)
+            return self.happens_at(previous_date, offset - 1)
+        return happens, some_date
 
     @classmethod
     def list_all(cls, catalog=None) -> List:
