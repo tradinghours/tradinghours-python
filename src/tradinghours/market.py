@@ -93,37 +93,58 @@ class Market(BaseObject):
             # Find holiday for current date
             if holiday := keyed_holidays.get(current_date):
                 schedule_group = holiday.schedule.lower()
+                # TODO: instead of just regular, consider all "open" schedules
                 if schedule_group.lower() == "regular":
-                    ignore_weekday = True
+                    fallback_past_weekday = True
                 else:
-                    ignore_weekday = False
+                    fallback_past_weekday = False
             else:
                 schedule_group = "regular"
-                ignore_weekday = False
+                fallback_past_weekday = False
 
             # Get schedules for current date
             valid_schedules = all_schedules
 
             # Filter Schedule Group
-            valid_schedules = filter(
-                lambda s: s.schedule_group.lower() == schedule_group,
-                valid_schedules,
+            valid_schedules = list(
+                filter(
+                    lambda s: s.schedule_group.lower() == schedule_group,
+                    valid_schedules,
+                )
             )
 
             # Filter In Force, Weekday and Offset
-            happening_schedules = map(
-                lambda it: (it[1], it[2]),
-                filter(
-                    lambda t: t[0],
-                    map(
-                        lambda s: s.happens_at(
-                            current_date, ignore_weekday=ignore_weekday
-                        )
-                        + (s,),
-                        valid_schedules,
+            happening_schedules = list(
+                map(
+                    lambda it: (it[1], it[2]),
+                    filter(
+                        lambda t: t[0],
+                        map(
+                            lambda s: s.happens_at(current_date) + (s,),
+                            valid_schedules,
+                        ),
                     ),
-                ),
+                )
             )
+
+            # Consider fallback if needed
+            if not happening_schedules and fallback_past_weekday:
+                # TODO: Remember to collect all matching for the weekday
+                initial_weekday = current_date.weekday()
+                fallback_weekday = 6 if initial_weekday == 0 else initial_weekday - 1
+                while not happening_schedules and fallback_weekday != initial_weekday:
+                    happening_schedules = list(
+                        map(
+                            lambda s: (current_date, s),
+                            filter(
+                                lambda s: s.days.matches(fallback_weekday),
+                                valid_schedules,
+                            ),
+                        )
+                    )
+                    fallback_weekday = (
+                        6 if fallback_weekday == 0 else fallback_weekday - 1
+                    )
 
             # Sort them by start date
             happening_schedules = sorted(

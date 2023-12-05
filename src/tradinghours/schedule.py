@@ -115,18 +115,15 @@ class Schedule(BaseObject):
             return self.in_force_start_date <= end and self.in_force_end_date >= start
 
     def happens_at(
-        self, some_date: StrOrDate, offset: int = None, ignore_weekday: bool = False
+        self, some_date: StrOrDate, offset: int = None
     ) -> Tuple[bool, datetime.date]:
         some_date = validate_date_arg("some_date", some_date)
         offset = validate_int_arg("offset", offset, default=self.offset_days)
         happens = self.is_in_force(some_date, some_date)
-        if not ignore_weekday:
-            happens = happens and self.days.matches(some_date)
+        happens = happens and self.days.matches(some_date)
         if offset > 0 and not happens:
             previous_date = some_date - datetime.timedelta(days=1)
-            return self.happens_at(
-                previous_date, offset=offset - 1, ignore_weekday=ignore_weekday
-            )
+            return self.happens_at(previous_date, offset=offset - 1)
         return happens, some_date
 
     @classmethod
