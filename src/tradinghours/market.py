@@ -149,7 +149,7 @@ class Market(BaseObject):
             # Sort them by start date
             happening_schedules = sorted(
                 happening_schedules,
-                key=lambda t: (t[0], t[1].start),
+                key=lambda t: (t[0], t[1].start, t[1].duration),
             )
 
             # Generate phases for current date

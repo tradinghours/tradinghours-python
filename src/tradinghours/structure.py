@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import List, Tuple
 
 from .typing import WeekdaySpec
 from .validate import validate_weekday_arg
@@ -24,6 +24,16 @@ class Weekday:
     WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     ordinal: int
 
+    def next(self) -> "Weekday":
+        if self.ordinal == 6:
+            return Weekday(0)
+        return Weekday(self.ordinal + 1)
+
+    def previous(self) -> "Weekday":
+        if self.ordinal == 0:
+            return Weekday(6)
+        return Weekday(self.ordinal - 1)
+
     @classmethod
     def from_string(cls, input_string):
         input_string = input_string.title()
@@ -41,11 +51,21 @@ class WeekdayPeriod:
     start_day: Weekday
     end_day: Weekday
 
+    @property
+    def weekdays(self) -> List:
+        captured = []
+        current_day = self.start_day.previous()
+        finished = False
+        while not finished:
+            current_day = current_day.next()
+            captured.append(current_day)
+            if current_day == self.end_day:
+                finished = True
+        return captured
+
     def matches(self, other: WeekdaySpec) -> bool:
         other = validate_weekday_arg("other", other)
-        after_start = other.ordinal >= self.start_day.ordinal
-        before_end = other.ordinal <= self.end_day.ordinal
-        return after_start and before_end
+        return other in self.weekdays
 
     @classmethod
     def from_string(cls, input_string):

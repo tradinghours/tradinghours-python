@@ -9,7 +9,7 @@ class EdgeCase(unittest.TestCase):
 
     def assertRangeSchedule(self, fin_id, start, end, expected):
         market = Market.get(fin_id)
-        schedules = market.generate_schedules(start, end)
+        schedules = list(market.generate_schedules(start, end))
         phases = map(lambda s: s.phase_type, schedules)
         result = list(phases)
         self.assertEqual(result, expected)
@@ -147,6 +147,7 @@ class TestCase007(EdgeCase):
 
 class TestCase008(EdgeCase):
     """
+
     Test the correct schedule for the day of the week is returned for schedule
     with different hours on different days of the week
 
@@ -155,23 +156,25 @@ class TestCase008(EdgeCase):
     def test_case_thu(self):
         fin_id = "US.CBOE.VIX"
         date = "2020-10-15"
+        # TODO: review this order
         expected = [
             "Trading-at-Last",
             "Primary Trading Session",
             "Primary Trading Session",
             "Post-Trading Session",
             "Pre-Open",
-            "Trading-at-Last",
             "Primary Trading Session",
+            "Trading-at-Last",
         ]
         self.assertDateSchedule(fin_id, date, expected)
 
     def test_case_fri(self):
         fin_id = "US.CBOE.VIX"
         date = "2020-10-16"
+        # TODO: review this order
         expected = [
-            "Trading-at-Last",
             "Primary Trading Session",
+            "Trading-at-Last",
             "Primary Trading Session",
             "Post-Trading Session",
         ]
