@@ -158,8 +158,8 @@ class TestCase008(EdgeCase):
         date = "2020-10-15"
         # TODO: review this order
         expected = [
-            "Trading-at-Last",
             "Primary Trading Session",
+            "Trading-at-Last",
             "Primary Trading Session",
             "Post-Trading Session",
             "Pre-Open",

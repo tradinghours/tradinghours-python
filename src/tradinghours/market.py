@@ -113,19 +113,16 @@ class Market(BaseObject):
                 )
             )
 
-            # Filter In Force, Weekday and Offset
-            happening_schedules = list(
-                map(
-                    lambda it: (it[1], it[2]),
-                    filter(
-                        lambda t: t[0],
-                        map(
-                            lambda s: s.happens_at(current_date) + (s,),
-                            valid_schedules,
-                        ),
-                    ),
+            # Get all schedules occurring for this date, including past
+            # dates based on offset
+            happening_schedules = []
+            for current_valid_schedule in valid_schedules:
+                this_schedule_occurrences = current_valid_schedule.match_occurrences(
+                    current_date
                 )
-            )
+                for occurrence_date in this_schedule_occurrences:
+                    happening_tuple = (occurrence_date, current_valid_schedule)
+                    happening_schedules.append(happening_tuple)
 
             # Consider fallback if needed
             if not happening_schedules and fallback_past_weekday:
