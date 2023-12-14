@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, Tuple, Type, TypeVar
 
 if TYPE_CHECKING:
     from .structure import FinId, Weekday
@@ -31,6 +31,17 @@ def validate_str_arg(name: str, value: Any, strip=True) -> str:
         raise TypeError(f"Invalid {name} type")
     if strip:
         value = value.strip()
+    return value
+
+
+def validate_int_arg(name: str, value: Any, default: Optional[int] = None) -> int:
+    if value is None:
+        if default is None:
+            raise ValueError(f"Missing {name}")
+        else:
+            value = default
+    if not isinstance(value, int):
+        raise TypeError(f"Invalid {name} type")
     return value
 
 

@@ -118,6 +118,13 @@ class BooleanField(Field[bool]):
     pass
 
 
+class IntegerField(Field[int]):
+    """Field of int type"""
+
+    def prepare(self, value: str) -> int:
+        return int(value)
+
+
 class DateField(Field[datetime.date]):
     """Field of date type"""
 

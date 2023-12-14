@@ -1,4 +1,5 @@
-from typing import List
+import datetime
+from typing import List, Tuple
 
 from .base import (
     BaseObject,
@@ -6,6 +7,7 @@ from .base import (
     DateField,
     DateTimeField,
     FinIdField,
+    IntegerField,
     ListField,
     OlsonTimezoneField,
     StringField,
@@ -14,7 +16,7 @@ from .base import (
     WeekdaySetField,
 )
 from .typing import StrOrDate
-from .validate import validate_date_arg, validate_range_args
+from .validate import validate_date_arg, validate_int_arg, validate_range_args
 
 
 class ConcretePhase(BaseObject):
@@ -87,7 +89,7 @@ class Schedule(BaseObject):
     days = WeekdaySetField()
     start = TimeField()
     end = TimeField()
-    offset_days = StringField()
+    offset_days = IntegerField()
     duration = StringField()
     min_start = TimeField()
     max_start = TimeField()
@@ -112,16 +114,30 @@ class Schedule(BaseObject):
         else:
             return self.in_force_start_date <= end and self.in_force_end_date >= start
 
-    def happens_at(self, some_date: StrOrDate) -> bool:
+    def match_occurrences(self, some_date: StrOrDate) -> List[datetime.date]:
+        """This method will return all matches for one single date"""
         some_date = validate_date_arg("some_date", some_date)
-        happens = bool(
-            self.is_in_force(
-                some_date,
-                some_date,
-            )
-            and self.days.matches(some_date)
-        )
-        return happens
+
+        # Keep track of all dates matching some_date, considering the offset
+        # for previous dates could match this date too
+        occurrences: List[datetime.date] = []
+
+        # We will scan all dates considering the offset
+        current_date = some_date
+        current_offset = self.offset_days
+        while current_offset >= 0:
+            # Check whether it happens on this specific date
+            happens = self.is_in_force(current_date, current_date)
+            happens = happens and self.days.matches(current_date)
+            if happens:
+                occurrences.append(current_date)
+
+            # Prepare to match now the previous date
+            current_date -= datetime.timedelta(days=1)
+            current_offset -= 1
+
+        # Return all occurences
+        return occurrences
 
     @classmethod
     def list_all(cls, catalog=None) -> List:

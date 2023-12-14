@@ -76,10 +76,10 @@ class Market(BaseObject):
 
         # Get schedules happening in the period to be considered
         schedules_listing = catalog.list(Schedule, cluster=str(self.fin_id))
-        inforce_schedules: List[Schedule] = []
+        all_schedules: List[Schedule] = []
         for _, current in schedules_listing:
             if current.is_in_force(start, end):
-                inforce_schedules.append(current)
+                all_schedules.append(current)
 
         # Holidays work as exceptions to the rule
         holidays_listing = self.list_holidays(start, end)
@@ -93,58 +93,72 @@ class Market(BaseObject):
             # Find holiday for current date
             if holiday := keyed_holidays.get(current_date):
                 schedule_group = holiday.schedule.lower()
+                # TODO: instead of just regular, consider all "open" schedules
+                if schedule_group.lower() == "regular":
+                    fallback_past_weekday = True
+                else:
+                    fallback_past_weekday = False
             else:
                 schedule_group = "regular"
+                fallback_past_weekday = False
 
             # Get schedules for current date
-            valid_schedules = inforce_schedules
+            valid_schedules = all_schedules
 
             # Filter Schedule Group
-            valid_schedules = filter(
-                lambda s: s.schedule_group.lower() == schedule_group,
-                valid_schedules,
+            valid_schedules = list(
+                filter(
+                    lambda s: s.schedule_group.lower() == schedule_group,
+                    valid_schedules,
+                )
             )
 
-            # Filter In Force
-            valid_schedules = filter(
-                lambda s: s.is_in_force(current_date, current_date),
-                valid_schedules,
-            )
+            # Get all schedules occurring for this date, including past
+            # dates based on offset
+            happening_schedules = []
+            for current_valid_schedule in valid_schedules:
+                this_schedule_occurrences = current_valid_schedule.match_occurrences(
+                    current_date
+                )
+                for occurrence_date in this_schedule_occurrences:
+                    happening_tuple = (occurrence_date, current_valid_schedule)
+                    happening_schedules.append(happening_tuple)
 
-            # Filter Weekday
-            valid_schedules = filter(
-                lambda s: s.days.matches(current_date),
-                valid_schedules,
-            )
-
-            # Iterate through valid schedules
-            for schedule in inforce_schedules:
-                # Determ
-                pass
+            # Consider fallback if needed
+            if not happening_schedules and fallback_past_weekday:
+                # TODO: Remember to collect all matching for the weekday
+                initial_weekday = current_date.weekday()
+                fallback_weekday = 6 if initial_weekday == 0 else initial_weekday - 1
+                while not happening_schedules and fallback_weekday != initial_weekday:
+                    happening_schedules = list(
+                        map(
+                            lambda s: (current_date, s),
+                            filter(
+                                lambda s: s.days.matches(fallback_weekday),
+                                valid_schedules,
+                            ),
+                        )
+                    )
+                    fallback_weekday = (
+                        6 if fallback_weekday == 0 else fallback_weekday - 1
+                    )
 
             # Sort them by start date
-            valid_schedules = sorted(
-                valid_schedules,
-                key=lambda s: s.start,
+            happening_schedules = sorted(
+                happening_schedules,
+                key=lambda t: (t[0], t[1].start, t[1].duration),
             )
 
-            print("\n", current_date.isoformat())
-
             # Generate phases for current date
-            for current_schedule in valid_schedules:
-                print(
-                    current_schedule.start.isoformat(),
-                    current_schedule.end.isoformat(),
-                    current_schedule,
-                )
-                date_str = current_date.isoformat() + "T"
-                start_str = date_str + current_schedule.start.isoformat()
-                end_str = date_str + current_schedule.end.isoformat()
+            for some_date, some_schedule in happening_schedules:
+                date_str = some_date.isoformat() + "T"
+                start_str = date_str + some_schedule.start.isoformat()
+                end_str = date_str + some_schedule.end.isoformat()
                 yield ConcretePhase(
                     dict(
-                        phase_type=current_schedule.phase_type,
-                        phase_name=current_schedule.phase_name,
-                        phase_memo=current_schedule.phase_memo,
+                        phase_type=some_schedule.phase_type,
+                        phase_name=some_schedule.phase_name,
+                        phase_memo=some_schedule.phase_memo,
                         start=start_str,
                         end=end_str,
                     )
