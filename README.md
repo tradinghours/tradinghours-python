@@ -91,8 +91,8 @@ for market in Market.list_all():
 from tradinghours.market import Market
 
 # Get by either FinID or MIC
-market = Market.get('US.IEX')
-market = Market.get('IEXG')
+market = Market.get('US.NYSE')
+market = Market.get('XNYS')
 ```
 
 ### Market Holidays
@@ -100,7 +100,7 @@ market = Market.get('IEXG')
 ```python
 from tradinghours.market import Market
 
-market = Market.get('US.IEX')
+market = Market.get('US.NYSE')
 for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
     print(holiday)
 ```
@@ -110,7 +110,7 @@ for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
 ```python
 from tradinghours.market imort Market
 
-market = Market.get('IEXG')
+market = Market.get('XNYS')
 for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
     print(concrete_phase)
 ```
