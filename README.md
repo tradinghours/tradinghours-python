@@ -88,7 +88,7 @@ for market in Market.list_all():
 ### Get Market
 
 ```python
-from tradinghours.market imort Market
+from tradinghours.market import Market
 
 # Get by either FinID or MIC
 market = Market.get('US.IEX')
@@ -98,7 +98,7 @@ market = Market.get('IEXG')
 ### Market Holidays
 
 ```python
-from tradinghours.market imort Market
+from tradinghours.market import Market
 
 market = Market.get('US.IEX')
 for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
