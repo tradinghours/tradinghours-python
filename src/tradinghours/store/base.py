@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod, abstractproperty
-from typing import Dict, Generic, Iterator, Optional, Tuple, TypeVar
+from typing import Dict, Generic, Iterator, List, Optional, Tuple, TypeVar
 
 from ..util import slugify
 
@@ -37,12 +37,15 @@ class Registry(ABC, Generic[T]):
 class Cluster(ABC):
     """Generic Cluster interface"""
 
+    def __init__(self, cache_size: Optional[int] = None):
+        self._cached: List[str, Tuple] = []
+        self._cache_size = cache_size or self.DEFAULT_CACHE_SIZE
+
     @abstractmethod
     def truncate(self):
         """Clear all elements from this cluster"""
         raise NotImplementedError()
 
-    @abstractmethod
     def append(self, key: Optional[str], data: Tuple):
         """Appends one element to this cluster
 
@@ -50,7 +53,10 @@ class Cluster(ABC):
         the underlying storage. You need to call `flush` for that.
 
         """
-        raise NotImplementedError()
+        record = [key, data]
+        self._cached.append(record)
+        if len(self._cached) >= self._cache_size:
+            self.flush()
 
     @abstractmethod
     def flush(self):

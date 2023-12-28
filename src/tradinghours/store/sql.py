@@ -1,6 +1,7 @@
-from typing import Iterator
+from typing import Dict, Iterator, Tuple
 
 from sqlalchemy import (
+    JSON,
     Column,
     Engine,
     Integer,
@@ -12,6 +13,9 @@ from sqlalchemy import (
 )
 
 from tradinghours.store.base import Cluster, Collection, Registry
+from tradinghours.util import get_csv_from_tuple
+
+TABLE_NAME_PREFIX = "thstore_"
 
 
 class SqlCluster(Cluster):
@@ -19,7 +23,7 @@ class SqlCluster(Cluster):
 
     DEFAULT_CACHE_SIZE = 500
 
-    def __init__(self, engine, table, slug, cache_size=None):
+    def __init__(self, engine: Engine, table: Table, slug: str, cache_size=None):
         self._engine = engine
         self._table = table
         self._slug = slug
@@ -30,42 +34,56 @@ class SqlCluster(Cluster):
         with self._engine.connect() as connection:
             connection.execute(f"DELETE FROM {self._table.name}")
 
-    def append(self, key, data):
-        # TODO: reuse FileCluster.append with fields set on flush
-        self._cached.append({"slug": self._slug, "key": key, "data": data})
-        if len(self._cached) >= self._cache_size:
-            self.flush()
-
     def flush(self):
         with self._engine.connect() as connection:
             with connection.begin() as transaction:
-                for record in self._cached:
-                    connection.execute(self._table.insert().values(record))
+                for key, data in self._cached:
+                    data_csv = get_csv_from_tuple(data)
+                    db_record = {"slug": self._slug, "key": key, "data": data_csv}
+                    connection.execute(self._table.insert().values(db_record))
                 transaction.commit()
         self._cached = []
 
-    def load_all(self):
+    def load_all(self) -> Dict[str, Tuple]:
+        keyed_items = {}
         with self._engine.connect() as connection:
-            select_query = self._table.select()
+            select_query = (
+                self._table.select()
+                .add_columns(self._table.c.key, self._table.c.data)
+                .where(self._table.c.slug == self._slug)
+            )
             result = connection.execute(select_query)
-            return result.fetchall()
+            for row in result:
+                key = str(row.key)
+                data = tuple(row.data)
+                keyed_items[key] = data
+        return keyed_items
 
 
 class SqlClusterRegistry(Registry[SqlCluster]):
     """Holds a series of SQL clusters"""
 
-    def __init__(self, engine, table):
+    def __init__(self, engine: Engine, table: Table):
         self._engine = engine
         self._table = table
+        super().__init__()
 
     def create(self, slug: str) -> SqlCluster:
         return SqlCluster(self._engine, self._table, slug)
+
+    def discover(self) -> Iterator[str]:
+        with self._engine.connect() as connection:
+            select_query = self._table.select().column(self._table.c.slug).distinct()
+            result = connection.execute(select_query)
+            for row in result:
+                yield row[0]
 
 
 class SqlCollection(Collection):
     def __init__(self, engine: Engine, table: Table):
         self._engine = engine
         self._table = table
+        self.touch()
         self._clusters = SqlClusterRegistry(self._engine, self._table)
 
     @property
@@ -74,6 +92,11 @@ class SqlCollection(Collection):
 
     def touch(self):
         self._table.create(self._engine, checkfirst=True)
+
+    def clear(self):
+        for current in self._clusters:
+            current.truncate()
+        self._clusters = SqlClusterRegistry(self._engine, self._table)
 
 
 class SqlCollectionRegistry(Registry[SqlCollection]):
@@ -84,14 +107,14 @@ class SqlCollectionRegistry(Registry[SqlCollection]):
         super().__init__()
 
     def create(self, slug: str) -> SqlCollection:
-        table_name = "thstore_" + slug.replace("-", "_")
+        table_name = TABLE_NAME_PREFIX + slug.replace("-", "_")
         table = Table(
             table_name,
             self._metadata,
             Column("id", Integer, primary_key=True),
             Column("slug", String),
             Column("key", String),
-            Column("data", String),
+            Column("data", JSON),
         )
         collection = SqlCollection(self._engine, table)
         collection.touch()
@@ -101,5 +124,5 @@ class SqlCollectionRegistry(Registry[SqlCollection]):
         inspector = inspect(self._engine)
         all_names = inspector.get_table_names()
         for table_name in all_names:
-            if table_name.startswith("thstore_"):
-                yield table_name
+            if table_name.startswith(TABLE_NAME_PREFIX):
+                yield table_name[len(TABLE_NAME_PREFIX) :]

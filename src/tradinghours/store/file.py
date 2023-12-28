@@ -26,16 +26,12 @@ class FileCluster(Cluster):
             file.seek(0)
             file.truncate(0)
 
-    def append(self, key: Optional[str], data: Tuple):
-        record = [key, *data]
-        self._cached.append(record)
-        if len(self._cached) >= self._cache_size:
-            self.flush()
-
     def flush(self):
         with open(self.location, "a+", encoding="utf-8", newline="") as file:
             writer = csv.writer(file)
-            writer.writerows(self._cached)
+            for key, data in self._cached:
+                row = [key, *data]
+                writer.writerow(row)
             self._cached = []
 
     def load_all(self) -> Dict[str, Tuple]:

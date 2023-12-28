@@ -1,5 +1,7 @@
+import csv
 import json
 import re
+from io import StringIO
 from typing import Dict
 
 from .validate import validate_instance_arg, validate_str_arg
@@ -114,6 +116,15 @@ def pprint_data(data: Dict):
     table = create_table_structure(data, suppress_empty_values=True)
     ascii = render_ascii_table(table, max_width=15)
     print(ascii)
+
+
+def get_csv_from_tuple(data: tuple) -> str:
+    csv_data = StringIO()
+    writer = csv.writer(csv_data)
+    writer.writerow(data)
+    csv_string = csv_data.getvalue()
+    csv_data.close()
+    return csv_string
 
 
 class StrEncoder(json.JSONEncoder):
