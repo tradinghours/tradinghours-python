@@ -1,9 +1,9 @@
+import csv
 from pathlib import Path
 from typing import Dict, Generator, List, Optional, Tuple
 
 from tradinghours.store.base import Cluster, Collection, Registry
 from tradinghours.typing import StrOrPath
-from tradinghours.util import slugify
 from tradinghours.validate import validate_path_arg
 
 
@@ -52,7 +52,7 @@ class FileCluster(Cluster):
 
 
 class FileClusterRegistry(Registry[FileCluster]):
-    """Holds a series of clusters"""
+    """Holds a series of file clusters"""
 
     def __init__(self, folder: StrOrPath):
         self._folder = validate_path_arg("folder", folder)

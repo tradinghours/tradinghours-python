@@ -76,14 +76,17 @@ class Collection(ABC):
 
     @abstractproperty
     def clusters(self) -> Registry:
+        """Gets the clusters registry for this collection"""
         raise NotImplementedError()
 
     @abstractmethod
     def touch(self):
+        """Ensure the collection exists"""
         raise NotImplementedError()
 
     @abstractmethod
     def clear(self):
+        """Wipes all clusters in this collection"""
         raise NotImplementedError()
 
 
