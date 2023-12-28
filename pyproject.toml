@@ -30,6 +30,9 @@ dev = [
     'black',
     'coverage[toml]',
 ]
+sql = [
+    'sqlalchemy',
+]
 
 [project.scripts]
 tradinghours = "tradinghours.console:main"

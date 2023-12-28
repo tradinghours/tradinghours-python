@@ -5,7 +5,9 @@ from .currency import Currency, CurrencyHoliday
 from .market import Market, MarketHoliday, MicMapping
 from .remote import default_data_manager
 from .schedule import Schedule
-from .store import Collection, SourceFile, Store, default_store
+from .store.engine import Store, default_store
+from .store.file import FileCollection
+from .store.source import SourceFile
 from .typing import StrOrPath
 
 B = TypeVar("B", bound=BaseObject)
@@ -129,7 +131,7 @@ class Catalog:
             source.ingest(self.store)
         self.store.flush()
 
-    def find_model_collection(self, model: Type[BaseObject]) -> Collection:
+    def find_model_collection(self, model: Type[BaseObject]) -> FileCollection:
         for name, declared in DeclaredFile.known_files.items():
             if declared.model is model:
                 return self.store.collections.get(name)
