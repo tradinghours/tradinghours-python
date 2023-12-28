@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from tradinghours.store.base import Cluster, Collection, Registry
 from tradinghours.typing import StrOrPath
@@ -66,7 +66,7 @@ class FileClusterRegistry(Registry[FileCluster]):
         location = self.folder / f"{slug}.dat"
         return FileCluster(location)
 
-    def discover(self) -> Generator[str, None, None]:
+    def discover(self) -> Iterator[str]:
         if self.folder.exists():
             for item in self.folder.iterdir():
                 if item.is_file():
@@ -114,7 +114,7 @@ class FileCollectionRegistry(Registry[FileCollection]):
         collection.touch()
         return collection
 
-    def discover(self) -> Generator[str, None, None]:
+    def discover(self) -> Iterator[str]:
         if self.root.exists():
             for item in self.root.iterdir():
                 if item.is_dir():

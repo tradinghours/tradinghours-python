@@ -1,12 +1,8 @@
-import os
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Dict, Generic, Iterator, Optional, Tuple, TypeVar
 
-from tradinghours.store.file import FileCollectionRegistry
-
 from ..base import BaseObject
-from ..config import main_config
 from ..typing import StrOrPath
 from ..util import slugify
 from ..validate import validate_path_arg
@@ -35,8 +31,9 @@ class Registry(ABC, Generic[T]):
     def create(self, slug: str) -> T:
         raise NotImplementedError()
 
-    def discover(self):
-        pass
+    @abstractmethod
+    def discover(self) -> Iterator[str]:
+        raise NotImplementedError()
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._resources.values())
@@ -88,52 +85,3 @@ class Collection(ABC):
     def clear(self):
         """Wipes all clusters in this collection"""
         raise NotImplementedError()
-
-
-class Store:
-    """Manages data loaded into memory"""
-
-    def __init__(self, root: StrOrPath, collections_registry: FileCollectionRegistry):
-        self._root = validate_path_arg("root", root)
-        self.touch()
-        self._collections = collections_registry
-
-    @property
-    def root(self) -> Path:
-        return self._root
-
-    @property
-    def collections(self) -> FileCollectionRegistry:
-        return self._collections
-
-    @property
-    def token(self):
-        return os.getenv("TRADINGHOURS_TOKEN")
-
-    def touch(self):
-        self.root.mkdir(parents=True, exist_ok=True)
-
-    def clear_collection(self, name: str):
-        collection_obj = self.collections.get(name)
-        collection_obj.clear()
-
-    def store_tuple(
-        self,
-        data: Tuple,
-        collection,
-        cluster: Optional[str] = None,
-        key: Optional[str] = None,
-    ):
-        collection_obj = self.collections.get(collection)
-        if cluster is None:
-            cluster = "default"
-        cluster_obj = collection_obj.clusters.get(cluster)
-        cluster_obj.append(key, data)
-
-    def flush(self):
-        for collection in self.collections:
-            for cluster in collection.clusters:
-                cluster.flush()
-
-
-default_store = Store(main_config.get("data", "local_dir"))

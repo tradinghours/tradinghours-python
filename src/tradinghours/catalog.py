@@ -5,7 +5,7 @@ from .currency import Currency, CurrencyHoliday
 from .market import Market, MarketHoliday, MicMapping
 from .remote import default_data_manager
 from .schedule import Schedule
-from .store.base import Store, default_store
+from .store.engine import Store, default_store
 from .store.file import FileCollection
 from .store.source import SourceFile
 from .typing import StrOrPath

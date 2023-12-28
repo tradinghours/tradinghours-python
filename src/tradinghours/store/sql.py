@@ -1,4 +1,15 @@
-from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine
+from typing import Iterator
+
+from sqlalchemy import (
+    Column,
+    Engine,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    inspect,
+)
 
 from tradinghours.store.base import Cluster, Collection, Registry
 
@@ -52,19 +63,9 @@ class SqlClusterRegistry(Registry[SqlCluster]):
 
 
 class SqlCollection(Collection):
-    def __init__(self, db_url, table_name):
-        self._db_url = db_url
-        self._table_name = table_name
-        self._engine = create_engine(self._db_url)
-        self._metadata = MetaData()
-        self._table = Table(
-            self._table_name,
-            self._metadata,
-            Column("id", Integer, primary_key=True),
-            Column("slug", String),
-            Column("key", String),
-            Column("data", String),
-        )
+    def __init__(self, engine: Engine, table: Table):
+        self._engine = engine
+        self._table = table
         self._clusters = SqlClusterRegistry(self._engine, self._table)
 
     @property
@@ -72,4 +73,33 @@ class SqlCollection(Collection):
         return self._clusters
 
     def touch(self):
-        self._metadata.create_all(self._engine)
+        self._table.create(self._engine, checkfirst=True)
+
+
+class SqlCollectionRegistry(Registry[SqlCollection]):
+    def __init__(self, db_url: str):
+        self._db_url = db_url
+        self._engine = create_engine(self._db_url)
+        self._metadata = MetaData()
+        super().__init__()
+
+    def create(self, slug: str) -> SqlCollection:
+        table_name = "thstore_" + slug.replace("-", "_")
+        table = Table(
+            table_name,
+            self._metadata,
+            Column("id", Integer, primary_key=True),
+            Column("slug", String),
+            Column("key", String),
+            Column("data", String),
+        )
+        collection = SqlCollection(self._engine, table)
+        collection.touch()
+        return collection
+
+    def discover(self) -> Iterator[str]:
+        inspector = inspect(self._engine)
+        all_names = inspector.get_table_names()
+        for table_name in all_names:
+            if table_name.startswith("thstore_"):
+                yield table_name
