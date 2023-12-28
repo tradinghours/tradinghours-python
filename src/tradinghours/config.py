@@ -11,7 +11,7 @@ default_settings = {
         "base_url": "https://api.tradinghours.com/v3/",
     },
     "data": {
-        "use_db": True,
+        "use_db": False,
         "local_dir": PROJECT_PATH / "store_dir" / "local",
         "remote_dir": PROJECT_PATH / "store_dir" / "remote",
         "db_url": f"sqlite:///{PROJECT_PATH / 'store_dir' / 'local.db'}",

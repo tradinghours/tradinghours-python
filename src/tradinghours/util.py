@@ -127,6 +127,14 @@ def get_csv_from_tuple(data: tuple) -> str:
     return csv_string
 
 
+def get_tuple_from_csv(csv_string: str) -> tuple:
+    csv_data = StringIO(csv_string)
+    reader = csv.reader(csv_data)
+    row = next(reader)
+    csv_data.close()
+    return tuple(row)
+
+
 class StrEncoder(json.JSONEncoder):
     """Helps encoding flat data"""
 

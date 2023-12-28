@@ -13,7 +13,7 @@ from sqlalchemy import (
 )
 
 from tradinghours.store.base import Cluster, Collection, Registry
-from tradinghours.util import get_csv_from_tuple
+from tradinghours.util import get_csv_from_tuple, get_tuple_from_csv
 
 TABLE_NAME_PREFIX = "thstore_"
 
@@ -54,8 +54,8 @@ class SqlCluster(Cluster):
             )
             result = connection.execute(select_query)
             for row in result:
-                key = str(row.key)
-                data = tuple(row.data)
+                key = row.key or str(row.id)
+                data = get_tuple_from_csv(row.data)
                 keyed_items[key] = data
         return keyed_items
 
@@ -73,10 +73,12 @@ class SqlClusterRegistry(Registry[SqlCluster]):
 
     def discover(self) -> Iterator[str]:
         with self._engine.connect() as connection:
-            select_query = self._table.select().column(self._table.c.slug).distinct()
+            select_query = (
+                self._table.select().add_columns(self._table.c.slug).distinct()
+            )
             result = connection.execute(select_query)
             for row in result:
-                yield row[0]
+                yield row.slug
 
 
 class SqlCollection(Collection):
