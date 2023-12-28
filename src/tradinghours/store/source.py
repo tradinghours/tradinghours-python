@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Generator, Generic, Type
+from typing import Generator, Generic, Type, TypeVar
 
 from tradinghours.base import BaseObject
 from tradinghours.typing import StrOrPath
@@ -9,6 +9,8 @@ from tradinghours.validate import (
     validate_str_arg,
     validate_subclass_arg,
 )
+
+B = TypeVar("B", bound=BaseObject)
 
 
 class SourceFile(Generic[B]):

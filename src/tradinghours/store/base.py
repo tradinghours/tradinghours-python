@@ -1,13 +1,8 @@
 from abc import ABC, abstractmethod, abstractproperty
-from pathlib import Path
 from typing import Dict, Generic, Iterator, Optional, Tuple, TypeVar
 
-from ..base import BaseObject
-from ..typing import StrOrPath
 from ..util import slugify
-from ..validate import validate_path_arg
 
-B = TypeVar("B", bound=BaseObject)
 T = TypeVar("T")
 
 
