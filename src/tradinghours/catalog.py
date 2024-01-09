@@ -5,6 +5,7 @@ from .currency import Currency, CurrencyHoliday
 from .market import Market, MarketHoliday, MicMapping
 from .remote import default_data_manager
 from .schedule import Schedule
+from .season import SeasonDefinition
 from .store.engine import Store, default_store
 from .store.file import FileCollection
 from .store.source import SourceFile
@@ -49,6 +50,11 @@ class DeclaredFile(SourceFile[B]):
             key = self.resolve_key(current)
             data = current.to_tuple()
             store.store_tuple(data, collection, cluster=cluster, key=key)
+
+
+class SeasonDefinitionFile(DeclaredFile):
+    name = "season-definitions"
+    model = SeasonDefinition
 
 
 class CurrencyFile(DeclaredFile[Currency]):
