@@ -12,6 +12,7 @@ from .base import (
     WeekdaySetField,
 )
 from .schedule import ConcretePhase, Schedule
+from .season import SeasonDefinition
 from .typing import StrOrDate, StrOrFinId
 from .validate import (
     validate_date_arg,
@@ -109,6 +110,21 @@ class Market(BaseObject):
             valid_schedules = list(
                 filter(
                     lambda s: s.schedule_group.lower() == schedule_group,
+                    valid_schedules,
+                )
+            )
+
+            # Filter by season
+            valid_schedules = list(
+                filter(
+                    lambda s: (
+                        current_date
+                        >= SeasonDefinition.get_date(s.season_start, current_date.year)
+                        and current_date
+                        <= SeasonDefinition.get_date(s.season_end, current_date.year)
+                    )
+                    if s.season_start
+                    else True,
                     valid_schedules,
                 )
             )
