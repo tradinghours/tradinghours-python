@@ -224,3 +224,20 @@ class TestCase009(EdgeCase):
             "Primary Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+
+class TestCase010(EdgeCase):
+    """
+
+    Test Seasonality cases
+
+    """
+
+    def test_case_season(self):
+        fin_id = "US.BTEC.ACTIVES.US"
+        date = "2023-03-09"
+        expected = [
+            "Primary Trading Session",
+            "Primary Trading Session",
+        ]
+        self.assertDateSchedule(fin_id, date, expected)

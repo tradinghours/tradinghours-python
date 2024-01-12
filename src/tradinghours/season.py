@@ -23,7 +23,7 @@ class SeasonDefinition(BaseObject):
         year = validate_int_arg("year", year)
         catalog = cls.get_catalog(catalog)
         for _, definition in catalog.list(cls):
-            if definition.season == season and definition.year == year:
+            if definition.season.lower() == season.lower() and definition.year == year:
                 return definition
         raise MissingDefinitionError()
 
