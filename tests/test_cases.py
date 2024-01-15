@@ -1,7 +1,6 @@
 import unittest
 
 from tradinghours.market import Market
-from tradinghours.schedule import ConcretePhase
 
 
 class EdgeCase(unittest.TestCase):
@@ -93,12 +92,18 @@ class TestCase004(EdgeCase):
     def test_case(self):
         fin_id = "US.CME.EQUITY.USINDEX1"
         date = "2023-11-13"
-        expected = [
+        expected_phases = [
             "Primary Trading Session",
             "Pre-Open",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2023-11-12T17:00:00", "2023-11-13T16:00:00"),
+            ("2023-11-13T16:45:00", "2023-11-13T17:00:00"),
+            ("2023-11-13T17:00:00", "2023-11-14T16:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
 
 class TestCase005(EdgeCase):
@@ -111,12 +116,18 @@ class TestCase005(EdgeCase):
     def test_case(self):
         fin_id = "US.CME.EQUITY.USINDEX1"
         date = "2023-11-23"
-        expected = [
+        expected_phases = [
             "Primary Trading Session",
             "Pre-Open",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2023-11-22T17:00:00", "2023-11-23T12:00:00"),
+            ("2023-11-23T12:00:00", "2023-11-23T17:00:00"),
+            ("2023-11-23T17:00:00", "2023-11-24T12:15:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
 
 class TestCase006(EdgeCase):
@@ -129,11 +140,16 @@ class TestCase006(EdgeCase):
     def test_case(self):
         fin_id = "US.CME.EQUITY.USINDEX1"
         date = "2023-12-25"
-        expected = [
+        expected_phases = [
             "Pre-Open",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2023-12-25T16:00:00", "2023-12-25T17:00:00"),
+            ("2023-12-25T17:00:00", "2023-12-26T16:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
 
 class TestCase007(EdgeCase):
@@ -168,7 +184,7 @@ class TestCase008(EdgeCase):
         fin_id = "US.CBOE.VIX"
         date = "2020-10-15"
         # TODO: review this order
-        expected = [
+        expected_phases = [
             "Primary Trading Session",
             "Trading-at-Last",
             "Primary Trading Session",
@@ -177,19 +193,36 @@ class TestCase008(EdgeCase):
             "Primary Trading Session",
             "Trading-at-Last",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2020-10-14T17:00:00", "2020-10-15T15:00:00"),
+            ("2020-10-14T17:00:00", "2020-10-15T08:30:00"),
+            ("2020-10-15T08:30:00", "2020-10-15T15:00:00"),
+            ("2020-10-15T15:00:00", "2020-10-15T16:00:00"),
+            ("2020-10-15T16:45:00", "2020-10-15T17:00:00"),
+            ("2020-10-15T17:00:00", "2020-10-16T15:00:00"),
+            ("2020-10-15T17:00:00", "2020-10-16T08:30:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
     def test_case_fri(self):
         fin_id = "US.CBOE.VIX"
         date = "2020-10-16"
         # TODO: review this order
-        expected = [
+        expected_phases = [
             "Primary Trading Session",
             "Trading-at-Last",
             "Primary Trading Session",
             "Post-Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2020-10-15T17:00:00", "2020-10-16T15:00:00"),
+            ("2020-10-15T17:00:00", "2020-10-16T08:30:00"),
+            ("2020-10-16T08:30:00", "2020-10-16T15:00:00"),
+            ("2020-10-16T15:00:00", "2020-10-16T16:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
 
 class TestCase009(EdgeCase):
@@ -203,38 +236,58 @@ class TestCase009(EdgeCase):
     def test_case_sun(self):
         fin_id = "US.CME.AGRI.DAIRY1"
         date = "2022-01-16"
-        expected = [
+        expected_phases = [
             "Pre-Open",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2022-01-16T16:00:00", "2022-01-17T17:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
     def test_case_mon(self):
         fin_id = "US.CME.AGRI.DAIRY1"
         date = "2022-01-17"
-        expected = [
+        expected_phases = [
             "Pre-Open",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2022-01-16T16:00:00", "2022-01-17T17:00:00"),
+            ("2022-01-17T17:00:00", "2022-01-18T16:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
     def test_case_reg_sun(self):
         fin_id = "US.CME.AGRI.DAIRY1"
         date = "2022-01-09"
-        expected = [
+        expected_phases = [
             "Pre-Open",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2022-01-09T16:00:00", "2022-01-09T17:00:00"),
+            ("2022-01-09T17:00:00", "2022-01-10T16:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
     def test_case_reg_mon(self):
         fin_id = "US.CME.AGRI.DAIRY1"
         date = "2022-01-10"
-        expected = [
+        expected_phases = [
             "Primary Trading Session",
             "Pre-Open",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2022-01-09T17:00:00", "2022-01-10T16:00:00"),
+            ("2022-01-10T16:45:00", "2022-01-10T17:00:00"),
+            ("2022-01-10T17:00:00", "2022-01-11T16:00:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
 
 class TestCase010(EdgeCase):
@@ -247,11 +300,16 @@ class TestCase010(EdgeCase):
     def test_case_season(self):
         fin_id = "US.BTEC.ACTIVES.US"
         date = "2023-03-09"
-        expected = [
+        expected_phases = [
             "Primary Trading Session",
             "Primary Trading Session",
         ]
-        self.assertDateSchedule(fin_id, date, expected)
+        self.assertDateSchedule(fin_id, date, expected_phases)
+        expected_timestamps = [
+            ("2023-03-08T18:30:00", "2023-03-09T17:30:00"),
+            ("2023-03-09T18:30:00", "2023-03-10T17:30:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected_timestamps)
 
     def test_overnight(self):
         fin_id = "US.BTEC.ACTIVES.US"
