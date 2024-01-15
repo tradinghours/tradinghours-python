@@ -1,6 +1,7 @@
 import unittest
 
 from tradinghours.market import Market
+from tradinghours.schedule import ConcretePhase
 
 
 class EdgeCase(unittest.TestCase):
@@ -16,6 +17,16 @@ class EdgeCase(unittest.TestCase):
 
     def assertDateSchedule(self, fin_id, date, expected):
         self.assertRangeSchedule(fin_id, date, date, expected)
+
+    def assertRangeTimestamps(self, fin_id, start, end, expected):
+        market = Market.get(fin_id)
+        schedules = list(market.generate_schedules(start, end))
+        phases = map(lambda s: (s.start.isoformat(), s.end.isoformat()), schedules)
+        result = list(phases)
+        self.assertEqual(result, expected)
+
+    def assertDateTimestamps(self, fin_id, date, expected):
+        self.assertRangeTimestamps(fin_id, date, date, expected)
 
 
 class TestCase001(EdgeCase):
@@ -241,3 +252,11 @@ class TestCase010(EdgeCase):
             "Primary Trading Session",
         ]
         self.assertDateSchedule(fin_id, date, expected)
+
+    def test_overnight(self):
+        fin_id = "US.BTEC.ACTIVES.US"
+        date = "2023-11-12"
+        expected = [
+            ("2023-11-12T18:30:00", "2023-11-13T17:30:00"),
+        ]
+        self.assertDateTimestamps(fin_id, date, expected)

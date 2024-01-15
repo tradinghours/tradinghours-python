@@ -159,9 +159,12 @@ class Market(BaseObject):
 
             # Generate phases for current date
             for some_date, some_schedule in happening_schedules:
-                date_str = some_date.isoformat() + "T"
-                start_str = date_str + some_schedule.start.isoformat()
-                end_str = date_str + some_schedule.end.isoformat()
+                start_date = some_date
+                end_date = some_date + timedelta(days=some_schedule.offset_days)
+                start_date_str = start_date.isoformat() + "T"
+                end_date_str = end_date.isoformat() + "T"
+                start_str = start_date_str + some_schedule.start.isoformat()
+                end_str = end_date_str + some_schedule.end.isoformat()
                 yield ConcretePhase(
                     dict(
                         phase_type=some_schedule.phase_type,
