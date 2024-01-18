@@ -1,6 +1,6 @@
 import datetime
 from datetime import timedelta
-from typing import Dict, Generator, List
+from typing import Dict, Generator, Iterable, List, Tuple
 
 from .base import (
     BaseObject,
@@ -19,6 +19,9 @@ from .validate import (
     validate_range_args,
     validate_str_arg,
 )
+
+# Arbitrary max offset days for TradingHours data
+MAX_OFFSET_DAYS = 2
 
 
 class Market(BaseObject):
@@ -65,6 +68,47 @@ class Market(BaseObject):
 
     replaced_by = FinIdField()
 
+    def _pick_schedule_group(
+        self,
+        some_date: datetime.date,
+        holidays: Dict[datetime.date, "MarketHoliday"],
+    ) -> Tuple[str, bool]:
+        if found := holidays.get(some_date):
+            schedule_group = found.schedule.lower()
+            fallback = Schedule.is_group_open(schedule_group)
+        else:
+            schedule_group = "regular"
+            fallback = False
+        return schedule_group, fallback
+
+    def _filter_schedule_group(
+        self, schedule_group: str, schedules: Iterable[Schedule]
+    ) -> Iterable[Schedule]:
+        for current in schedules:
+            if current.schedule_group.lower() == schedule_group:
+                yield current
+
+    def _filter_inforce(
+        self, some_date: datetime.date, schedules: Iterable[Schedule]
+    ) -> Iterable[Schedule]:
+        for current in schedules:
+            if current.is_in_force(some_date, some_date):
+                yield current
+
+    def _filter_season(
+        self, some_date: datetime.date, schedules: Iterable[Schedule]
+    ) -> Iterable[Schedule]:
+        for current in schedules:
+            if current.match_season(some_date):
+                yield current
+
+    def _filter_weekdays(
+        self, some_date: datetime.date, schedules: Iterable[Schedule]
+    ) -> Iterable[Schedule]:
+        for current in schedules:
+            if current.days.matches(some_date):
+                yield current
+
     def generate_schedules(
         self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> Generator[ConcretePhase, None, None]:
@@ -74,130 +118,79 @@ class Market(BaseObject):
         )
         catalog = self.get_catalog(catalog)
 
-        # Get schedules happening in the period to be considered
-        schedules_listing = catalog.list(Schedule, cluster=str(self.fin_id))
-        all_schedules: List[Schedule] = []
-        for _, current in schedules_listing:
-            if current.is_in_force(start, end):
-                all_schedules.append(current)
+        # Get required global data
+        offset_start = start - timedelta(days=MAX_OFFSET_DAYS)
+        all_schedules = Schedule.list_all(self.fin_id)
+        holidays = MarketHoliday.build_keyed(self.fin_id, offset_start, end)
 
-        # Holidays work as exceptions to the rule
-        holidays_listing = self.list_holidays(start, end)
-        keyed_holidays: Dict[datetime.date, MarketHoliday] = {}
-        for current in holidays_listing:
-            keyed_holidays[current.date] = current
-
-        # Iterate from start to end date, generating phases
-        current_date = start
+        # Iterate through all dates generating phases
+        current_date = offset_start
         while current_date <= end:
-            # Find holiday for current date
-            if holiday := keyed_holidays.get(current_date):
-                schedule_group = holiday.schedule.lower()
-                # TODO: instead of just regular, consider all "open" schedules
-                if schedule_group.lower() == "regular":
-                    fallback_past_weekday = True
-                else:
-                    fallback_past_weekday = False
-            else:
-                schedule_group = "regular"
-                fallback_past_weekday = False
+            # Starts with all schedules
+            schedules = all_schedules
 
-            # Get schedules for current date
-            valid_schedules = all_schedules
+            # Filter schedule group based on holiday if any
+            schedule_group, fallback = self._pick_schedule_group(current_date, holidays)
+            schedules = self._filter_schedule_group(schedule_group, schedules)
 
-            # Filter Schedule Group
-            valid_schedules = list(
-                filter(
-                    lambda s: s.schedule_group.lower() == schedule_group,
-                    valid_schedules,
-                )
-            )
+            # Filters what is in force or for expected season
+            schedules = self._filter_inforce(current_date, schedules)
+            schedules = self._filter_season(current_date, schedules)
 
-            # Filter by season
-            valid_schedules = list(
-                filter(
-                    lambda s: s.match_season(current_date),
-                    valid_schedules,
-                )
-            )
-
-            # Get all schedules occurring for this date, including past
-            # dates based on offset
-            happening_schedules = []
-            for current_valid_schedule in valid_schedules:
-                this_schedule_occurrences = current_valid_schedule.match_occurrences(
-                    current_date
-                )
-                for occurrence_date in this_schedule_occurrences:
-                    happening_tuple = (occurrence_date, current_valid_schedule)
-                    happening_schedules.append(happening_tuple)
+            # Save for fallback and filter weekdays
+            before_weekdays = list(schedules)
+            found_schedules = list(self._filter_weekdays(current_date, before_weekdays))
 
             # Consider fallback if needed
-            if not happening_schedules and fallback_past_weekday:
-                # TODO: Remember to collect all matching for the weekday
+            if not found_schedules and fallback:
                 initial_weekday = current_date.weekday()
                 fallback_weekday = 6 if initial_weekday == 0 else initial_weekday - 1
-                while not happening_schedules and fallback_weekday != initial_weekday:
-                    happening_schedules = list(
-                        map(
-                            lambda s: (current_date, s),
-                            filter(
-                                lambda s: s.days.matches(fallback_weekday),
-                                valid_schedules,
-                            ),
-                        )
+                fallback_schedules = []
+                while not fallback_schedules and fallback_weekday != initial_weekday:
+                    fallback_schedules = list(
+                        filter(
+                            lambda s: s.days.matches(fallback_weekday),
+                            before_weekdays,
+                        ),
                     )
                     fallback_weekday = (
                         6 if fallback_weekday == 0 else fallback_weekday - 1
                     )
+                found_schedules = fallback_schedules
 
-            # Sort them by start date
-            happening_schedules = sorted(
-                happening_schedules,
-                key=lambda t: (t[0], t[1].start, t[1].duration),
+            # Sort based on start time and duration
+            found_schedules = sorted(
+                found_schedules,
+                key=lambda s: (s.start, s.duration),
             )
 
             # Generate phases for current date
-            for some_date, some_schedule in happening_schedules:
-                start_date = some_date
-                end_date = some_date + timedelta(days=some_schedule.offset_days)
-                start_date_str = start_date.isoformat() + "T"
-                end_date_str = end_date.isoformat() + "T"
-                start_str = start_date_str + some_schedule.start.isoformat()
-                end_str = end_date_str + some_schedule.end.isoformat()
-                yield ConcretePhase(
-                    dict(
-                        phase_type=some_schedule.phase_type,
-                        phase_name=some_schedule.phase_name,
-                        phase_memo=some_schedule.phase_memo,
-                        start=start_str,
-                        end=end_str,
+            for current_schedule in found_schedules:
+                start_date = current_date
+                end_date = current_date + timedelta(days=current_schedule.offset_days)
+
+                # Filter out phases not finishing after start because we
+                # began looking a few days ago to cover offset days
+                if end_date >= start:
+                    start_date_str = start_date.isoformat() + "T"
+                    end_date_str = end_date.isoformat() + "T"
+                    start_str = start_date_str + current_schedule.start.isoformat()
+                    end_str = end_date_str + current_schedule.end.isoformat()
+                    yield ConcretePhase(
+                        dict(
+                            phase_type=current_schedule.phase_type,
+                            phase_name=current_schedule.phase_name,
+                            phase_memo=current_schedule.phase_memo,
+                            start=start_str,
+                            end=end_str,
+                        )
                     )
-                )
 
             # Next date, please
             current_date += timedelta(days=1)
 
-    def list_holidays(
-        self, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> List["MarketHoliday"]:
-        start, end = validate_range_args(
-            validate_date_arg("start", start),
-            validate_date_arg("end", end),
-        )
-        catalog = self.get_catalog(catalog)
-        holidays = list(
-            catalog.filter(
-                MarketHoliday,
-                start.isoformat(),
-                end.isoformat(),
-                cluster=str(self.fin_id),
-            )
-        )
-        return holidays
-
     @classmethod
-    def list_all(cls, catalog=None) -> List:
+    def list_all(cls, catalog=None) -> List["Market"]:
         catalog = cls.get_catalog(catalog)
         return list(catalog.list_all(Market))
 
@@ -256,6 +249,36 @@ class MarketHoliday(BaseObject):
 
     memo = StringField()
     """A description or additional details about the holiday."""
+
+    @classmethod
+    def list_range(
+        cls, finid: StrOrFinId, start: StrOrDate, end: StrOrDate, catalog=None
+    ) -> List["MarketHoliday"]:
+        finid = validate_finid_arg("finid", finid)
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
+        catalog = cls.get_catalog(catalog)
+        holidays = list(
+            catalog.filter(
+                MarketHoliday,
+                start.isoformat(),
+                end.isoformat(),
+                cluster=str(finid),
+            )
+        )
+        return holidays
+
+    @classmethod
+    def build_keyed(
+        cls, finid: StrOrFinId, start: StrOrDate, end: StrOrDate, catalog=None
+    ) -> Dict[datetime.date, "MarketHoliday"]:
+        holidays = cls.list_range(finid, start, end)
+        keyed = {}
+        for current in holidays:
+            keyed[current.date] = current
+        return keyed
 
 
 class MicMapping(BaseObject):

@@ -17,8 +17,8 @@ from .base import (
     WeekdayField,
     WeekdaySetField,
 )
-from .typing import StrOrDate
-from .validate import validate_date_arg, validate_range_args
+from .typing import StrOrDate, StrOrFinId
+from .validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 
 class ConcretePhase(BaseObject):
@@ -164,9 +164,15 @@ class Schedule(BaseObject):
         return some_date >= start_date and some_date <= end_date
 
     @classmethod
-    def list_all(cls, catalog=None) -> List:
+    def list_all(cls, finid: StrOrFinId, catalog=None) -> List["Schedule"]:
+        finid = validate_finid_arg("finid", finid)
         catalog = cls.get_catalog(catalog)
-        return list(catalog.list_all(Schedule))
+        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(finid))))
+
+    @classmethod
+    def is_group_open(cls, group):
+        # TODO: implement a ScheduleGroup type and consider other open groups
+        return group.lower() == "regular"
 
 
 class RegularSchedule(BaseObject):

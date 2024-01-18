@@ -318,3 +318,33 @@ class TestCase010(EdgeCase):
             ("2023-11-12T18:30:00", "2023-11-13T17:30:00"),
         ]
         self.assertDateTimestamps(fin_id, date, expected)
+
+
+class TestCase011(EdgeCase):
+    """
+
+    Testing holiday with offset
+
+    """
+
+    def test_case_single(self):
+        fin_id = "CN.SGE"
+        date = "2023-01-02"
+        expected = []
+        self.assertDateTimestamps(fin_id, date, expected)
+
+    def test_case_multi(self):
+        fin_id = "CN.SGE"
+        start_date = "2023-01-01"
+        end_date = "2023-01-03"
+        expected = [
+            ("2023-01-03T09:00:00", "2023-01-03T15:30:00"),
+            ("2023-01-03T15:00:00", "2023-01-03T15:30:00"),
+            ("2023-01-03T15:30:00", "2023-01-03T15:45:00"),
+            ("2023-01-03T15:31:00", "2023-01-03T15:40:00"),
+            ("2023-01-03T15:40:00", "2023-01-03T15:40:00"),
+            ("2023-01-03T19:45:00", "2023-01-03T20:00:00"),
+            ("2023-01-03T19:50:00", "2023-01-03T19:59:00"),
+            ("2023-01-03T20:00:00", "2023-01-04T02:30:00"),
+        ]
+        self.assertRangeTimestamps(fin_id, start_date, end_date, expected)
