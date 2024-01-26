@@ -195,31 +195,31 @@ class Market(BaseObject):
         return list(catalog.list_all(Market))
 
     @classmethod
-    def get_by_finid(cls, finid: StrOrFinId, catalog=None) -> "Market":
+    def get_by_finid(cls, finid: StrOrFinId, follow=True, catalog=None) -> "Market":
         finid = validate_finid_arg("finid", finid)
         catalog = cls.get_catalog(catalog)
         found = catalog.get(Market, str(finid), cluster=finid.country)
-        if found and found.replaced_by:
+        if found and found.replaced_by and follow:
             found = catalog.get(Market, str(found.replaced_by), cluster=finid.country)
         return found
 
     @classmethod
-    def get_by_mic(cls, mic: str, catalog=None) -> "Market":
+    def get_by_mic(cls, mic: str, follow=True, catalog=None) -> "Market":
         mic = validate_str_arg("mic", mic)
         catalog = cls.get_catalog(catalog)
-        found = catalog.get(MicMapping, mic)
-        if found:
-            return cls.get_by_finid(found.fin_id)
+        mapping = MicMapping.get(mic, catalog=catalog)
+        if mapping:
+            return cls.get_by_finid(mapping.fin_id, follow=follow)
         return None
 
     @classmethod
-    def get(cls, identifier: str, catalog=None) -> "Market":
+    def get(cls, identifier: str, follow=True, catalog=None) -> "Market":
         identifier = validate_str_arg("identifier", identifier)
         catalog = cls.get_catalog(catalog)
         if "." in identifier:
-            found = cls.get_by_finid(identifier)
+            found = cls.get_by_finid(identifier, follow=follow)
         else:
-            found = cls.get_by_mic(identifier)
+            found = cls.get_by_mic(identifier, follow=follow)
         return found
 
 
@@ -289,3 +289,9 @@ class MicMapping(BaseObject):
 
     fin_id = FinIdField()
     """TradingHours FinId"""
+
+    @classmethod
+    def get(cls, mic: str, catalog=None) -> "MicMapping":
+        mic = validate_str_arg("mic", mic)
+        catalog = cls.get_catalog(catalog)
+        return catalog.get(cls, mic)

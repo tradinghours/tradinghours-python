@@ -5,7 +5,7 @@
 
 [TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over 900 exchanges and trading venues around the world.
 This library allows clients to easily integrate our market holidays and trading hours data into existing applications.
-This packages downlods all available data from TradingHours.com and then allows you to work with the data locally. 
+This packages downlods all available data from TradingHours.com and then allows you to work with the data locally.
 
 **A paid subscription is required to use this package**
 
@@ -93,6 +93,7 @@ from tradinghours.market import Market
 # Get by either FinID or MIC
 market = Market.get('US.NYSE')
 market = Market.get('XNYS')
+original = Market.get('XBUE', follow=False)
 ```
 
 ### Market Holidays
@@ -132,4 +133,53 @@ from tradinghours.currency import Currency
 currency = Currency.get('AUD')
 for holiday in currency.list_holidays("2023-06-01", "2023-12-31"):
     print(currency)
+```
+
+## Configuration
+
+The library should be auto-configured for use with local file storage,
+but you can adjust some settings using a **tradinghours.ini** file on
+current working directory.
+
+Here is a sample configuration file using file system storage:
+
+```ini
+[api]
+token = YOUR-TOKEN-HERE
+
+[data]
+use_db = False
+local_dir = /srv/tradinghours/local
+remote_dir = /srv/tradinghours/remote
+```
+
+And here you can see one using a local SQL Alchemy database. Note that
+you can use any valid [Database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls):
+
+```ini
+[api]
+token = YOUR-TOKEN-HERE
+
+[data]
+use_db = True
+db_url = sqlite:///tradinghours.db
+```
+
+### Database Schema
+
+In case you would like to directly access the tables for the SQL mode, you
+can see that they all follow a very simple structure with keys for stored data
+and the data with actual JSON. The library uses this simple structure that
+should be compatible with nearly all database engines around.
+
+Here is the DDL for the tables currently in use:
+
+```sql
+CREATE TABLE thstore_currencies (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+CREATE TABLE thstore_currency_holidays (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+CREATE TABLE thstore_holidays (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+CREATE TABLE thstore_markets (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+CREATE TABLE thstore_mic_mapping (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+CREATE TABLE thstore_schedules (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+CREATE TABLE thstore_season_definitions (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
 ```

@@ -75,10 +75,10 @@ class TokenError(ClientError):
     def build_help_message(self):
         return (
             "A TradingHours token is required to perform this operation. "
-            "You can access http://tradinghours.com/ to obtain one. "
-            "In case you already have a token, remember to make it available "
-            "by exporting the environment variable TRADINGHOURS_TOKEN and "
-            "try again."
+            "You can access https://www.tradinghours.com/user/api-tokens to "
+            "obtain one. In case you already have a token, remember to make "
+            "it available by exporting the environment variable "
+            "TRADINGHOURS_TOKEN and try again."
         )
 
 
@@ -86,3 +86,14 @@ class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
 
     pass
+
+
+class MissingSqlAlchemyError(TradingHoursError):
+    """When SQL Alchemy is not installed"""
+
+    def build_help_message(self):
+        return (
+            "You need to install SQLAlchemy in order to usee database "
+            "ready store. You should be able to do that by running "
+            "`pip install tradinghours[sql]` from the command line."
+        )

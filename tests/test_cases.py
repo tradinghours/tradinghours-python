@@ -348,3 +348,108 @@ class TestCase011(EdgeCase):
             ("2023-01-03T20:00:00", "2023-01-04T02:30:00"),
         ]
         self.assertRangeTimestamps(fin_id, start_date, end_date, expected)
+
+
+class TestCase012(EdgeCase):
+    """
+
+    Test whether you can follow or not a permanently closed market
+
+    """
+
+    def setUp(self):
+        self.mic = "XBUE"
+        self.old_finid = "AR.BCBA"
+        self.new_finid = "AR.BYMA"
+
+    def test_follow_auto_mic(self):
+        market = Market.get(self.mic)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_auto_mic(self):
+        market = Market.get(self.mic, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+    def test_follow_auto_finid(self):
+        market = Market.get(self.old_finid)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_auto_finid(self):
+        market = Market.get(self.old_finid, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+    def test_follow_by_mic(self):
+        market = Market.get_by_mic(self.mic)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_by_mic(self):
+        market = Market.get_by_mic(self.mic, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+    def test_follow_by_finid(self):
+        market = Market.get_by_finid(self.old_finid)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_by_finid(self):
+        market = Market.get_by_finid(self.old_finid, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+
+class TestCase013(EdgeCase):
+    """
+
+    Test whether MIC case is ignored
+
+    """
+
+    def test_upper_finid(self):
+        market = Market.get_by_finid("AR.BYMA")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_lower_finid(self):
+        market = Market.get_by_finid("ar.byma")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_mixed_finid(self):
+        market = Market.get_by_finid("aR.ByMa")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_upper_mic(self):
+        market = Market.get_by_mic("XBUE")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_lower_mic(self):
+        market = Market.get_by_mic("xbue")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_mixed_mic(self):
+        market = Market.get_by_mic("xBuE")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)

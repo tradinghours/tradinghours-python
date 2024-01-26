@@ -1,5 +1,7 @@
 from typing import Dict, Generator, Optional, Tuple, Type, TypeVar
 
+from tradinghours.validate import validate_str_arg
+
 from .base import BaseObject
 from .currency import Currency, CurrencyHoliday
 from .market import Market, MarketHoliday, MicMapping
@@ -48,6 +50,7 @@ class DeclaredFile(SourceFile[B]):
             collection = self.name
             cluster = self.resolve_cluster(current)
             key = self.resolve_key(current)
+            key = str(key).upper() if key else key
             data = current.to_tuple()
             store.store_tuple(data, collection, cluster=cluster, key=key)
 
@@ -164,6 +167,7 @@ class Catalog:
     def get(
         self, model: Type[B], key: str, cluster: Optional[str] = None
     ) -> Optional[B]:
+        key = validate_str_arg("key", key).upper()
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
         cluster = collection.clusters.get(cluster_name)
@@ -180,6 +184,8 @@ class Catalog:
         key_end: str,
         cluster: Optional[str] = None,
     ) -> Generator[B, None, None]:
+        key_start = validate_str_arg("key_start", key_start).upper()
+        key_end = validate_str_arg("key_end", key_end).upper()
         collection = self.find_model_collection(model)
         cluster_name = cluster or "default"
         cluster = collection.clusters.get(cluster_name)
