@@ -1,5 +1,7 @@
 import datetime
-from typing import List, Tuple
+from typing import List
+
+from tradinghours.season import SeasonDefinition
 
 from .base import (
     BaseObject,
@@ -15,8 +17,8 @@ from .base import (
     WeekdayField,
     WeekdaySetField,
 )
-from .typing import StrOrDate
-from .validate import validate_date_arg, validate_int_arg, validate_range_args
+from .typing import StrOrDate, StrOrFinId
+from .validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 
 class ConcretePhase(BaseObject):
@@ -100,6 +102,12 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
+    @property
+    def has_season(self) -> bool:
+        season_start = (self.season_start or "").strip()
+        season_end = (self.season_end or "").strip()
+        return season_start and season_end
+
     def is_in_force(self, start: StrOrDate, end: StrOrDate) -> bool:
         start, end = validate_range_args(
             validate_date_arg("start", start),
@@ -139,10 +147,32 @@ class Schedule(BaseObject):
         # Return all occurences
         return occurrences
 
+    def match_season(self, some_date: StrOrDate) -> bool:
+        """Indicates whether some_date matches season if any"""
+        some_date = validate_date_arg("some_date", some_date)
+
+        # If there is no season, it means there is no restriction in terms
+        # of the season when this schedule is valid, and as such it is valid,
+        # from a season-perspective for any date
+        if not self.has_season:
+            return True
+
+        start_date = SeasonDefinition.get_date(self.season_start, some_date.year)
+        end_date = SeasonDefinition.get_date(self.season_end, some_date.year)
+        if end_date < start_date:
+            return some_date <= end_date or some_date >= start_date
+        return some_date >= start_date and some_date <= end_date
+
     @classmethod
-    def list_all(cls, catalog=None) -> List:
+    def list_all(cls, finid: StrOrFinId, catalog=None) -> List["Schedule"]:
+        finid = validate_finid_arg("finid", finid)
         catalog = cls.get_catalog(catalog)
-        return list(catalog.list_all(Schedule))
+        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(finid))))
+
+    @classmethod
+    def is_group_open(cls, group):
+        # TODO: implement a ScheduleGroup type and consider other open groups
+        return group.lower() == "regular"
 
 
 class RegularSchedule(BaseObject):

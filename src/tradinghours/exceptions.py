@@ -80,3 +80,9 @@ class TokenError(ClientError):
             "by exporting the environment variable TRADINGHOURS_TOKEN and "
             "try again."
         )
+
+
+class MissingDefinitionError(TradingHoursError):
+    """When a season definition is not found"""
+
+    pass
