@@ -41,13 +41,15 @@ Data is updated daily.
 pip install tradinghours
 ```
 
-## Configuration
+## Basic Configuration
 
 ```console
 export TRADINGHOURS_TOKEN=<your-token-goes-here>
 ```
 
 If you have an active subscription, [click here to get your API key](https://www.tradinghours.com/user/api-tokens).
+
+See [advanced configuration options](#optional-advanced-configuration). 
 
 ## Usage
 
@@ -93,7 +95,21 @@ from tradinghours.market import Market
 # Get by either FinID or MIC
 market = Market.get('US.NYSE')
 market = Market.get('XNYS')
-original = Market.get('XBUE', follow=False)
+```
+
+If a market is marked "permanently closed" it may be replaced or superseded by another market. 
+By default, the newer market will be returned automatically. You can still retrieve the 
+older market object for historical analysis by using the `follow=False` parameter.
+
+```python
+from tradinghours.market import Market
+
+# AR.BCBA is permanently closed and replaced by AR.BYMA
+market = Market.get('AR.BCBA')
+original = Market.get('AR.BCBA', follow=False)
+
+print (market.fin_id) # AR.BYMA
+print (original.fin_id) # AR.BCBA
 ```
 
 ### Market Holidays
@@ -135,11 +151,11 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31"):
     print(currency)
 ```
 
-## Configuration
+## Optional Advanced Configuration
 
-The library should be auto-configured for use with local file storage,
-but you can adjust some settings using a **tradinghours.ini** file on
-current working directory.
+By default, the library uses local file storage. Optionally you can 
+configure the library to use an SQL store. You can adjust settings
+using a **tradinghours.ini** file on the current working directory.
 
 Here is a sample configuration file using file system storage:
 
