@@ -1,16 +1,22 @@
 from typing import Dict, Iterator, Tuple
 
-from sqlalchemy import (
-    JSON,
-    Column,
-    Engine,
-    Integer,
-    MetaData,
-    String,
-    Table,
-    create_engine,
-    inspect,
-)
+from tradinghours.exceptions import MissingSqlAlchemyError
+
+try:
+    from sqlalchemy import (
+        JSON,
+        Column,
+        Engine,
+        Integer,
+        MetaData,
+        String,
+        Table,
+        create_engine,
+        inspect,
+    )
+except ImportError:
+    raise MissingSqlAlchemyError("SQLAlchemy not installed")
+
 
 from tradinghours.store.base import Cluster, Collection, Registry
 from tradinghours.util import get_csv_from_tuple, get_tuple_from_csv

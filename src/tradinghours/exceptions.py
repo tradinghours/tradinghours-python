@@ -86,3 +86,14 @@ class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
 
     pass
+
+
+class MissingSqlAlchemyError(TradingHoursError):
+    """When SQL Alchemy is not installed"""
+
+    def build_help_message(self):
+        return (
+            "You need to install SQLAlchemy in order to usee database "
+            "ready store. You should be able to do that by running "
+            "`pip install tradinghours[sql]` from the command line."
+        )

@@ -2,9 +2,7 @@ import os
 from typing import Optional, Tuple
 
 from tradinghours.config import main_config
-from tradinghours.store.base import Registry
-from tradinghours.store.file import FileCollectionRegistry
-from tradinghours.store.sql import SqlCollectionRegistry
+from tradinghours.store.base import Collection, Registry
 
 
 class Store:
@@ -14,7 +12,7 @@ class Store:
         self._collections = collections_registry
 
     @property
-    def collections(self) -> FileCollectionRegistry:
+    def collections(self) -> Registry[Collection]:
         return self._collections
 
     @property
@@ -45,6 +43,8 @@ class Store:
 
 
 def create_file_store():
+    from tradinghours.store.file import FileCollectionRegistry
+
     root = main_config.get("data", "local_dir")
     registry = FileCollectionRegistry(root)
     store = Store(registry)
@@ -52,6 +52,8 @@ def create_file_store():
 
 
 def create_sql_store():
+    from tradinghours.store.sql import SqlCollectionRegistry
+
     db_url = main_config.get("data", "db_url")
     registry = SqlCollectionRegistry(db_url)
     store = Store(registry)
