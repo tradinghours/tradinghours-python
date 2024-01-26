@@ -75,10 +75,10 @@ class TokenError(ClientError):
     def build_help_message(self):
         return (
             "A TradingHours token is required to perform this operation. "
-            "You can access http://tradinghours.com/ to obtain one. "
-            "In case you already have a token, remember to make it available "
-            "by exporting the environment variable TRADINGHOURS_TOKEN and "
-            "try again."
+            "You can access https://www.tradinghours.com/user/api-tokens to "
+            "obtain one. In case you already have a token, remember to make "
+            "it available by exporting the environment variable "
+            "TRADINGHOURS_TOKEN and try again."
         )
 
 
