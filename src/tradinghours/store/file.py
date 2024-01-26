@@ -85,7 +85,7 @@ class FileCollection(Collection):
         return self._clusters
 
     def touch(self):
-        self.folder.mkdir(exist_ok=True)
+        self.folder.mkdir(parents=True, exist_ok=True)
 
     def clear(self):
         for current in self._clusters:
