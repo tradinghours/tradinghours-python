@@ -348,3 +348,64 @@ class TestCase011(EdgeCase):
             ("2023-01-03T20:00:00", "2023-01-04T02:30:00"),
         ]
         self.assertRangeTimestamps(fin_id, start_date, end_date, expected)
+
+
+class TestCase012(EdgeCase):
+    """
+
+    Test whether you can follow or not a permanently closed market
+
+    """
+
+    def setUp(self):
+        self.mic = "XBUE"
+        self.old_finid = "AR.BCBA"
+        self.new_finid = "AR.BYMA"
+
+    def test_follow_auto_mic(self):
+        market = Market.get(self.mic)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_auto_mic(self):
+        market = Market.get(self.mic, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+    def test_follow_auto_finid(self):
+        market = Market.get(self.old_finid)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_auto_finid(self):
+        market = Market.get(self.old_finid, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+    def test_follow_by_mic(self):
+        market = Market.get_by_mic(self.mic)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_by_mic(self):
+        market = Market.get_by_mic(self.mic, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)
+
+    def test_follow_by_finid(self):
+        market = Market.get_by_finid(self.old_finid)
+        result = str(market.fin_id)
+        expected = self.new_finid
+        self.assertEqual(result, expected)
+
+    def test_original_by_finid(self):
+        market = Market.get_by_finid(self.old_finid, follow=False)
+        result = str(market.fin_id)
+        expected = self.old_finid
+        self.assertEqual(result, expected)

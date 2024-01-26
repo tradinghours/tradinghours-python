@@ -5,7 +5,7 @@
 
 [TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over 900 exchanges and trading venues around the world.
 This library allows clients to easily integrate our market holidays and trading hours data into existing applications.
-This packages downlods all available data from TradingHours.com and then allows you to work with the data locally. 
+This packages downlods all available data from TradingHours.com and then allows you to work with the data locally.
 
 **A paid subscription is required to use this package**
 
@@ -93,6 +93,7 @@ from tradinghours.market import Market
 # Get by either FinID or MIC
 market = Market.get('US.NYSE')
 market = Market.get('XNYS')
+original = Market.get('XBUE', follow=False)
 ```
 
 ### Market Holidays
