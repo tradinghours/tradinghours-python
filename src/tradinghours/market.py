@@ -207,7 +207,7 @@ class Market(BaseObject):
     def get_by_mic(cls, mic: str, follow=True, catalog=None) -> "Market":
         mic = validate_str_arg("mic", mic)
         catalog = cls.get_catalog(catalog)
-        mapping = catalog.get(MicMapping, mic)
+        mapping = MicMapping.get(mic, catalog=catalog)
         if mapping:
             return cls.get_by_finid(mapping.fin_id, follow=follow)
         return None
@@ -289,3 +289,9 @@ class MicMapping(BaseObject):
 
     fin_id = FinIdField()
     """TradingHours FinId"""
+
+    @classmethod
+    def get(cls, mic: str, catalog=None) -> "MicMapping":
+        mic = validate_str_arg("mic", mic)
+        catalog = cls.get_catalog(catalog)
+        return catalog.get(cls, mic)

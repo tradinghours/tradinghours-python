@@ -409,3 +409,47 @@ class TestCase012(EdgeCase):
         result = str(market.fin_id)
         expected = self.old_finid
         self.assertEqual(result, expected)
+
+
+class TestCase013(EdgeCase):
+    """
+
+    Test whether MIC case is ignored
+
+    """
+
+    def test_upper_finid(self):
+        market = Market.get_by_finid("AR.BYMA")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_lower_finid(self):
+        market = Market.get_by_finid("ar.byma")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_mixed_finid(self):
+        market = Market.get_by_finid("aR.ByMa")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_upper_mic(self):
+        market = Market.get_by_mic("XBUE")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_lower_mic(self):
+        market = Market.get_by_mic("xbue")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
+
+    def test_mixed_mic(self):
+        market = Market.get_by_mic("xBuE")
+        result = str(market.fin_id)
+        expected = "AR.BYMA"
+        self.assertEqual(result, expected)
