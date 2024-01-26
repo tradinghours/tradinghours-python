@@ -134,3 +134,33 @@ currency = Currency.get('AUD')
 for holiday in currency.list_holidays("2023-06-01", "2023-12-31"):
     print(currency)
 ```
+
+## Configuration
+
+The library should be auto-configured for use with local file storage,
+but you can adjust some settings using a **tradinghours.ini** file on
+current working directory.
+
+Here is a sample configuration file using file system storage:
+
+```ini
+[api]
+token = YOUR-TOKEN-HERE
+
+[data]
+use_db = False
+local_dir = /srv/tradinghours/local
+remote_dir = /srv/tradinghours/remote
+```
+
+And here you can see one using a local SQL Alchemy database. Note that
+you can use any valid [Database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls):
+
+```ini
+[api]
+token = YOUR-TOKEN-HERE
+
+[data]
+use_db = True
+db_url = sqlite:///tradinghours.db
+```
