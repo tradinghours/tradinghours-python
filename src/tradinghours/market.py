@@ -30,13 +30,10 @@ class Market(BaseObject):
     fin_id = FinIdField()
     """The FinID for the market."""
 
-    country_code = StringField()
-    """Two-letter country code."""
-
-    exchange = StringField()
+    exchange_name = StringField()
     """The exchange name of the market."""
 
-    market = StringField()
+    market_name = StringField()
     """The name of the market."""
 
     products = StringField()
@@ -44,9 +41,6 @@ class Market(BaseObject):
 
     mic = MicField()
     """The MIC for the market."""
-
-    mic_extended = StringField()
-    """The extended MIC for the market."""
 
     acronym = StringField()
     """The acronym for the market."""
@@ -67,6 +61,11 @@ class Market(BaseObject):
     """Indicates the days of the week when the market regularly closed."""
 
     replaced_by = FinIdField()
+
+    @property
+    def country_code(self):
+        """Two-letter country code."""
+        return self.fin_id.country
 
     def _pick_schedule_group(
         self,
