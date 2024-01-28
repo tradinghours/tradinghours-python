@@ -20,7 +20,9 @@ class EdgeCase(unittest.TestCase):
     def assertRangeTimestamps(self, fin_id, start, end, expected):
         market = Market.get(fin_id)
         schedules = list(market.generate_schedules(start, end))
-        phases = map(lambda s: (s.start.isoformat(), s.end.isoformat()), schedules)
+        phases = map(
+            lambda s: (s.start.isoformat()[:19], s.end.isoformat()[:19]), schedules
+        )
         result = list(phases)
         self.assertEqual(result, expected)
 

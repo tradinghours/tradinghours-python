@@ -22,6 +22,9 @@ classifiers = [
 "Homepage" = "https://github.com/tradinghours/tradinghours-python"
 "Bug Tracker" = "https://github.com/tradinghours/tradinghours-python/issues"
 
+[project.dependencies]
+pytz = "*"
+
 [project.optional-dependencies]
 dev = [
     'flit',

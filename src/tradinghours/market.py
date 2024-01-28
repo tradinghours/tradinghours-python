@@ -36,7 +36,7 @@ class Market(BaseObject):
     market_name = StringField()
     """The name of the market."""
 
-    products = StringField()
+    security_group = StringField()
     """Description of the products or securities group."""
 
     mic = MicField()
@@ -171,17 +171,22 @@ class Market(BaseObject):
                 # Filter out phases not finishing after start because we
                 # began looking a few days ago to cover offset days
                 if end_date >= start:
-                    start_date_str = start_date.isoformat() + "T"
-                    end_date_str = end_date.isoformat() + "T"
-                    start_str = start_date_str + current_schedule.start.isoformat()
-                    end_str = end_date_str + current_schedule.end.isoformat()
+                    current_schedule.timezone
+                    start_datetime = datetime.datetime.combine(
+                        start_date, current_schedule.start
+                    )
+                    end_datetime = datetime.datetime.combine(
+                        end_date, current_schedule.end
+                    )
+                    start_datetime = current_schedule.timezone.localize(start_datetime)
+                    end_datetime = current_schedule.timezone.localize(end_datetime)
                     yield ConcretePhase(
                         dict(
                             phase_type=current_schedule.phase_type,
                             phase_name=current_schedule.phase_name,
                             phase_memo=current_schedule.phase_memo,
-                            start=start_str,
-                            end=end_str,
+                            start=start_datetime.isoformat(),
+                            end=end_datetime.isoformat(),
                         )
                     )
 
