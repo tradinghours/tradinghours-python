@@ -17,13 +17,11 @@ classifiers = [
     "Topic :: Office/Business :: Financial",
     "Topic :: Software Development :: Libraries",   
 ]
+dependencies = ['pytz']
 
 [project.urls]
 "Homepage" = "https://github.com/tradinghours/tradinghours-python"
 "Bug Tracker" = "https://github.com/tradinghours/tradinghours-python/issues"
-
-[project.dependencies]
-pytz = "*"
 
 [project.optional-dependencies]
 dev = [
