@@ -115,17 +115,17 @@ print (original.fin_id) # AR.BCBA
 ### Market Holidays
 
 ```python
-from tradinghours.market import Market
+from tradinghours.market import MarketHoliday
 
-market = Market.get('US.NYSE')
-for holiday in market.list_holidays("2023-06-01", "2023-12-31"):
+holidays = MarketHoliday.list_range('US.NYSE', "2024-01-01", "2024-12-31")
+for holiday in holidays:
     print(holiday)
 ```
 
 ### Trading Hours
 
 ```python
-from tradinghours.market imort Market
+from tradinghours.market import Market
 
 market = Market.get('XNYS')
 for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
