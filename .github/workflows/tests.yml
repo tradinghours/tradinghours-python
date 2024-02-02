@@ -55,8 +55,7 @@ jobs:
 
       - name: Set up test data
         run: |
-          export TRADINGHOURS_TOKEN=token
-          echo $TRADINGHOURS_TOKEN
+          export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
           tradinghours import 
 
       - name: Run New Tests
