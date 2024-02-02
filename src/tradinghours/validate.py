@@ -46,7 +46,7 @@ def validate_int_arg(name: str, value: Any, default: Optional[int] = None) -> in
 
 
 def validate_finid_arg(name: str, value: Any) -> "FinId":
-    from .structure import FinId
+    from tradinghours.structure import FinId
 
     if value is None:
         raise ValueError(f"Missing {name}")
@@ -58,7 +58,7 @@ def validate_finid_arg(name: str, value: Any) -> "FinId":
 
 
 def validate_weekday_arg(name: str, value: Any) -> "Weekday":
-    from .structure import Weekday
+    from tradinghours.structure import Weekday
 
     if value is None:
         raise ValueError(f"Missing {name}")
