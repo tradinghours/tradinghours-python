@@ -30,7 +30,7 @@ jobs:
           tradinghours import 
 
       - name: Run Tests with Coverage
-        run: pytest --cov=./ tests
+        run: pytest --cov=src/ tests
 
       - name: Report Coverage
         run: |
