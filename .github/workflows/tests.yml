@@ -50,14 +50,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-#      - name: Decode ZIP file
-#        run: |
-#          echo ${{ secrets.BASE64_ENCODED_ZIP }} | base64 --decode > sample_data.zip
-#          mkdir -p tests/fixtures/remote
-#          unzip sample_data.zip -d tests/fixtures/remote
-
       - name: Install dependencies
         run: pip install -e ".[dev]"
+
+      - name: Set up test data
+        run: |
+          export TRADINGHOURS_TOKEN=token
+          echo $TRADINGHOURS_TOKEN
+          tradinghours import 
 
       - name: Run New Tests
         run: pytest tests
