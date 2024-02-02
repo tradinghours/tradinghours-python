@@ -144,7 +144,7 @@ class TestDataManager(ClientTestCase):
         self.assertEqual(self.manager.remote_timestamp, expected_datetime)
 
     def test_download(self):
-        with self.patchResponseFile("sample_data.zip") as patcher:
+        with self.patchResponseFile(Path("old_tests/sample_data.zip")) as patcher:
             self.manager.download()
 
         patcher.stop()

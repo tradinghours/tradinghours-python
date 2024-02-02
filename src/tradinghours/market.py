@@ -236,16 +236,13 @@ class MarketHoliday(BaseObject):
     date = DateField()
     """Shows the date of the holiday for the market."""
 
-    name = StringField()
+    holiday_name = StringField()
     """Describes the name of the holiday."""
 
     schedule = StringField()
     """Describes if the market closes for the holiday."""
 
-    is_open = BooleanField()
-    """Displays in true/false if the market is open for the holiday."""
-
-    has_settlement = BooleanField()
+    settlement = BooleanField()
     """Displays in true/false if the market has settlement for the holiday."""
 
     observed = BooleanField()
@@ -253,6 +250,9 @@ class MarketHoliday(BaseObject):
 
     memo = StringField()
     """A description or additional details about the holiday."""
+
+    status = BooleanField()
+    """Displays in true/false if the market is open for the holiday."""
 
     @classmethod
     def list_range(
