@@ -8,15 +8,12 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,13 +24,13 @@ jobs:
       - name: Install pytest-cov
         run: pip install pytest-cov
 
-      - name: Run Tests with Coverage
-        run: pytest --cov=./ tests
-
       - name: Set up test data
         run: |
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
           tradinghours import 
+
+      - name: Run Tests with Coverage
+        run: pytest --cov=./ tests
 
       - name: Report Coverage
         run: |
