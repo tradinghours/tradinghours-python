@@ -5,6 +5,8 @@ store_dir/
 .DS_Store
 debug.txt
 *.zip
+old_tests/local
+old_tests/fixtures/remote
 tests/local
 tests/fixtures/remote
 *.db
