@@ -7,7 +7,7 @@ name = "tradinghours"
 authors = [{ name="TradingHours", email="developer@tradinghours.com" }]
 dynamic = ["version", "description"]
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -31,6 +31,7 @@ dev = [
     'flake8-pyproject',
     'black',
     'coverage[toml]',
+    'pytest',
 ]
 sql = [
     'sqlalchemy',

@@ -15,10 +15,10 @@ from .validate import validate_date_arg, validate_range_args, validate_str_arg
 class Currency(BaseObject):
     """A currency supported by TradingHours."""
 
-    code = StringField()
+    currency_code = StringField()
     """3-letter code of the currency (ISO 4217)."""
 
-    name = StringField()
+    currency_name = StringField()
     """English name of the currency."""
 
     country_code = StringField()
@@ -33,7 +33,7 @@ class Currency(BaseObject):
     financial_capital_timezone = OlsonTimezoneField()
     """Timezone Olson timezone identifier format."""
 
-    weekend = WeekdaySetField()
+    weekend_definition = WeekdaySetField()
     """Weekend definition. Most markets are Sat-Sun."""
 
     def list_holidays(
@@ -48,8 +48,8 @@ class Currency(BaseObject):
             catalog.filter(
                 CurrencyHoliday,
                 cluster=self.currency_code,
-                key_from=start.isoformat(),
-                key_to=end.isoformat(),
+                key_start=start.isoformat(),
+                key_end=end.isoformat(),
             )
         )
         return holidays
@@ -75,10 +75,10 @@ class CurrencyHoliday(BaseObject):
     date = DateField()
     """Shows the date of the holiday for the currency."""
 
-    name = StringField()
+    holiday_name = StringField()
     """Describes the name of the holiday."""
 
-    has_settlement = BooleanField()
+    settlement = BooleanField()
     """Whether the market has settlement for the holiday."""
 
     observed = BooleanField()

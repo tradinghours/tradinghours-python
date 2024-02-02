@@ -108,8 +108,8 @@ from tradinghours.market import Market
 market = Market.get('AR.BCBA')
 original = Market.get('AR.BCBA', follow=False)
 
-print (market.fin_id) # AR.BYMA
-print (original.fin_id) # AR.BCBA
+print(market.fin_id)  # AR.BYMA
+print(original.fin_id)  # AR.BCBA
 ```
 
 ### Market Holidays

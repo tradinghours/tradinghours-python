@@ -1,98 +1,59 @@
-import json
-import unittest
-
+import pytest, json
 from tradinghours.util import StrEncoder, slugify, snake_case, snake_dict
 
 
-class TestSnakeCase(unittest.TestCase):
-    def test_snake_case_with_dash(self):
-        text = "hello-world"
-        result = snake_case(text)
-        self.assertEqual(result, "hello_world")
+# Assuming the snake_case, snake_dict, slugify, and StrEncoder functions are defined elsewhere
+# from yourmodule import snake_case, snake_dict, slugify, StrEncoder
 
-    def test_snake_case_no_dash(self):
-        text = "helloWorld"
-        result = snake_case(text)
-        self.assertEqual(result, "hello_world")
+@pytest.mark.parametrize("name, expected", [
+    ("Hello World", "hello-world"),
+    ("Hello!@#$%^World", "hello-world"),
+    ("Hello    World", "hello-world"),
+])
+def test_slugify(name, expected):
+    assert slugify(name) == expected
 
-    def test_snake_case_all_caps(self):
-        text = "HELLO_WORLD"
-        result = snake_case(text)
-        self.assertEqual(result, "hello_world")
-
-    def test_snake_case_none(self):
-        text = None
-        with self.assertRaises(ValueError):
-            snake_case(text)
-
-    def test_snake_case_int(self):
-        text = 123
-        with self.assertRaises(TypeError):
-            snake_case(text)
+@pytest.mark.parametrize("name, exception", [
+    (None, ValueError),
+    (123, TypeError),
+])
+def test_slugify_with_errors(name, exception):
+    with pytest.raises(exception):
+        slugify(name)
 
 
-class TestSnakeDict(unittest.TestCase):
-    def test_snake_dict(self):
-        data = {
-            "First Name": "John",
-            "Last Name": "Doe",
-            "Age": 30,
-        }
-        result = snake_dict(data)
-        expected_result = {
-            "first_name": "John",
-            "last_name": "Doe",
-            "age": 30,
-        }
-        self.assertEqual(result, expected_result)
+@pytest.mark.parametrize("text, expected", [
+    ("hello-world", "hello_world"),
+    ("helloWorld", "hello_world"),
+    ("HELLO_WORLD", "hello_world"),
+])
+def test_snake_case(text, expected):
+    assert snake_case(text) == expected
 
-    def test_snake_dict_non_dict_input(self):
-        data = "This is not a dictionary"
-        with self.assertRaises(TypeError):
-            snake_dict(data)
+@pytest.mark.parametrize("text, exception", [
+    (None, ValueError),
+    (123, TypeError),
+])
+def test_snake_case_with_errors(text, exception):
+    with pytest.raises(exception):
+        snake_case(text)
 
 
-class TestSlugify(unittest.TestCase):
-    def test_slugify_basic(self):
-        name = "Hello World"
-        result = slugify(name)
-        self.assertEqual(result, "hello-world")
+def test_snake_dict():
+    data = {"First Name": "John", "Last Name": "Doe", "Age": 30}
+    expected = {"first_name": "John", "last_name": "Doe", "age": 30}
+    assert snake_dict(data) == expected
 
-    def test_slugify_special_characters(self):
-        name = "Hello!@#$%^World"
-        result = slugify(name)
-        self.assertEqual(result, "hello-world")
+def test_snake_dict_with_errors():
+    with pytest.raises(TypeError):
+        snake_dict("This is not a dictionary")
 
-    def test_slugify_multiple_spaces(self):
-        name = "Hello    World"
-        result = slugify(name)
-        self.assertEqual(result, "hello-world")
+def test_str_encoder():
+    data = {"name": "John", "age": 30}
+    expected = '{"name": "John", "age": 30}'
+    assert json.dumps(data, cls=StrEncoder) == expected
 
-    def test_slugify_none(self):
-        name = None
-        with self.assertRaises(ValueError):
-            slugify(name)
-
-    def test_slugify_int(self):
-        name = 123
-        with self.assertRaises(TypeError):
-            slugify(name)
-
-
-class TestStrEncoder(unittest.TestCase):
-    def test_str_encoder(self):
-        encoder = StrEncoder
-        data = {"name": "John", "age": 30}
-        json_data = json.dumps(data, cls=encoder)
-        self.assertEqual(json_data, '{"name": "John", "age": 30}')
-
-    def test_str_encoder_non_serializable(self):
-        encoder = StrEncoder
-        data = {"name": "John", "age": 30, "non_serializable": set()}
-        result = json.dumps(data, cls=encoder)
-        expected_result = '{"name": "John", "age": 30, "non_serializable": "set()"}'
-        self.assertEqual(result, expected_result)
-
-
-if __name__ == "__main__":
-    unittest.main()
+def test_str_encoder_non_serializable():
+    data = {"name": "John", "age": 30, "non_serializable": set()}
+    expected = '{"name": "John", "age": 30, "non_serializable": "set()"}'
+    assert json.dumps(data, cls=StrEncoder) == expected

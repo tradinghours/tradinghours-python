@@ -65,7 +65,7 @@ class CurrencyFile(DeclaredFile[Currency]):
     model = Currency
 
     def resolve_key(self, item: Currency) -> Optional[str]:
-        return item.code
+        return item.currency_code
 
 
 class CurrencyHolidayFile(DeclaredFile[CurrencyHoliday]):

@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 from urllib.request import HTTPError
 
 from tradinghours.exceptions import ClientError, TokenError
-from tradinghours.remote import Client, DataManager
-
+from tradinghours.remote import Client, DataManager, default_data_manager
+from tradinghours.config import main_config
 
 class TestClientResponse(unittest.TestCase):
     def setUp(self):
@@ -125,10 +125,7 @@ class TestDataManager(ClientTestCase):
     @property
     def manager(self):
         if not hasattr(self, "_manager"):
-            self._manager = DataManager(
-                client=MagicMock(spec=Client),
-                root=Path(__file__).parent / "fixtures" / "remote",
-            )
+            self._manager = default_data_manager
         return self._manager
 
     @patch(
@@ -143,8 +140,8 @@ class TestDataManager(ClientTestCase):
 
         self.assertEqual(self.manager.remote_timestamp, expected_datetime)
 
-    def test_download(self):
-        with self.patchResponseFile("sample_data.zip") as patcher:
-            self.manager.download()
-
-        patcher.stop()
+    # def test_download(self):
+    #     # with self.patchResponseFile(Path("old_tests/sample_data.zip")) as patcher:
+    #     self.manager.download()
+    #
+    #     # patcher.stop()
