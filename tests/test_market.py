@@ -30,3 +30,13 @@ def test_market_case_insensitivity(method, identifier, expected):
     market = method(identifier)
     result = str(market.fin_id)
     assert result == expected
+
+# Test whether MIC case is ignored
+@pytest.mark.parametrize("method, identifier, expected", [
+    ("AR.BYMA", "AR.BYMA"),
+
+])
+def test_market_case_insensitivity(method, identifier, expected):
+    market = method(identifier)
+    result = str(market.fin_id)
+    assert result == expected

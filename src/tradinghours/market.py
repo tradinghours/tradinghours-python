@@ -24,6 +24,34 @@ from .validate import (
 MAX_OFFSET_DAYS = 2
 
 
+class ScheduleGenerator:
+    def __init__(self, internal_generator):
+        self.generator = internal_generator
+    def __iter__(self):
+        current = getattr(self, "start", 0)
+        stop = getattr(self, "stop", float("inf"))
+        step = getattr(self, "step", 1)
+        i = 0
+        while current < stop:
+            try:
+                concrete_phase = next(self.generator)
+            except StopIteration:
+                break
+            if i >= current:
+                yield concrete_phase
+                current += step
+            i += 1
+
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            raise NotImplementedError("ScheduleGenerator only supports slicing")
+
+        self.start = item.start or 0
+        self.stop = item.stop or float("inf")
+        self.step = item.step or 1
+        return self
+
+
 class Market(BaseObject):
     """One known market for TradingHours"""
 
@@ -108,7 +136,7 @@ class Market(BaseObject):
             if current.days.matches(some_date):
                 yield current
 
-    def generate_schedules(
+    def _generate_schedules(
         self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> Generator[ConcretePhase, None, None]:
         start, end = validate_range_args(
@@ -121,25 +149,32 @@ class Market(BaseObject):
         offset_start = start - timedelta(days=MAX_OFFSET_DAYS)
         all_schedules = Schedule.list_all(self.fin_id)
         holidays = MarketHoliday.build_keyed(self.fin_id, offset_start, end)
-
+        # if holidays:
+        #     first = list(holidays.keys())[0]
+        #     print(holidays[first])
+        #     print(holidays[first].schedule)
         # Iterate through all dates generating phases
         current_date = offset_start
+        # print("\nStarting schedule calculation\n")
+        # tprint = lambda *s: print("\t", *s)
         while current_date <= end:
             # Starts with all schedules
             schedules = all_schedules
-
+            # print("Doing ", current_date)
             # Filter schedule group based on holiday if any
             schedule_group, fallback = self._pick_schedule_group(current_date, holidays)
+            # tprint("checked for schedule_group with holidays", schedule_group, fallback)
             schedules = self._filter_schedule_group(schedule_group, schedules)
-
             # Filters what is in force or for expected season
             schedules = self._filter_inforce(current_date, schedules)
             schedules = self._filter_season(current_date, schedules)
-
+            # tprint("filtered schedules by schedule_group, inforce and season")
             # Save for fallback and filter weekdays
             before_weekdays = list(schedules)
             found_schedules = list(self._filter_weekdays(current_date, before_weekdays))
-
+            # tprint("filtered schedules by applicable weekdays")
+            # for s in found_schedules:
+                # tprint(" ", s.start, s.end, s.schedule_group, s.phase_type, s.days)
             # Consider fallback if needed
             if not found_schedules and fallback:
                 initial_weekday = current_date.weekday()
@@ -192,6 +227,11 @@ class Market(BaseObject):
 
             # Next date, please
             current_date += timedelta(days=1)
+
+    def generate_schedules(
+            self, start: StrOrDate, end: StrOrDate, catalog=None
+    ) -> ScheduleGenerator:
+        return ScheduleGenerator(self._generate_schedules(start, end, catalog=catalog))
 
     @classmethod
     def list_all(cls, catalog=None) -> List["Market"]:
@@ -264,6 +304,7 @@ class MarketHoliday(BaseObject):
             validate_date_arg("end", end),
         )
         catalog = cls.get_catalog(catalog)
+        # TODO: make optionally return generator
         holidays = list(
             catalog.filter(
                 MarketHoliday,

@@ -2,9 +2,6 @@ import pytest, json
 from tradinghours.util import StrEncoder, slugify, snake_case, snake_dict
 
 
-# Assuming the snake_case, snake_dict, slugify, and StrEncoder functions are defined elsewhere
-# from yourmodule import snake_case, snake_dict, slugify, StrEncoder
-
 @pytest.mark.parametrize("name, expected", [
     ("Hello World", "hello-world"),
     ("Hello!@#$%^World", "hello-world"),
@@ -12,6 +9,7 @@ from tradinghours.util import StrEncoder, slugify, snake_case, snake_dict
 ])
 def test_slugify(name, expected):
     assert slugify(name) == expected
+
 
 @pytest.mark.parametrize("name, exception", [
     (None, ValueError),
@@ -29,6 +27,7 @@ def test_slugify_with_errors(name, exception):
 ])
 def test_snake_case(text, expected):
     assert snake_case(text) == expected
+
 
 @pytest.mark.parametrize("text, exception", [
     (None, ValueError),
