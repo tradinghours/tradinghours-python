@@ -51,7 +51,7 @@ class DeclaredFile(SourceFile[B]):
             cluster = self.resolve_cluster(current)
             key = self.resolve_key(current)
             key = str(key).upper() if key else key
-            data = current.to_tuple()
+            data = current.to_tuple(raw=True)
             store.store_tuple(data, collection, cluster=cluster, key=key)
 
 
@@ -84,7 +84,7 @@ class MarketFile(DeclaredFile[Market]):
     model = Market
 
     def resolve_cluster(self, item: MarketHoliday) -> Optional[str]:
-        return item.fin_id.country
+        return item.fin_id_obj.country
 
     def resolve_key(self, item: MarketHoliday) -> Optional[str]:
         return str(item.fin_id)

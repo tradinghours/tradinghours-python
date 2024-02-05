@@ -38,6 +38,8 @@ def class_decorator(cls):
 class BaseObject:
     """Base model objects"""
 
+    fields = [] # set in class_decorator
+
     def __init__(self, data: [Dict, tuple]):
         """
         Sets the instance attributes, prepared according to their type.
@@ -53,7 +55,7 @@ class BaseObject:
         # print(self.__class__)
         # print(self.__class__.fields)
         # print(data)
-        for i, field in enumerate(self.__class__.fields):
+        for i, field in enumerate(self.fields):
             if data_is_dict:
                 raw_value = data[field]
             else:
@@ -68,17 +70,13 @@ class BaseObject:
             setattr(self, field, prepared_value)
             self.data[field] = prepared_value
 
-
     def to_dict(self) -> Dict:
         return self.data
 
-    def to_tuple(self) -> Tuple:
+    def to_tuple(self, raw=False) -> Tuple:
         """Used when adding data to store for ingestion"""
-        all_values = []
-        for current_field in self.fields:
-            current_value = getattr(self, current_field)
-            all_values.append(current_value)
-        return tuple(all_values)
+        data = self.raw_data if raw else self.data
+        return tuple(data[f] for f in self.fields)
 
     @classmethod
     def from_tuple(cls, data: Tuple):
