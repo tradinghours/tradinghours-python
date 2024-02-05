@@ -77,7 +77,7 @@ from tradinghours.util import snake_case
 def test_model_fields(model, columns):
 
     column_snakes = sorted([snake_case(c) for c in columns])
-    field_names = sorted([f.field_name for f in model.fields])
+    field_names = sorted(model.fields)
     assert field_names == column_snakes
 
 
@@ -93,14 +93,14 @@ def test_model_instance():
     first, second = holidays
 
     assert first.holiday_name == "Thanksgiving Day"
-    assert first.settlement == "No"
-    assert first.status == "Closed"
-    assert first.observed is None
+    assert first.settlement is False
+    assert first.status is False
+    assert first.observed is False
 
     assert second.holiday_name == "Thanksgiving Day"
-    assert second.settlement == "Yes"
-    assert second.status == "Open"
-    assert second.observed == "OBS"
+    assert second.settlement is True
+    assert second.status is True
+    assert second.observed is True
 
 
 

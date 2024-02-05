@@ -1,6 +1,7 @@
 from typing import List
 
 from .base import (
+    class_decorator,
     BaseObject,
     BooleanField,
     DateField,
@@ -11,7 +12,7 @@ from .base import (
 from .typing import StrOrDate
 from .validate import validate_date_arg, validate_range_args, validate_str_arg
 
-
+@class_decorator
 class Currency(BaseObject):
     """A currency supported by TradingHours."""
 
@@ -65,7 +66,7 @@ class Currency(BaseObject):
         catalog = cls.get_catalog(catalog)
         return catalog.get(cls, code)
 
-
+@class_decorator
 class CurrencyHoliday(BaseObject):
     """Holiday for an specific currency"""
 
@@ -78,10 +79,10 @@ class CurrencyHoliday(BaseObject):
     holiday_name = StringField()
     """Describes the name of the holiday."""
 
-    settlement = BooleanField()
+    settlement = BooleanField({'Yes': True, 'No': False})
     """Whether the market has settlement for the holiday."""
 
-    observed = BooleanField()
+    observed = BooleanField({'OBS': True, '': False, None: False})
     """Whether the holiday is observed."""
 
     memo = StringField()

@@ -148,7 +148,7 @@ from tradinghours.currency import Currency
 
 currency = Currency.get('AUD')
 for holiday in currency.list_holidays("2023-06-01", "2023-12-31"):
-    print(currency)
+    print(holiday)
 ```
 
 ## Optional Advanced Configuration

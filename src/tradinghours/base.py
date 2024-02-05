@@ -20,33 +20,74 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+def class_decorator(cls):
+    fields = []
+    for att_name in cls.__dict__:
+        if att_name.startswith("_"):
+            continue
+
+        att = getattr(cls, att_name)
+        if callable(att) or isinstance(att, property):
+            continue
+
+        fields.append(att_name)
+    cls.fields = fields
+    return cls
+
 
 class BaseObject:
     """Base model objects"""
 
-    def __init__(self, data: Dict):
-        self.data = data
+    def __init__(self, data: [Dict, tuple]):
+        """
+        Sets the instance attributes, prepared according to their type.
+            self.data holds the values of the instance attributes.
+            self.raw_data holds the values as they were retrieved from the files.
+        """
+        if data_is_dict := isinstance(data, dict):
+            self.raw_data = data
+        else:
+            self.raw_data = {}
+
+        self.data = {}
+        # print(self.__class__)
+        # print(self.__class__.fields)
+        # print(data)
+        for i, field in enumerate(self.__class__.fields):
+            if data_is_dict:
+                raw_value = data[field]
+            else:
+                raw_value = data[i]
+                self.raw_data[field] = raw_value
+
+            prepared_value = getattr(self, field).safe_prepare(raw_value)
+            if isinstance(prepared_value, tuple):
+                prepared_value, obj = prepared_value
+                setattr(self, f"{field}_obj", obj)
+
+            setattr(self, field, prepared_value)
+            self.data[field] = prepared_value
+
 
     def to_dict(self) -> Dict:
         return self.data
 
     def to_tuple(self) -> Tuple:
+        """Used when adding data to store for ingestion"""
         all_values = []
         for current_field in self.fields:
-            current_value = getattr(self, current_field.field_name)
+            current_value = getattr(self, current_field)
             all_values.append(current_value)
         return tuple(all_values)
 
     @classmethod
     def from_tuple(cls, data: Tuple):
-        data_dict = {}
-        for index, current_field in enumerate(cls.fields):
-            current_value = data[index]
-            data_dict[current_field.field_name] = current_value
-        return cls(data_dict)
+        """Used when reading from local/.../....dat for loading"""
+        return cls(data)
 
     @classmethod
     def from_dict(cls, data: Dict):
+        """Used when reading from remote/csv for ingestion"""
         normalized = snake_dict(data)
         return cls(normalized)
 
@@ -66,7 +107,7 @@ class BaseObject:
         class_name = self.__class__.__name__
         all_str = []
         for current_field in self.fields:
-            current_value = getattr(self, current_field.field_name)
+            current_value = getattr(self, current_field)
             if current_value:
                 all_str.append(str(current_value))
         fields_str = " ".join(all_str)
@@ -76,25 +117,27 @@ class BaseObject:
 class Field(Generic[T]):
     """Base field class"""
 
-    def __set_name__(self, owner: Type[BaseObject], name):
-        if not hasattr(owner, "fields"):
-            owner.fields: List["Field"] = []
-        owner.fields.append(self)
-        self.field_name = name
-
-    def __get__(self, obj, objtype=None) -> T:
-        if obj is None:
-            return self
-        key = self.field_name
-        if key in obj.data:
-            value = obj.data[key]
-        else:
-            key = snake_case(objtype.__name__) + "_" + key
-            value = obj.data.get(key, None)
-        if value is None or value == "":
+    def safe_prepare(self, value: str) -> T:
+        if value in (None, ''):
             return None
-        else:
-            return self.safe_prepare(value)
+        try:
+            return self.prepare(value)
+        except Exception as error:
+            raise PrepareError(self, value, inner=error)
+
+    def prepare(self, value: str) -> str:
+        return value
+
+class StringField(Field[str]):
+    """Field of string type"""
+    pass
+
+
+class BooleanField(Field[bool]):
+    """Field of boolean type"""
+
+    def __init__(self, bool_mapping):
+        self.bool_mapping = bool_mapping
 
     def safe_prepare(self, value: str) -> T:
         try:
@@ -102,20 +145,8 @@ class Field(Generic[T]):
         except Exception as error:
             raise PrepareError(self, value, inner=error)
 
-    def prepare(self, value: str) -> T:
-        return cast(T, value)
-
-
-class StringField(Field[str]):
-    """Field of string type"""
-
-    pass
-
-
-class BooleanField(Field[bool]):
-    """Field of boolean type"""
-
-    pass
+    def prepare(self, value: str) -> [T, tuple]:
+        return self.bool_mapping[value]
 
 
 class IntegerField(Field[int]):
@@ -146,57 +177,48 @@ class TimeField(Field[datetime.time]):
         return datetime.time.fromisoformat(value)
 
 
-class ReferenceField(Field[BaseObject]):
-    """Field for referencing other BaseObject children"""
-
-    def __init__(self, referenced_type):
-        super().__init__()
-        self.referenced_type = referenced_type
-
-
 class ListField(Field[List[T]]):
     """Field of a list with specific type"""
-
     pass
 
 
 class OlsonTimezoneField(Field[OlsonTimezone]):
     """Field of an Olson Timezone"""
 
-    def prepare(self, value: str) -> OlsonTimezone:
-        return OlsonTimezone.from_string(value)
+    def prepare(self, value: str) -> Tuple[str, OlsonTimezone]:
+        return value, OlsonTimezone.from_string(value)
 
 
 class WeekdayField(Field[Weekday]):
     """Field for a Weekday"""
 
-    def prepare(self, value: str) -> Weekday:
-        return Weekday.from_string(value)
+    def prepare(self, value: str) -> Tuple[str, Weekday]:
+        return value, Weekday.from_string(value)
 
 
 class WeekdayPeriodField(Field[WeekdayPeriod]):
     """Field for period like Mon-Fri"""
 
-    def prepare(self, value: str) -> Weekday:
-        return WeekdayPeriod.from_string(value)
+    def prepare(self, value: str) -> Tuple[str, Weekday]:
+        return value, WeekdayPeriod.from_string(value)
 
 
 class WeekdaySetField(Field[WeekdaySet]):
     """Field for set of periods like Mon-Fri"""
 
-    def prepare(self, value: str) -> WeekdaySet:
-        return WeekdaySet.from_string(value)
+    def prepare(self, value: str) -> Tuple[str, WeekdaySet]:
+        return value, WeekdaySet.from_string(value)
 
 
 class FinIdField(Field[FinId]):
     """Field for a FinID"""
 
-    def prepare(self, value: str) -> FinId:
-        return FinId.from_string(value)
+    def prepare(self, value: str) -> Tuple[str, FinId]:
+        return value, FinId.from_string(value)
 
 
 class MicField(Field[Mic]):
     """Field for a MIC"""
 
-    def prepare(self, value: str) -> Mic:
-        return Mic.from_string(value)
+    def prepare(self, value: str) -> Tuple[str, Mic]:
+        return value, Mic.from_string(value)

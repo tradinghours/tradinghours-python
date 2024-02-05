@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Dict, Generator, Iterable, List, Tuple
 
 from .base import (
+    class_decorator,
     BaseObject,
     BooleanField,
     DateField,
@@ -23,7 +24,7 @@ from .validate import (
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
 
-
+@class_decorator
 class Market(BaseObject):
     """One known market for TradingHours"""
 
@@ -65,7 +66,7 @@ class Market(BaseObject):
     @property
     def country_code(self):
         """Two-letter country code."""
-        return self.fin_id.country
+        return self.fin_id_obj.country
 
     def _pick_schedule_group(
         self,
@@ -105,7 +106,7 @@ class Market(BaseObject):
         self, some_date: datetime.date, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
         for current in schedules:
-            if current.days.matches(some_date):
+            if current.days_obj.matches(some_date):
                 yield current
 
     def generate_schedules(
@@ -148,7 +149,7 @@ class Market(BaseObject):
                 while not fallback_schedules and fallback_weekday != initial_weekday:
                     fallback_schedules = list(
                         filter(
-                            lambda s: s.days.matches(fallback_weekday),
+                            lambda s: s.days_obj.matches(fallback_weekday),
                             before_weekdays,
                         ),
                     )
@@ -171,15 +172,14 @@ class Market(BaseObject):
                 # Filter out phases not finishing after start because we
                 # began looking a few days ago to cover offset days
                 if end_date >= start:
-                    current_schedule.timezone
                     start_datetime = datetime.datetime.combine(
                         start_date, current_schedule.start
                     )
                     end_datetime = datetime.datetime.combine(
                         end_date, current_schedule.end
                     )
-                    start_datetime = current_schedule.timezone.localize(start_datetime)
-                    end_datetime = current_schedule.timezone.localize(end_datetime)
+                    start_datetime = current_schedule.timezone_obj.localize(start_datetime)
+                    end_datetime = current_schedule.timezone_obj.localize(end_datetime)
                     yield ConcretePhase(
                         dict(
                             phase_type=current_schedule.phase_type,
@@ -226,7 +226,7 @@ class Market(BaseObject):
             found = cls.get_by_mic(identifier, follow=follow)
         return found
 
-
+@class_decorator
 class MarketHoliday(BaseObject):
     """Holidays for a Market"""
 
@@ -242,16 +242,16 @@ class MarketHoliday(BaseObject):
     schedule = StringField()
     """Describes if the market closes for the holiday."""
 
-    settlement = BooleanField()
+    settlement = BooleanField({'Yes': True, 'No': False})
     """Displays in true/false if the market has settlement for the holiday."""
 
-    observed = BooleanField()
+    observed = BooleanField({'OBS': True, '': False, None: False})
     """Displays in true/false if the holiday is observed."""
 
     memo = StringField()
     """A description or additional details about the holiday."""
 
-    status = BooleanField()
+    status = BooleanField({'Open': True, 'Closed': False})
     """Displays in true/false if the market is open for the holiday."""
 
     @classmethod
@@ -284,7 +284,7 @@ class MarketHoliday(BaseObject):
             keyed[current.date] = current
         return keyed
 
-
+@class_decorator
 class MicMapping(BaseObject):
     """Mapping from MIC to FinId"""
 

@@ -1,10 +1,10 @@
 import datetime
 
-from .base import BaseObject, DateField, IntegerField, StringField
+from .base import BaseObject, DateField, IntegerField, StringField, class_decorator
 from .exceptions import MissingDefinitionError
 from .validate import validate_int_arg, validate_str_arg
 
-
+@class_decorator
 class SeasonDefinition(BaseObject):
     """Seasonality information"""
 
