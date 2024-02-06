@@ -6,6 +6,7 @@ from tradinghours.schedule import Schedule
 from tradinghours.season import SeasonDefinition
 from tradinghours.util import snake_case
 
+from pprint import pprint
 
 @pytest.mark.parametrize("model, columns", [
     (Market, ["Exchange Name",
@@ -134,5 +135,24 @@ def test_string_format():
 
     season = SeasonDefinition.get("First day of March", 2022)
     assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
+
+
+def test_raw_data():
+
+    nyse = Market.get("XNYS")
+    holiday = nyse.list_holidays("2007-11-20", "2007-11-23")[0]
+    assert holiday.raw_data["settlement"] == "No"
+    assert holiday.raw_data["status"] == "Closed"
+    assert holiday.raw_data["observed"] == ""
+    assert holiday.data["settlement"] is False
+    assert holiday.data["status"] is False
+    assert holiday.data["observed"] is False
+
+    currency = Currency.get('AUD')
+    holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
+    assert holiday.raw_data["settlement"] == "No"
+    assert holiday.raw_data["observed"] == "OBS"
+    assert holiday.data["settlement"] is False
+    assert holiday.data["observed"] is False
 
 
