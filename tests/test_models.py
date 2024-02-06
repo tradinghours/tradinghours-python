@@ -153,6 +153,6 @@ def test_raw_data():
     assert holiday.raw_data["settlement"] == "No"
     assert holiday.raw_data["observed"] == "OBS"
     assert holiday.data["settlement"] is False
-    assert holiday.data["observed"] is False
+    assert holiday.data["observed"] is True
 
 
