@@ -117,8 +117,8 @@ def test_string_format():
     Market.set_string_format("{acronym} - {asset_type}", prefix_class=True)
     assert str(market) == "Market: JSE - Derivatives"
 
-    Market.set_string_format(original_format)
-    assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg', Market.get_string_format()
+    Market.reset_string_format()
+    assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
 
 
 

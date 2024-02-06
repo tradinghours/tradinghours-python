@@ -82,9 +82,13 @@ Extended Information:
 
 ```python
 from tradinghours.market import Market
-
-for market in Market.list_all():
+for market in Market.list_all()[:3]:
     print(market)
+```
+```
+Market: AE.ADX Abu Dhabi Securities Exchange Asia/Dubai
+Market: AE.DFM Dubai Financial Market Asia/Dubai
+Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai
 ```
 
 ### Get Market
@@ -108,8 +112,12 @@ from tradinghours.market import Market
 market = Market.get('AR.BCBA')
 original = Market.get('AR.BCBA', follow=False)
 
-print(market.fin_id)  # AR.BYMA
-print(original.fin_id)  # AR.BCBA
+print(market.fin_id)
+print(original.fin_id)
+```
+```commandline
+AR.BYMA
+AR.BCBA
 ```
 
 ### Market Holidays
@@ -118,18 +126,27 @@ print(original.fin_id)  # AR.BCBA
 from tradinghours.market import MarketHoliday
 
 holidays = MarketHoliday.list_range('US.NYSE', "2024-01-01", "2024-12-31")
-for holiday in holidays:
+for holiday in holidays[:3]:
     print(holiday)
 ```
-
+```commandline
+MarketHoliday: US.NYSE 2024-01-01 New Year's Day
+MarketHoliday: US.NYSE 2024-01-15 Birthday of Martin Luther King, Jr
+MarketHoliday: US.NYSE 2024-02-19 Washington's Birthday
+```
 ### Trading Hours
 
 ```python
 from tradinghours.market import Market
 
 market = Market.get('XNYS')
-for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
+for concrete_phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
     print(concrete_phase)
+```
+```commandline
+ConcretePhase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
+ConcretePhase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
+ConcretePhase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 
 ### List Currencies
@@ -137,8 +154,13 @@ for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
 ```python
 from tradinghours.currency import Currency
 
-for currency in Currency.list_all():
+for currency in Currency.list_all()[:3]:
     print(currency)
+```
+```commandline
+Currency: AUD Australian Dollar
+Currency: BRL Brazilian Real
+Currency: CAD Canadian Dollar
 ```
 
 ### Currency Holidays
@@ -147,10 +169,31 @@ for currency in Currency.list_all():
 from tradinghours.currency import Currency
 
 currency = Currency.get('AUD')
-for holiday in currency.list_holidays("2023-06-01", "2023-12-31"):
+for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
     print(holiday)
 ```
+```commandline
+CurrencyHoliday: AUD 2023-06-12 King's Birthday
+CurrencyHoliday: AUD 2023-10-02 Labor Day
+CurrencyHoliday: AUD 2023-12-25 Christmas Day
+```
 
+
+### Change String Format
+```python
+from tradinghours.currency import Currency
+
+Currency.set_string_format("{currency_code}: {financial_capital} - {financial_capital_timezone}")
+currency = Currency.get("EUR")
+print(currency)
+
+Currency.reset_string_format()
+print(currency)
+```
+```commandline
+EUR: Frankfurt - Europe/Berlin
+Currency: EUR Euro
+```
 ## Optional Advanced Configuration
 
 By default, the library uses local file storage. Optionally you can 

@@ -33,6 +33,7 @@ def class_decorator(cls):
         fields.append(att_name)
     cls.fields = fields
     cls.set_string_format(cls._string_format, prefix_class=True)
+    cls._original_string_format = cls.get_string_format()
     return cls
 
 
@@ -41,6 +42,7 @@ class BaseObject:
 
     fields = [] # set in class_decorator
     _string_format = "" # set in each
+    _original_string_format = ""
 
     @classmethod
     def get_string_format(cls):
@@ -58,6 +60,10 @@ class BaseObject:
             string_format = f"{cls.__name__}: " + string_format
 
         cls._string_format = string_format
+
+    @classmethod
+    def reset_string_format(cls):
+        cls._string_format = cls._original_string_format
 
     def __init__(self, data: [Dict, tuple]):
         """
