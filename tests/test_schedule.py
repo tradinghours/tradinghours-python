@@ -156,7 +156,6 @@ from tradinghours.market import Market
        '2017-04-19 11:00:00-03:00, 2017-04-19 17:00:00-03:00, Primary Trading Session',
        '2017-04-19 17:05:00-03:00, 2017-04-19 17:15:00-03:00, Post-Trading Session']
     ),
-
 ])
 def test_schedule(fin_id, start, end, expected):
     market = Market.get(fin_id)

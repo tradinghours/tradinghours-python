@@ -10,7 +10,7 @@ from tradinghours.validate import validate_path_arg
 class FileCluster(Cluster):
     """Manages one page file with items for a collection"""
 
-    DEFAULT_CACHE_SIZE = 500
+    DEFAULT_CACHE_SIZE = 5000
 
     def __init__(self, location: StrOrPath, cache_size: Optional[int] = None):
         self._location = validate_path_arg("location", location)
@@ -27,7 +27,7 @@ class FileCluster(Cluster):
             file.truncate(0)
 
     def flush(self):
-        with open(self.location, "a+", encoding="utf-8", newline="") as file:
+        with open(self.location, "w", encoding="utf-8", newline="") as file:
             writer = csv.writer(file)
             for key, data in self._cached:
                 row = [key, *data]

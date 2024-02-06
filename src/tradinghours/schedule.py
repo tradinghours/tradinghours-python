@@ -4,23 +4,21 @@ from typing import List
 from tradinghours.season import SeasonDefinition
 
 from .base import (
+    class_decorator,
     BaseObject,
-    BooleanField,
     DateField,
     DateTimeField,
     FinIdField,
     IntegerField,
-    ListField,
     OlsonTimezoneField,
     StringField,
     TimeField,
-    WeekdayField,
     WeekdaySetField,
 )
 from .typing import StrOrDate, StrOrFinId
 from .validate import validate_date_arg, validate_finid_arg, validate_range_args
 
-
+@class_decorator
 class ConcretePhase(BaseObject):
     """A period within a schedule"""
 
@@ -33,8 +31,8 @@ class ConcretePhase(BaseObject):
     phase_memo = StringField()
     """If applicable, will have additional description or information."""
 
-    status = StringField()
-    """Describes what status the market is currently."""
+    # status = StringField()
+    # """Describes what status the market is currently."""
 
     start = DateTimeField()
     """The date the market phase type started."""
@@ -42,42 +40,9 @@ class ConcretePhase(BaseObject):
     end = DateTimeField()
     """The scheduled date for the market phase type to end."""
 
+    _string_format = "{start} - {end} {phase_type}"
 
-class DateSchedule(BaseObject):
-    """Full trading schedule for a market on a specific date"""
-
-    date = DateField()
-    """The date for the data returned."""
-
-    day_of_week = WeekdayField()
-    """The day of the week for the data returned."""
-
-    is_open = BooleanField()
-    """Describes in true/false statement if the market is open."""
-
-    has_settlement = BooleanField()
-    """Describes in true/false statement if the market has settlement."""
-
-    holiday = StringField()
-    """Describes the holiday, if any."""
-
-    schedule = ListField[ConcretePhase]()
-    """Nested data of the schedule."""
-
-
-class PeriodSchedule(BaseObject):
-    """Market phases for a given period"""
-
-    start = DateTimeField()
-    """The start date for the data returned."""
-
-    end = DateTimeField()
-    """The end date for the data returned."""
-
-    schedule = ListField[ConcretePhase]()
-    """Nested data of the schedule."""
-
-
+@class_decorator
 class Schedule(BaseObject):
     """Schedules definitions from TradingHours"""
 
@@ -101,6 +66,8 @@ class Schedule(BaseObject):
     in_force_end_date = DateField()
     season_start = StringField()
     season_end = StringField()
+
+    _string_format = "{fin_id} {start} - {end} {days} {schedule_group}"
 
     @property
     def has_season(self) -> bool:
@@ -173,40 +140,3 @@ class Schedule(BaseObject):
     def is_group_open(cls, group):
         # TODO: implement a ScheduleGroup type and consider other open groups
         return group.lower() == "regular"
-
-
-class RegularSchedule(BaseObject):
-    """Repeating schedule for a market"""
-
-    day = WeekdayField()
-    """Day of the week in string format."""
-
-    open = BooleanField()
-    """Describes if the market is open in true/false."""
-
-    time_start = TimeField()
-    """Describes the time the market trading session opens."""
-
-    time_end = TimeField()
-    """Describes the time the market trading session ends."""
-
-    lunch = BooleanField()
-    """Describes if the market has observed lunch hours in true/false."""
-
-    lunch_start = TimeField()
-    """If observed lunch hours, this describes when lunch hours start."""
-
-    lunch_end = TimeField()
-    """If observing lunch hours, this describes when lunch hours end."""
-
-    pre_hours_start = TimeField()
-    """If pre-hours, describes what time they start."""
-
-    pre_hours_end = TimeField()
-    """If pre-hours, describes what time they end."""
-
-    post_hours_start = TimeField()
-    """If post-hours, describes what time they start."""
-
-    post_hours_end = TimeField()
-    """If post-hours, describes what time they end."""

@@ -1,24 +1,22 @@
 from tradinghours.market import Market, MarketHoliday
-from tradinghours.currency import Currency
+from tradinghours.currency import Currency, CurrencyHoliday
+from tradinghours.schedule import ConcretePhase
 
+from pprint import pprint
 # print("\nMarkets")
 
-def test_list_all():
-    for market in Market.list_all()[:3]:
-        print(market)
+def test_market_list_all():
 
-# test_list_all()
+    for obj in Market.list_all():
+        assert str(obj) == Market.get_string_format().format(**obj.data)
 
 
 def test_get_by_finid_or_mic():
     # Get by either FinID or MIC
     market = Market.get('US.NYSE')
-    print(market)
+    assert str(market) == "Market: US.NYSE New York Stock Exchange America/New_York"
     market = Market.get('XNYS')
-    print(market)
-
-# print("Get by finid or mic")
-# test_get_by_finid_or_mic()
+    assert str(market) == "Market: US.NYSE New York Stock Exchange America/New_York"
 
 
 def test_follow_market():
@@ -26,33 +24,55 @@ def test_follow_market():
     market = Market.get('AR.BCBA')
     original = Market.get('AR.BCBA', follow=False)
 
-    print(market.fin_id)  # AR.BYMA
-    print(original.fin_id)  # AR.BCBA
+    assert market.fin_id == "AR.BYMA"
+    assert original.fin_id == "AR.BCBA"
 
-# print("\nFollow Markets")
-# test_follow_market()
 
-def test_holidays_list_range():
-    holidays = MarketHoliday.list_range('US.NYSE', "2024-01-01", "2024-12-31")
-    for holiday in holidays[:3]:
-        print(holiday)
+def test_market_list_holidays():
+    holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 
-# print("\nHolidays")
-# test_holidays_list_range()
+    for obj in holidays[:3]:
+        assert str(obj) == MarketHoliday.get_string_format().format(**obj.data)
+
+
 
 def test_generate_schedules():
     market = Market.get('XNYS')
-    for concrete_phase in market.generate_schedules("2023-09-01", "2023-09-30"):
-        print(concrete_phase)
+    schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
-# print("\nSchedules")
-# test_generate_schedules()
+    for obj in schedules:
+        assert str(obj) == ConcretePhase.get_string_format().format(**obj.data)
+
+
+
+def test_currencies_list_all():
+    for obj in Currency.list_all():
+        assert str(obj) == Currency.get_string_format().format(**obj.data)
+
 
 
 def test_currency_list_holidays():
     currency = Currency.get('AUD')
-    for holiday in currency.list_holidays("2023-06-01", "2023-12-31"):
-        print(holiday)
 
-# print("\nCurrency")
-# test_currency_list_holidays()
+    for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
+        assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
+
+
+
+if __name__ == '__main__':
+    nprint = lambda *s: print("\n", *s)
+
+    print("Markets:")
+    test_market_list_all()
+    nprint("Markets:")
+    test_get_by_finid_or_mic()
+    nprint("Market.fin_ids:")
+    test_follow_market()
+    nprint("MarketHolidays:")
+    test_market_list_holidays()
+    nprint("Schedules:")
+    test_generate_schedules()
+    nprint("Currency:")
+    test_currencies_list_all()
+    nprint("CurrencyHolidays:")
+    test_currency_list_holidays()
