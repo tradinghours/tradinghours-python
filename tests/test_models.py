@@ -82,9 +82,7 @@ def test_model_fields(model, columns):
     assert field_names == column_snakes
 
 
-
-def test_model_fields():
-
+def test_instance_fields():
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
 
@@ -113,10 +111,31 @@ def test_model_fields():
     assert second.status is True
     assert second.observed is True
 
-def test_string_format():
 
+def test_string_format():
+    market = Market.get('US.NYSE')
+    assert str(market) == 'Market: US.NYSE New York Stock Exchange America/New_York'
+
+    market_holiday = market.list_holidays("2007-11-20", "2007-11-23")[0]
+    assert str(market_holiday) == 'MarketHoliday: US.NYSE 2007-11-22 Thanksgiving Day'
+
+    currency = Currency.get('AUD')
+    assert str(currency) == 'Currency: AUD Australian Dollar'
+
+    currency_holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
+    assert str(currency_holiday) == 'CurrencyHoliday: AUD 2020-01-27 Australia Day'
+
+    schedule = Schedule.list_all("US.NYSE")
+    assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
+
+    concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
+    assert str(concrete_phase) == 'ConcretePhase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
+
+    season = SeasonDefinition.get("First day of March", 2022)
+    assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
+
+def test_set_string_format():
     market = Market.get('ZA.JSE.SAFEX')
-    assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
 
     # change format
     Market.set_string_format("{acronym} - {asset_type}")
@@ -129,12 +148,6 @@ def test_string_format():
     Market.reset_string_format()
     assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
 
-
-    schedule = Schedule.list_all("US.NYSE")
-    assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
-
-    season = SeasonDefinition.get("First day of March", 2022)
-    assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
 
 
 def test_raw_data():
