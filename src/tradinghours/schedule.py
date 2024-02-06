@@ -67,6 +67,8 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
+    _string_format = "{fin_id} {start} - {end} {days} {schedule_group}"
+
     @property
     def has_season(self) -> bool:
         season_start = (self.season_start or "").strip()

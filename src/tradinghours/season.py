@@ -17,6 +17,8 @@ class SeasonDefinition(BaseObject):
     date = DateField()
     """Especific date for this year"""
 
+    _string_format = "{date} {season}"
+
     @classmethod
     def get(cls, season: str, year: int, catalog=None) -> "SeasonDefinition":
         season = validate_str_arg("season", season)

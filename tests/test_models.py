@@ -114,8 +114,6 @@ def test_model_fields():
 
 def test_string_format():
 
-    original_format = Market.get_string_format()
-
     market = Market.get('ZA.JSE.SAFEX')
     assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
 
@@ -131,6 +129,10 @@ def test_string_format():
     assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
 
 
+    schedule = Schedule.list_all("US.NYSE")
+    assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
 
+    season = SeasonDefinition.get("First day of March", 2022)
+    assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
 
 
