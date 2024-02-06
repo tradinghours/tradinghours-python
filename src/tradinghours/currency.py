@@ -37,6 +37,8 @@ class Currency(BaseObject):
     weekend_definition = WeekdaySetField()
     """Weekend definition. Most markets are Sat-Sun."""
 
+    _string_format = "{currency_code} {currency_name}"
+
     def list_holidays(
         self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> "CurrencyHoliday":
@@ -87,3 +89,5 @@ class CurrencyHoliday(BaseObject):
 
     memo = StringField()
     """A description or additional details about the holiday, if applicable."""
+
+    _string_format = "{currency_code} {date} {holiday_name}"

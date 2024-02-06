@@ -40,6 +40,7 @@ class ConcretePhase(BaseObject):
     end = DateTimeField()
     """The scheduled date for the market phase type to end."""
 
+    _string_format = "{start} - {end} {phase_type}"
 
 @class_decorator
 class Schedule(BaseObject):

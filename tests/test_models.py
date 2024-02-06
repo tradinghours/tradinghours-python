@@ -102,7 +102,23 @@ def test_model_instance():
     assert second.status is True
     assert second.observed is True
 
+def test_string_format():
 
+    original_format = Market.get_string_format()
+
+    market = Market.get('ZA.JSE.SAFEX')
+    assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
+
+    # change format
+    Market.set_string_format("{acronym} - {asset_type}")
+    assert str(market) == "JSE - Derivatives"
+
+    # change format with class prefix
+    Market.set_string_format("{acronym} - {asset_type}", prefix_class=True)
+    assert str(market) == "Market: JSE - Derivatives"
+
+    Market.set_string_format(original_format)
+    assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg', Market.get_string_format()
 
 
 

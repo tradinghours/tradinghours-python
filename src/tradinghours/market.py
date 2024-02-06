@@ -63,6 +63,8 @@ class Market(BaseObject):
 
     replaced_by = FinIdField()
 
+    _string_format = "{fin_id} {exchange_name} {timezone}"
+
     @property
     def country_code(self):
         """Two-letter country code."""
@@ -254,6 +256,8 @@ class MarketHoliday(BaseObject):
     status = BooleanField({'Open': True, 'Closed': False})
     """Displays in true/false if the market is open for the holiday."""
 
+    _string_format = "{fin_id} {date} {holiday_name}"
+
     @classmethod
     def list_range(
         cls, finid: StrOrFinId, start: StrOrDate, end: StrOrDate, catalog=None
@@ -293,6 +297,8 @@ class MicMapping(BaseObject):
 
     fin_id = FinIdField()
     """TradingHours FinId"""
+
+    _string_format = "{mic} {fin_id}"
 
     @classmethod
     def get(cls, mic: str, catalog=None) -> "MicMapping":

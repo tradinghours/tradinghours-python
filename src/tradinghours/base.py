@@ -32,6 +32,7 @@ def class_decorator(cls):
 
         fields.append(att_name)
     cls.fields = fields
+    cls.set_string_format(cls._string_format, prefix_class=True)
     return cls
 
 
@@ -39,6 +40,24 @@ class BaseObject:
     """Base model objects"""
 
     fields = [] # set in class_decorator
+    _string_format = "" # set in each
+
+    @classmethod
+    def get_string_format(cls):
+        return cls._string_format
+
+    @classmethod
+    def set_string_format(cls, string_format: str, prefix_class: bool = False):
+        try:
+            string_format.format(**{f: "test" for f in cls.fields})
+        except Exception as e:
+            print(string_format)
+            raise ValueError("Invalid formatting string") from e
+
+        if prefix_class:
+            string_format = f"{cls.__name__}: " + string_format
+
+        cls._string_format = string_format
 
     def __init__(self, data: [Dict, tuple]):
         """
@@ -102,14 +121,17 @@ class BaseObject:
         return f"{class_name}({self.data!r})"
 
     def __str__(self):
-        class_name = self.__class__.__name__
-        all_str = []
-        for current_field in self.fields:
-            current_value = getattr(self, current_field)
-            if current_value:
-                all_str.append(str(current_value))
-        fields_str = " ".join(all_str)
-        return f"{class_name} {fields_str}"
+        if not self._string_format:
+            class_name = self.__class__.__name__
+            all_str = []
+            for current_field in self.fields:
+                current_value = getattr(self, current_field)
+                if current_value:
+                    all_str.append(str(current_value))
+            fields_str = " ".join(all_str)
+            return f"{class_name} {fields_str}"
+
+        return self._string_format.format(**self.data)
 
 
 class Field(Generic[T]):
@@ -139,6 +161,7 @@ class BooleanField(Field[bool]):
 
     def safe_prepare(self, value: str) -> T:
         try:
+            # print("trying to prepare", repr(value), self.bool_mapping)
             return self.prepare(value)
         except Exception as error:
             raise PrepareError(self, value, inner=error)

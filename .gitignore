@@ -1,7 +1,9 @@
 schema.sql
 .vscode/
+.idea/
 data/
 store_dir/
+other/
 .DS_Store
 debug.txt
 *.zip
