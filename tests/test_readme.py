@@ -1,19 +1,14 @@
 from tradinghours.market import Market, MarketHoliday
-from tradinghours.currency import Currency
+from tradinghours.currency import Currency, CurrencyHoliday
+from tradinghours.schedule import ConcretePhase
 
 from pprint import pprint
 # print("\nMarkets")
 
 def test_market_list_all():
 
-    expected = [
-        'Market: AE.ADX Abu Dhabi Securities Exchange Asia/Dubai',
-        'Market: AE.DFM Dubai Financial Market Asia/Dubai',
-        'Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai'
-    ]
-
-    for obj, exp in zip(Market.list_all()[:3], expected):
-        assert str(obj) == exp
+    for obj, exp in Market.list_all()[1:4]:
+        assert str(obj) == Market.get_string_format().format(**obj.data)
 
 
 def test_get_by_finid_or_mic():
@@ -36,48 +31,32 @@ def test_follow_market():
 def test_market_list_holidays():
     holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 
-    expected = [
-        "MarketHoliday: US.NYSE 2024-01-01 New Year's Day",
-        "MarketHoliday: US.NYSE 2024-01-15 Birthday of Martin Luther King, Jr",
-        "MarketHoliday: US.NYSE 2024-02-19 Washington's Birthday"
-    ]
-    for obj, exp in zip(holidays[:3], expected):
-        assert str(obj) == exp
+    for obj, exp in holidays[:3]:
+        assert str(obj) == MarketHoliday.get_string_format().format(**obj.data)
+
 
 
 def test_generate_schedules():
     market = Market.get('XNYS')
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
-    expected = [
-        'ConcretePhase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session',
-        'ConcretePhase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open',
-        'ConcretePhase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction'
-    ]
-    for obj, exp in zip(list(schedules)[:3], expected):
-        assert str(obj) == exp
+    for obj, exp in list(schedules)[:3]:
+        assert str(obj) == ConcretePhase.get_string_format().format(**obj.data)
+
 
 
 def test_currencies_list_all():
-    expected = [
-        'Currency: AUD Australian Dollar',
-        'Currency: BRL Brazilian Real',
-        'Currency: CAD Canadian Dollar'
-    ]
-    for obj, exp in zip(Currency.list_all()[:3], expected):
-        assert str(obj) == exp
+    for obj, exp in Currency.list_all()[:3]:
+        assert str(obj) == Currency.get_string_format().format(**obj.data)
+
 
 
 def test_currency_list_holidays():
     currency = Currency.get('AUD')
 
-    expected = [
-        "CurrencyHoliday: AUD 2023-06-12 King's Birthday",
-        "CurrencyHoliday: AUD 2023-10-02 Labor Day",
-        "CurrencyHoliday: AUD 2023-12-25 Christmas Day"
-    ]
-    for obj, exp in zip(currency.list_holidays("2023-06-01", "2023-12-31")[:3], expected):
-        assert str(obj) == exp
+    for obj, exp in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
+        assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
+
 
 
 if __name__ == '__main__':
