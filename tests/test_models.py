@@ -82,12 +82,22 @@ def test_model_fields(model, columns):
 
 
 
-def test_model_instance():
+def test_model_fields():
 
     aud = Currency.get("AUD")
-    assert str(aud.weekend_definition) == "Sat-Sun"
+    assert aud.weekend_definition == "Sat-Sun"
 
-    holidays = Market.get("US.NYSE").list_holidays("2007-11-20", "2007-11-23")
+    nyse = Market.get("US.NYSE")
+    assert nyse.fin_id == "US.NYSE"
+    assert nyse.fin_id_obj.country == "US"
+    assert nyse.fin_id_obj.acronym == "NYSE"
+    assert str(nyse.fin_id_obj) == "US.NYSE"
+
+    assert nyse.mic == "XNYS"
+    assert nyse.weekend_definition == "Sat-Sun"
+    assert str(nyse.weekend_definition_obj) == "Sat-Sun"
+
+    holidays = nyse.list_holidays("2007-11-20", "2007-11-23")
     assert len(holidays) == 2
 
     first, second = holidays
