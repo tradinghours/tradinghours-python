@@ -111,6 +111,16 @@ class Market(BaseObject):
             if current.days_obj.matches(some_date):
                 yield current
 
+    def _build_keyed_holidays(
+        self, start: StrOrDate, end: StrOrDate, catalog=None
+    ) -> Dict[datetime.date, "MarketHoliday"]:
+
+        holidays = self.list_holidays(start, end)
+        keyed = {}
+        for current in holidays:
+            keyed[current.date] = current
+        return keyed
+
     def generate_schedules(
         self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> Generator[ConcretePhase, None, None]:
@@ -123,7 +133,7 @@ class Market(BaseObject):
         # Get required global data
         offset_start = start - timedelta(days=MAX_OFFSET_DAYS)
         all_schedules = Schedule.list_all(self.fin_id)
-        holidays = MarketHoliday.build_keyed(self.fin_id, offset_start, end)
+        holidays = self._build_keyed_holidays(offset_start, end)
 
         # Iterate through all dates generating phases
         current_date = offset_start
@@ -200,6 +210,26 @@ class Market(BaseObject):
         catalog = cls.get_catalog(catalog)
         return list(catalog.list_all(Market))
 
+
+    def list_holidays(
+        self, start: StrOrDate, end: StrOrDate, catalog=None
+    ) -> List["MarketHoliday"]:
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
+        catalog = self.get_catalog(catalog)
+        holidays = list(
+            catalog.filter(
+                MarketHoliday,
+                start.isoformat(),
+                end.isoformat(),
+                cluster=str(self.fin_id),
+            )
+        )
+        return holidays
+
+
     @classmethod
     def get_by_finid(cls, finid: StrOrFinId, follow=True, catalog=None) -> "Market":
         finid = validate_finid_arg("finid", finid)
@@ -257,36 +287,6 @@ class MarketHoliday(BaseObject):
     """Displays in true/false if the market is open for the holiday."""
 
     _string_format = "{fin_id} {date} {holiday_name}"
-
-    @classmethod
-    def list_range(
-        cls, finid: StrOrFinId, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> List["MarketHoliday"]:
-        finid = validate_finid_arg("finid", finid)
-        start, end = validate_range_args(
-            validate_date_arg("start", start),
-            validate_date_arg("end", end),
-        )
-        catalog = cls.get_catalog(catalog)
-        holidays = list(
-            catalog.filter(
-                MarketHoliday,
-                start.isoformat(),
-                end.isoformat(),
-                cluster=str(finid),
-            )
-        )
-        return holidays
-
-    @classmethod
-    def build_keyed(
-        cls, finid: StrOrFinId, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> Dict[datetime.date, "MarketHoliday"]:
-        holidays = cls.list_range(finid, start, end)
-        keyed = {}
-        for current in holidays:
-            keyed[current.date] = current
-        return keyed
 
 @class_decorator
 class MicMapping(BaseObject):

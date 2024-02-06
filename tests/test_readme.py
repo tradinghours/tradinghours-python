@@ -33,8 +33,8 @@ def test_follow_market():
     assert original.fin_id == "AR.BCBA"
 
 
-def test_holidays_list_range():
-    holidays = MarketHoliday.list_range('US.NYSE', "2024-01-01", "2024-12-31")
+def test_market_list_holidays():
+    holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 
     expected = [
         "MarketHoliday: US.NYSE 2024-01-01 New Year's Day",
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     nprint("Market.fin_ids:")
     test_follow_market()
     nprint("MarketHolidays:")
-    test_holidays_list_range()
+    test_market_list_holidays()
     nprint("Schedules:")
     test_generate_schedules()
     nprint("Currency:")

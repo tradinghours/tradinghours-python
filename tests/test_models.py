@@ -87,7 +87,7 @@ def test_model_instance():
     aud = Currency.get("AUD")
     assert str(aud.weekend_definition) == "Sat-Sun"
 
-    holidays = MarketHoliday.list_range("US.NYSE", "2007-11-20", "2007-11-23")
+    holidays = Market.get("US.NYSE").list_holidays("2007-11-20", "2007-11-23")
     assert len(holidays) == 2
 
     first, second = holidays
