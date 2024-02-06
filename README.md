@@ -121,9 +121,9 @@ print(original.fin_id)
 ### Market Holidays
 
 ```python
-from tradinghours.market import MarketHoliday
+from tradinghours.market import Market
 
-holidays = MarketHoliday.list_range('US.NYSE', "2024-01-01", "2024-12-31")
+holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 for holiday in holidays[:3]:
     print(holiday)
 
