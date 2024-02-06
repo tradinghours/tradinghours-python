@@ -7,7 +7,7 @@ from pprint import pprint
 
 def test_market_list_all():
 
-    for obj, exp in Market.list_all()[1:4]:
+    for obj in Market.list_all()[1:4]:
         assert str(obj) == Market.get_string_format().format(**obj.data)
 
 
@@ -31,7 +31,7 @@ def test_follow_market():
 def test_market_list_holidays():
     holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 
-    for obj, exp in holidays[:3]:
+    for obj in holidays[:3]:
         assert str(obj) == MarketHoliday.get_string_format().format(**obj.data)
 
 
@@ -40,13 +40,13 @@ def test_generate_schedules():
     market = Market.get('XNYS')
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
-    for obj, exp in list(schedules)[:3]:
+    for obj in list(schedules)[:3]:
         assert str(obj) == ConcretePhase.get_string_format().format(**obj.data)
 
 
 
 def test_currencies_list_all():
-    for obj, exp in Currency.list_all()[:3]:
+    for obj in Currency.list_all()[:3]:
         assert str(obj) == Currency.get_string_format().format(**obj.data)
 
 
@@ -54,7 +54,7 @@ def test_currencies_list_all():
 def test_currency_list_holidays():
     currency = Currency.get('AUD')
 
-    for obj, exp in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
+    for obj in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
 
 
