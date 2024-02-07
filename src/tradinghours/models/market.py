@@ -194,8 +194,10 @@ class Market(BaseObject):
                     end_datetime = datetime.datetime.combine(
                         end_date, current_schedule.end
                     )
-                    start_datetime = current_schedule.timezone_obj.localize(start_datetime)
-                    end_datetime = current_schedule.timezone_obj.localize(end_datetime)
+                    # start_datetime = current_schedule.timezone_obj.localize(start_datetime)
+                    # end_datetime = current_schedule.timezone_obj.localize(end_datetime)
+                    start_datetime = start_datetime.replace(tzinfo=current_schedule.timezone_obj)
+                    end_datetime = end_datetime.replace(tzinfo=current_schedule.timezone_obj)
                     yield ConcretePhase(
                         dict(
                             phase_type=current_schedule.phase_type,

@@ -11,6 +11,7 @@ from typing import (
     cast,
 )
 
+from zoneinfo import ZoneInfo
 from .exceptions import PrepareError
 from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod, WeekdaySet
 from .util import snake_case, snake_dict
@@ -213,7 +214,8 @@ class OlsonTimezoneField(Field[OlsonTimezone]):
     """Field of an Olson Timezone"""
 
     def prepare(self, value: str) -> Tuple[str, OlsonTimezone]:
-        return value, OlsonTimezone.from_string(value)
+        return value, ZoneInfo(value)
+        # return value, OlsonTimezone.from_string(value)
 
 
 class WeekdayField(Field[Weekday]):

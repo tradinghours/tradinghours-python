@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple
 
 import pytz
+from zoneinfo import ZoneInfo
 
 from .typing import WeekdaySpec
 from .validate import validate_weekday_arg
@@ -15,7 +16,8 @@ class OlsonTimezone:
 
     @property
     def tzinfo(self):
-        return pytz.timezone(str(self))
+        # return pytz.timezone(str(self))
+        return ZoneInfo(str(self))
 
     def localize(self, dt: datetime.datetime) -> datetime.datetime:
         return self.tzinfo.localize(dt)
