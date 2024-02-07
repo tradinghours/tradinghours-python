@@ -2,7 +2,7 @@ import datetime
 from datetime import timedelta
 from typing import Dict, Generator, Iterable, List, Tuple
 
-from .base import (
+from ..base import (
     class_decorator,
     BaseObject,
     BooleanField,
@@ -13,8 +13,8 @@ from .base import (
     WeekdaySetField,
 )
 from .schedule import ConcretePhase, Schedule
-from .typing import StrOrDate, StrOrFinId
-from .validate import (
+from ..typing import StrOrDate, StrOrFinId
+from ..validate import (
     validate_date_arg,
     validate_finid_arg,
     validate_range_args,
@@ -208,11 +208,6 @@ class Market(BaseObject):
 
             # Next date, please
             current_date += timedelta(days=1)
-
-    def generate_schedules(
-            self, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> ScheduleGenerator:
-        return ScheduleGenerator(self._generate_schedules(start, end, catalog=catalog))
 
     @classmethod
     def list_all(cls, catalog=None) -> List["Market"]:

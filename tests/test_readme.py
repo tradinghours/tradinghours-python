@@ -1,6 +1,8 @@
-from tradinghours.market import Market, MarketHoliday
-from tradinghours.currency import Currency, CurrencyHoliday
-from tradinghours.schedule import ConcretePhase
+import pytest
+
+from tradinghours.models.market import Market, MarketHoliday
+from tradinghours.models.currency import Currency, CurrencyHoliday
+from tradinghours.models.schedule import ConcretePhase
 
 from pathlib import Path
 from pprint import pprint

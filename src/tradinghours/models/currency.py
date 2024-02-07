@@ -1,6 +1,6 @@
 from typing import List
 
-from .base import (
+from ..base import (
     class_decorator,
     BaseObject,
     BooleanField,
@@ -9,8 +9,8 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
-from .typing import StrOrDate
-from .validate import validate_date_arg, validate_range_args, validate_str_arg
+from ..typing import StrOrDate
+from ..validate import validate_date_arg, validate_range_args, validate_str_arg
 
 @class_decorator
 class Currency(BaseObject):

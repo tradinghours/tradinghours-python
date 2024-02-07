@@ -1,9 +1,9 @@
 import pytest
 
-from tradinghours.market import Market, MarketHoliday, MicMapping
-from tradinghours.currency import Currency, CurrencyHoliday
-from tradinghours.schedule import Schedule
-from tradinghours.season import SeasonDefinition
+from tradinghours.models.market import Market, MarketHoliday, MicMapping
+from tradinghours.models.currency import Currency, CurrencyHoliday
+from tradinghours.models.schedule import Schedule
+from tradinghours.models.season import SeasonDefinition
 from tradinghours.util import snake_case
 
 from pprint import pprint

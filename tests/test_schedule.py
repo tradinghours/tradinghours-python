@@ -1,5 +1,5 @@
 import pytest
-from tradinghours.market import Market
+from tradinghours.models.market import Market
 
 @pytest.mark.parametrize("fin_id, start, end, expected", [
     # Check there are correct schedules on a regularly open day, no holiday

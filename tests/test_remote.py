@@ -2,7 +2,7 @@ import pytest
 import csv
 
 from tradinghours.catalog import default_catalog, default_data_manager, MarketFile
-from tradinghours.market import Market
+from tradinghours.models.market import Market
 
 
 def test_no_duplicates():

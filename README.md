@@ -81,7 +81,7 @@ Extended Information:
 ### List Markets
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 for market in Market.list_all()[:3]:
     print(market)
     
@@ -93,7 +93,7 @@ for market in Market.list_all()[:3]:
 ### Get Market
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 # Get by either FinID or MIC
 market = Market.get('US.NYSE')
@@ -105,7 +105,7 @@ By default, the newer market will be returned automatically. You can still retri
 older market object for historical analysis by using the `follow=False` parameter.
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 # AR.BCBA is permanently closed and replaced by AR.BYMA
 market = Market.get('AR.BCBA')
@@ -121,7 +121,7 @@ print(original.fin_id)
 ### Market Holidays
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 for holiday in holidays[:3]:
@@ -134,7 +134,7 @@ for holiday in holidays[:3]:
 ### Trading Hours
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 market = Market.get('XNYS')
 for concrete_phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
@@ -148,7 +148,7 @@ for concrete_phase in list(market.generate_schedules("2023-09-01", "2023-09-30")
 ### List Currencies
 
 ```python
-from tradinghours.currency import Currency
+from tradinghours import Currency
 
 for currency in Currency.list_all()[:3]:
     print(currency)
@@ -161,7 +161,7 @@ for currency in Currency.list_all()[:3]:
 ### Currency Holidays
 
 ```python
-from tradinghours.currency import Currency
+from tradinghours import Currency
 
 currency = Currency.get('AUD')
 for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
@@ -175,7 +175,7 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
 
 ### Change String Format
 ```python
-from tradinghours.currency import Currency
+from tradinghours import Currency
 
 Currency.set_string_format("{currency_code}: {financial_capital} - {financial_capital_timezone}")
 currency = Currency.get("EUR")

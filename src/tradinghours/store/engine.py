@@ -1,8 +1,8 @@
 import os
 from typing import Optional, Tuple
 
-from tradinghours.config import main_config
-from tradinghours.store.base import Collection, Registry
+from ..config import main_config
+from .base import Collection, Registry
 
 
 class Store:

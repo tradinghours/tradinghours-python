@@ -1,9 +1,9 @@
 import datetime
 from typing import List
 
-from tradinghours.season import SeasonDefinition
+from .season import SeasonDefinition
 
-from .base import (
+from ..base import (
     class_decorator,
     BaseObject,
     DateField,
@@ -15,8 +15,8 @@ from .base import (
     TimeField,
     WeekdaySetField,
 )
-from .typing import StrOrDate, StrOrFinId
-from .validate import validate_date_arg, validate_finid_arg, validate_range_args
+from ..typing import StrOrDate, StrOrFinId
+from ..validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 @class_decorator
 class ConcretePhase(BaseObject):

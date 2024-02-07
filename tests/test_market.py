@@ -1,5 +1,5 @@
 import pytest
-from tradinghours.market import Market
+from tradinghours.models import Market
 
 # Test whether you can follow or not a permanently closed market
 @pytest.mark.parametrize("method, args, expected", [
@@ -25,16 +25,6 @@ def test_market_follow(method, args, expected):
     (Market.get_by_mic, "XBUE", "AR.BYMA"),
     (Market.get_by_mic, "xbue", "AR.BYMA"),
     (Market.get_by_mic, "xBuE", "AR.BYMA"),
-])
-def test_market_case_insensitivity(method, identifier, expected):
-    market = method(identifier)
-    result = str(market.fin_id)
-    assert result == expected
-
-# Test whether MIC case is ignored
-@pytest.mark.parametrize("method, identifier, expected", [
-    ("AR.BYMA", "AR.BYMA"),
-
 ])
 def test_market_case_insensitivity(method, identifier, expected):
     market = method(identifier)

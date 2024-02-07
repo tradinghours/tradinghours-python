@@ -2,9 +2,9 @@ import csv
 from pathlib import Path
 from typing import Generator, Generic, Type, TypeVar
 
-from tradinghours.base import BaseObject
-from tradinghours.typing import StrOrPath
-from tradinghours.validate import (
+from ..base import BaseObject
+from ..typing import StrOrPath
+from ..validate import (
     validate_path_arg,
     validate_str_arg,
     validate_subclass_arg,

@@ -2,6 +2,4 @@
 
 __version__ = "0.1.3"
 
-
-from .market import Market, MarketHoliday
-from .currency import Currency, CurrencyHoliday
+from .models import Market, Currency
