@@ -2,6 +2,7 @@ from tradinghours.market import Market, MarketHoliday
 from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.schedule import ConcretePhase
 
+from pathlib import Path
 from pprint import pprint
 # print("\nMarkets")
 
@@ -57,6 +58,29 @@ def test_currency_list_holidays():
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
 
+def test_code_blocks():
+    with open(Path("README.md"), "r") as readme:
+        readme = readme.readlines()
+
+    code_blocks = []
+    in_block = False
+    block = ""
+    for line in readme:
+        if line.startswith("```python"):
+            in_block = True
+            block = ""
+        elif in_block:
+            if line.startswith("```") or line.startswith(">>>"):
+                code_blocks.append(block)
+                in_block = False
+                continue
+
+            block += line + "\n"
+
+    for code_block in code_blocks:
+        print("executing\n")
+        print(code_block)
+        exec(code_block)
 
 
 if __name__ == '__main__':
