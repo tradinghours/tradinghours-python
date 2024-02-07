@@ -10,7 +10,7 @@ from ..base import (
     DateTimeField,
     FinIdField,
     IntegerField,
-    OlsonTimezoneField,
+    ZoneInfoField,
     StringField,
     TimeField,
     WeekdaySetField,
@@ -49,7 +49,7 @@ class Schedule(BaseObject):
     fin_id = FinIdField()
     schedule_group = StringField()
     schedule_group_memo = StringField()
-    timezone = OlsonTimezoneField()
+    timezone = ZoneInfoField()
     phase_type = StringField()
     phase_name = StringField()
     phase_memo = StringField()

@@ -159,7 +159,6 @@ class StringField(Field[str]):
     """Field of string type"""
     pass
 
-
 class BooleanField(Field[bool]):
     """Field of boolean type"""
 
@@ -210,12 +209,11 @@ class ListField(Field[List[T]]):
     pass
 
 
-class OlsonTimezoneField(Field[OlsonTimezone]):
+class ZoneInfoField(Field[OlsonTimezone]):
     """Field of an Olson Timezone"""
 
-    def prepare(self, value: str) -> Tuple[str, OlsonTimezone]:
+    def prepare(self, value: str) -> Tuple[str, ZoneInfo]:
         return value, ZoneInfo(value)
-        # return value, OlsonTimezone.from_string(value)
 
 
 class WeekdayField(Field[Weekday]):

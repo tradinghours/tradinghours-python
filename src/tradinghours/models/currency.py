@@ -5,7 +5,7 @@ from ..base import (
     BaseObject,
     BooleanField,
     DateField,
-    OlsonTimezoneField,
+    ZoneInfoField,
     StringField,
     WeekdaySetField,
 )
@@ -31,7 +31,7 @@ class Currency(BaseObject):
     financial_capital = StringField()
     """City where the central bank is located."""
 
-    financial_capital_timezone = OlsonTimezoneField()
+    financial_capital_timezone = ZoneInfoField()
     """Timezone Olson timezone identifier format."""
 
     weekend_definition = WeekdaySetField()

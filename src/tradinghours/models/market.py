@@ -8,6 +8,7 @@ from ..base import (
     BooleanField,
     DateField,
     FinIdField,
+    ZoneInfoField,
     MicField,
     StringField,
     WeekdaySetField,
@@ -55,7 +56,7 @@ class Market(BaseObject):
     permanently_closed = DateField()
     """If a market is permanently closed, this shows the date."""
 
-    timezone = StringField()
+    timezone = ZoneInfoField()
     """Gives the timezone the market utilizes."""
 
     weekend_definition = WeekdaySetField()
