@@ -140,9 +140,9 @@ market = Market.get('XNYS')
 for concrete_phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
     print(concrete_phase)
 
->>> ConcretePhase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
-    ConcretePhase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
-    ConcretePhase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
+>>> Phase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
+    Phase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
+    Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 
 ### List Currencies
@@ -180,11 +180,11 @@ from tradinghours import Currency
 Currency.set_string_format("{currency_code}: {financial_capital} - {financial_capital_timezone}")
 currency = Currency.get("EUR")
 print(currency)
->>> EUR: Frankfurt - Europe/Berlin
 
 Currency.reset_string_format()
 print(currency)
->>> Currency: EUR Euro
+>>> EUR: Frankfurt - Europe/Berlin
+    Currency: EUR Euro
 ```
 ## Optional Advanced Configuration
 

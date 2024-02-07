@@ -1,4 +1,4 @@
-import pytest
+import pytest, io, sys
 
 from tradinghours.models.market import Market, MarketHoliday
 from tradinghours.models.currency import Currency, CurrencyHoliday
@@ -65,24 +65,35 @@ def test_code_blocks():
         readme = readme.readlines()
 
     code_blocks = []
-    in_block = False
+    in_block = False # False=Not in block, True=in code part of block, None=in output part of block
     block = ""
+    out = ""
     for line in readme:
         if line.startswith("```python"):
             in_block = True
             block = ""
-        elif in_block:
-            if line.startswith("```") or line.startswith(">>>"):
-                code_blocks.append(block)
+            out = ""
+        elif in_block in (True, None):
+            if line.startswith("```"):
+                code_blocks.append((block, out))
                 in_block = False
+                continue
+            if line.startswith(">>> ") or in_block is None:
+                in_block = None
+                out += line[4:]
                 continue
 
             block += line + "\n"
 
-    for code_block in code_blocks:
-        print("executing\n")
-        print(code_block)
+    for code_block, output in code_blocks:
+        original_stdout = sys.stdout
+        sys.stdout = io.StringIO()
         exec(code_block)
+        captured_out = sys.stdout.getvalue()
+        sys.stdout.close()
+        sys.stdout = original_stdout
+        assert captured_out == output
+
 
 
 if __name__ == '__main__':
