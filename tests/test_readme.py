@@ -2,7 +2,7 @@ import pytest
 
 from tradinghours.models.market import Market, MarketHoliday
 from tradinghours.models.currency import Currency, CurrencyHoliday
-from tradinghours.models.schedule import ConcretePhase
+from tradinghours.models.schedule import Phase
 
 from pathlib import Path
 from pprint import pprint
@@ -44,7 +44,7 @@ def test_generate_schedules():
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
     for obj in schedules:
-        assert str(obj) == ConcretePhase.get_string_format().format(**obj.data)
+        assert str(obj) == Phase.get_string_format().format(**obj.data)
 
 
 

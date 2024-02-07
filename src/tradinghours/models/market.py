@@ -13,7 +13,7 @@ from ..base import (
     StringField,
     WeekdaySetField,
 )
-from .schedule import ConcretePhase, Schedule
+from .schedule import Phase, Schedule
 from ..typing import StrOrDate, StrOrFinId
 from ..validate import (
     validate_date_arg,
@@ -124,7 +124,7 @@ class Market(BaseObject):
 
     def generate_schedules(
         self, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> Generator[ConcretePhase, None, None]:
+    ) -> Generator[Phase, None, None]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
@@ -199,7 +199,7 @@ class Market(BaseObject):
                     # end_datetime = current_schedule.timezone_obj.localize(end_datetime)
                     start_datetime = start_datetime.replace(tzinfo=current_schedule.timezone_obj)
                     end_datetime = end_datetime.replace(tzinfo=current_schedule.timezone_obj)
-                    yield ConcretePhase(
+                    yield Phase(
                         dict(
                             phase_type=current_schedule.phase_type,
                             phase_name=current_schedule.phase_name,

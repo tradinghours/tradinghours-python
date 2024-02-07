@@ -19,7 +19,7 @@ from ..typing import StrOrDate, StrOrFinId
 from ..validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 @class_decorator
-class ConcretePhase(BaseObject):
+class Phase(BaseObject):
     """A period within a schedule"""
 
     phase_type = StringField()
