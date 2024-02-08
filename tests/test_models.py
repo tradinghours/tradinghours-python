@@ -2,7 +2,7 @@ import pytest
 
 from tradinghours.market import Market, MarketHoliday, MicMapping
 from tradinghours.currency import Currency, CurrencyHoliday
-from tradinghours.schedule import Schedule
+from tradinghours.schedule import Schedule, PhaseType
 from tradinghours.season import SeasonDefinition
 from tradinghours.util import snake_case
 
@@ -73,6 +73,10 @@ from pprint import pprint
     (SeasonDefinition, ["Season",
                         "Year",
                         "Date"]
+     ),
+    (PhaseType, ["Name",
+                 "Status",
+                 "Settlement"]
      )
 ])
 def test_model_fields(model, columns):
@@ -116,6 +120,31 @@ def test_market_holiday_instance_fields():
 def test_currency_instance_fields():
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
+
+def test_phase_type_instance_fields():
+    phase_types = PhaseType.as_dict()
+    assert len(phase_types) == 11
+
+    expected = {
+        'Primary Trading Session': ('Primary Trading Session', 'Open', 'Yes', True, True,),
+        'Primary Trading Session, No Settlement': ('Primary Trading Session, No Settlement', 'Open', 'No', False, True,),
+        'Intermission': ('Intermission', 'Closed', 'No', False, False,),
+        'Pre-Trading Session': ('Pre-Trading Session', 'Closed', 'No', False, False,),
+        'Post-Trading Session': ('Post-Trading Session', 'Closed', 'No', False, False,),
+        'Trading-at-Last': ('Trading-at-Last', 'Closed', 'No', False, False,),
+        'Pre-Open': ('Pre-Open', 'Closed', 'No', False, False,),
+        'Pre-Close': ('Pre-Close', 'Closed', 'No', False, False,),
+        'Order Collection Period': ('Order Collection Period', 'Closed', 'No', False, False,),
+        'Call Auction': ('Call Auction', 'Closed', 'No', False, False,),
+        'Other': ('Other', 'Closed', 'No', False, False,),
+    }
+
+    for k, phase in phase_types.items():
+        assert expected[k] == (str(phase.name),
+                               str(phase.status),
+                               str(phase.settlement),
+                               phase.has_settlement,
+                               phase.is_open)
 
 
 def test_string_format():
