@@ -183,6 +183,7 @@ print(currency)
 
 Currency.reset_string_format()
 print(currency)
+
 >>> EUR: Frankfurt - Europe/Berlin
     Currency: EUR Euro
 ```

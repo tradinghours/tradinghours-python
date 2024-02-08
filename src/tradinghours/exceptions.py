@@ -97,3 +97,7 @@ class MissingSqlAlchemyError(TradingHoursError):
             "ready store. You should be able to do that by running "
             "`pip install tradinghours[sql]` from the command line."
         )
+
+
+class MissingTzdata(TradingHoursError):
+    pass

@@ -4,8 +4,12 @@ import re
 from io import StringIO
 from typing import Dict
 
-from .validate import validate_instance_arg, validate_str_arg
+from zoneinfo import TZPATH
+import importlib.metadata as metadata
+import requests, warnings
 
+from .validate import validate_instance_arg, validate_str_arg
+from .exceptions import MissingTzdata
 
 def snake_case(text):
     text = validate_str_arg("text", text, strip=True)
@@ -144,3 +148,45 @@ class StrEncoder(json.JSONEncoder):
         except TypeError:
             encoded = str(obj)
         return encoded
+
+
+def _get_latest_tzdata_version():
+    response = requests.get(f"https://pypi.org/pypi/tzdata/json")
+    if response.status_code == 200:
+        return response.json()["info"]["version"]
+    print("Error getting latest tzdata version")
+
+
+def check_if_tzdata_required_and_up_to_date():
+    """
+    required installed # check for version
+    required notinstalled # raise error
+    notrequired installed # doesn't matter
+    notrequired notinstalled # doesn't matter
+
+    if required (no tzpath)
+        get version
+        if not version:
+            raise Error # required notinstalled
+        else:
+            check version/give warning # required installed
+    else (tzpath):
+
+    """
+    required = len(TZPATH) == 0
+    if required:
+        try:
+            installed_version = metadata.version('tzdata')
+        except metadata.PackageNotFoundError:
+            raise MissingTzdata("\nYour environment does not provide timezone data and\n"
+                                "you don't have tzdata installed, please run:\n"
+                                " pip install tzdata") from None
+
+        latest_version = _get_latest_tzdata_version()
+        if latest_version is None:
+            return
+
+        if installed_version < latest_version:
+            warnings.warn(f"\nThe installed version of tzdata is {installed_version}\n"
+                          f"The latest version of tzdata is    {latest_version}\n"
+                          f"Please run: pip install tzdata --upgrade")
