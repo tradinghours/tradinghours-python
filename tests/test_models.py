@@ -78,7 +78,7 @@ from pprint import pprint
 def test_model_fields(model, columns):
 
     column_snakes = sorted([snake_case(c) for c in columns])
-    field_names = sorted(model.fields)
+    field_names = sorted(model._fields)
     assert field_names == column_snakes
 
 
@@ -102,13 +102,17 @@ def test_instance_fields():
     first, second = holidays
 
     assert first.holiday_name == "Thanksgiving Day"
-    assert first.settlement is False
-    assert first.status is False
+    assert first.settlement == 'No'
+    assert first.has_settlement is False
+    assert first.status == 'Closed'
+    assert first.is_open is False
     assert first.observed is False
 
     assert second.holiday_name == "Thanksgiving Day"
-    assert second.settlement is True
-    assert second.status is True
+    assert second.settlement == 'Yes'
+    assert second.has_settlement is True
+    assert second.status == 'Open'
+    assert second.is_open is True
     assert second.observed is True
 
 
@@ -148,7 +152,13 @@ def test_set_string_format():
     Market.reset_string_format()
     assert str(market) == 'Market: ZA.JSE.EQUITIES.DRV Johannesburg Stock Exchange Africa/Johannesburg'
 
+    holiday = Market.get("XNYS").list_holidays("2022-01-17", "2022-01-17")[0]
+    assert str(holiday) == "MarketHoliday: US.NYSE 2022-01-17 Birthday of Martin Luther King, Jr"
 
+    holiday.set_string_format("{holiday_name} on {date} is open: {is_open} and has settlement: {has_settlement}")
+    assert str(holiday) == "Birthday of Martin Luther King, Jr on 2022-01-17 is open: False and has settlement: False"
+
+    MarketHoliday.reset_string_format()
 
 def test_raw_data():
 
@@ -157,15 +167,15 @@ def test_raw_data():
     assert holiday.raw_data["settlement"] == "No"
     assert holiday.raw_data["status"] == "Closed"
     assert holiday.raw_data["observed"] == ""
-    assert holiday.data["settlement"] is False
-    assert holiday.data["status"] is False
+    assert holiday.data["settlement"] == "No"
+    assert holiday.data["status"] == "Closed"
     assert holiday.data["observed"] is False
 
     currency = Currency.get('AUD')
     holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
     assert holiday.raw_data["settlement"] == "No"
     assert holiday.raw_data["observed"] == "OBS"
-    assert holiday.data["settlement"] is False
+    assert holiday.data["settlement"] == "No"
     assert holiday.data["observed"] is True
 
 

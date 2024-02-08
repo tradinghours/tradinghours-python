@@ -280,8 +280,8 @@ class MarketHoliday(BaseObject):
     schedule = StringField()
     """Describes if the market closes for the holiday."""
 
-    settlement = BooleanField({'Yes': True, 'No': False})
-    """Displays in true/false if the market has settlement for the holiday."""
+    settlement = StringField()
+    """Displays Yes/No indicating if the market has settlement for the holiday."""
 
     observed = BooleanField({'OBS': True, '': False, None: False})
     """Displays in true/false if the holiday is observed."""
@@ -289,10 +289,19 @@ class MarketHoliday(BaseObject):
     memo = StringField()
     """A description or additional details about the holiday."""
 
-    status = BooleanField({'Open': True, 'Closed': False})
+    status = StringField()
     """Displays in true/false if the market is open for the holiday."""
 
     _string_format = "{fin_id} {date} {holiday_name}"
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'
+
 
 @class_decorator
 class MicMapping(BaseObject):

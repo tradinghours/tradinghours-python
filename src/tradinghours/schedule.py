@@ -24,11 +24,19 @@ class PhaseType(BaseObject):
     name = StringField()
     """The name of the phase type, mapped to phase_type in schedules"""
 
-    status = BooleanField({"Open": True, "Closed": False})
+    status = StringField()
     """If this type of phase is considered open or closed"""
 
-    settlement = BooleanField({"Yes": True, "No": False})
+    settlement = StringField()
     """Whether settlement occurs during this type of phase"""
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'
 
     @classmethod
     def as_dict(cls, catalog=None) -> List["Schedule"]:
@@ -48,10 +56,10 @@ class ConcretePhase(BaseObject):
     phase_memo = StringField()
     """If applicable, will have additional description or information."""
 
-    status = BooleanField()
+    status = StringField()
     """Describes what status the market is currently."""
 
-    settlement = BooleanField()
+    settlement = StringField()
     """Describes what status the market is currently."""
 
     start = DateTimeField()
@@ -61,6 +69,15 @@ class ConcretePhase(BaseObject):
     """The scheduled date for the market phase type to end."""
 
     _string_format = "{start} - {end} {phase_type}"
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'
+
 
 @class_decorator
 class Schedule(BaseObject):
