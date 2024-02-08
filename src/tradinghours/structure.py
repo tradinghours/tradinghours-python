@@ -1,35 +1,8 @@
-import datetime
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
-import pytz
-from zoneinfo import ZoneInfo
-
 from .typing import WeekdaySpec
 from .validate import validate_weekday_arg
-
-
-@dataclass
-class OlsonTimezone:
-    country: str
-    detail: str
-
-    @property
-    def tzinfo(self):
-        # return pytz.timezone(str(self))
-        return ZoneInfo(str(self))
-
-    def localize(self, dt: datetime.datetime) -> datetime.datetime:
-        return self.tzinfo.localize(dt)
-
-    def __str__(self):
-        return f"{self.country}/{self.detail}"
-
-    @classmethod
-    def from_string(cls, input_string: str):
-        country, _, detail = input_string.partition("/")
-        return cls(country, detail)
-
 
 @dataclass
 class Weekday:

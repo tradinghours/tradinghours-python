@@ -13,8 +13,8 @@ from typing import (
 
 from zoneinfo import ZoneInfo
 from .exceptions import PrepareError
-from .structure import FinId, Mic, OlsonTimezone, Weekday, WeekdayPeriod, WeekdaySet
-from .util import snake_case, snake_dict
+from .structure import FinId, Mic, Weekday, WeekdayPeriod, WeekdaySet
+from .util import snake_dict
 
 if TYPE_CHECKING:
     from .catalog import Catalog
@@ -209,7 +209,7 @@ class ListField(Field[List[T]]):
     pass
 
 
-class ZoneInfoField(Field[OlsonTimezone]):
+class ZoneInfoField(Field[ZoneInfo]):
     """Field of an Olson Timezone"""
 
     def prepare(self, value: str) -> Tuple[str, ZoneInfo]:
