@@ -162,7 +162,7 @@ class StringField(Field[str]):
 class BooleanField(Field[bool]):
     """Field of boolean type"""
 
-    def __init__(self, bool_mapping):
+    def __init__(self, bool_mapping=None):
         self.bool_mapping = bool_mapping
 
     def safe_prepare(self, value: str) -> T:
@@ -172,7 +172,10 @@ class BooleanField(Field[bool]):
         except Exception as error:
             raise PrepareError(self, value, inner=error)
 
-    def prepare(self, value: str) -> [T, tuple]:
+    def prepare(self, value: [str, bool]) -> [T, tuple]:
+        if self.bool_mapping is None:
+            assert isinstance(value, bool), "Invalid type passed to BooleanField"
+            return value
         return self.bool_mapping[value]
 
 

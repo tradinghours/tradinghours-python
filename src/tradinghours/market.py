@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from pprint import pprint
 from typing import Dict, Generator, Iterable, List, Tuple
 
 from .base import (
@@ -12,7 +13,7 @@ from .base import (
     StringField,
     WeekdaySetField,
 )
-from .schedule import ConcretePhase, Schedule
+from .schedule import PhaseType, ConcretePhase, Schedule
 from .typing import StrOrDate, StrOrFinId
 from .validate import (
     validate_date_arg,
@@ -129,6 +130,8 @@ class Market(BaseObject):
             validate_date_arg("end", end),
         )
         catalog = self.get_catalog(catalog)
+        phase_types_dict = PhaseType.as_dict()
+        # pprint(phase_types_dict)
 
         # Get required global data
         offset_start = start - timedelta(days=MAX_OFFSET_DAYS)
@@ -192,11 +195,14 @@ class Market(BaseObject):
                     )
                     start_datetime = current_schedule.timezone_obj.localize(start_datetime)
                     end_datetime = current_schedule.timezone_obj.localize(end_datetime)
+                    phase_type = phase_types_dict[current_schedule.phase_type]
                     yield ConcretePhase(
                         dict(
                             phase_type=current_schedule.phase_type,
                             phase_name=current_schedule.phase_name,
                             phase_memo=current_schedule.phase_memo,
+                            status=phase_type.status,
+                            settlement=phase_type.settlement,
                             start=start_datetime.isoformat(),
                             end=end_datetime.isoformat(),
                         )

@@ -5,6 +5,7 @@ from tradinghours.season import SeasonDefinition
 
 from .base import (
     class_decorator,
+    BooleanField,
     BaseObject,
     DateField,
     DateTimeField,
@@ -19,6 +20,22 @@ from .typing import StrOrDate, StrOrFinId
 from .validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 @class_decorator
+class PhaseType(BaseObject):
+    name = StringField()
+    """The name of the phase type, mapped to phase_type in schedules"""
+
+    status = BooleanField({"Open": True, "Closed": False})
+    """If this type of phase is considered open or closed"""
+
+    settlement = BooleanField({"Yes": True, "No": False})
+    """Whether settlement occurs during this type of phase"""
+
+    @classmethod
+    def as_dict(cls, catalog=None) -> List["Schedule"]:
+        catalog = cls.get_catalog(catalog)
+        return {t[1].name: t[1] for t in catalog.list(cls)}
+
+@class_decorator
 class ConcretePhase(BaseObject):
     """A period within a schedule"""
 
@@ -31,8 +48,11 @@ class ConcretePhase(BaseObject):
     phase_memo = StringField()
     """If applicable, will have additional description or information."""
 
-    # status = StringField()
-    # """Describes what status the market is currently."""
+    status = BooleanField()
+    """Describes what status the market is currently."""
+
+    settlement = BooleanField()
+    """Describes what status the market is currently."""
 
     start = DateTimeField()
     """The date the market phase type started."""
