@@ -82,25 +82,22 @@ def test_model_fields(model, columns):
     assert field_names == column_snakes
 
 
-def test_instance_fields():
-    aud = Currency.get("AUD")
-    assert aud.weekend_definition == "Sat-Sun"
-
+def test_market_instance_fields():
     nyse = Market.get("US.NYSE")
     assert nyse.fin_id == "US.NYSE"
     assert nyse.fin_id_obj.country == "US"
     assert nyse.fin_id_obj.acronym == "NYSE"
     assert str(nyse.fin_id_obj) == "US.NYSE"
-
     assert nyse.mic == "XNYS"
     assert nyse.weekend_definition == "Sat-Sun"
     assert str(nyse.weekend_definition_obj) == "Sat-Sun"
 
+def test_market_holiday_instance_fields():
+    nyse = Market.get("XNYS")
     holidays = nyse.list_holidays("2007-11-20", "2007-11-23")
     assert len(holidays) == 2
 
     first, second = holidays
-
     assert first.holiday_name == "Thanksgiving Day"
     assert first.settlement == 'No'
     assert first.has_settlement is False
@@ -114,6 +111,11 @@ def test_instance_fields():
     assert second.status == 'Open'
     assert second.is_open is True
     assert second.observed is True
+
+
+def test_currency_instance_fields():
+    aud = Currency.get("AUD")
+    assert aud.weekend_definition == "Sat-Sun"
 
 
 def test_string_format():

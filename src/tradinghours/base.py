@@ -102,9 +102,10 @@ class BaseObject:
             self.data[field] = prepared_value
 
     def to_dict(self) -> Dict:
-        return self.data
+        return {f: getattr(self, f) for f in self.fields}
 
-    def to_tuple(self, raw=False) -> Tuple:
+    # TODO: remove from this, it should be specific to writing the data
+    def _to_tuple(self, raw=False) -> Tuple:
         """Used when adding data to store for ingestion"""
         data = self.raw_data if raw else self.data
         return tuple(data[f] for f in self._fields)

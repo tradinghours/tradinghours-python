@@ -51,7 +51,8 @@ class DeclaredFile(SourceFile[B]):
             cluster = self.resolve_cluster(current)
             key = self.resolve_key(current)
             key = str(key).upper() if key else key
-            data = current.to_tuple(raw=True)
+
+            data = current._to_tuple(raw=True)
             store.store_tuple(data, collection, cluster=cluster, key=key)
 
 
