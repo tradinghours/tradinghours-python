@@ -17,9 +17,8 @@ def client_urlopen():
     with patch("tradinghours.remote.urlopen") as mock_urlopen:
         yield client, mock_urlopen
 
-
 @pytest.fixture
-def client_fixture():
+def client():
     """Provide a client instance."""
     return Client(token="test_token", base_url="http://example.com")
 
@@ -79,45 +78,43 @@ def test_urlopen_client_error(client_urlopen):
             pass
 
 
-def test_get_json_successful(client_fixture, patch_response):
+def test_get_json_successful(client, patch_response):
     patch_response('{"key": "value"}')
-    data = client_fixture.get_json("/test")
+    data = client.get_json("/test")
     assert data == {"key": "value"}
 
-def test_get_json_token_error(client_fixture, patch_response_error):
+def test_get_json_token_error(client, patch_response_error):
     patch_response_error(TokenError("Token is missing or invalid"))
     with pytest.raises(TokenError):
-        client_fixture.get_json("/test")
+        client.get_json("/test")
 
-def test_get_json_client_error(client_fixture, patch_response_error):
+def test_get_json_client_error(client, patch_response_error):
     patch_response_error(ClientError("Error getting server response"))
     with pytest.raises(ClientError):
-        client_fixture.get_json("/test")
+        client.get_json("/test")
 
-def test_download_temporary_successful(client_fixture, patch_response):
+def test_download_temporary_successful(client, patch_response):
     patch_response('{"key": "value"}')
-    with client_fixture.download_temporary("/test") as temp_file:
+    with client.download_temporary("/test") as temp_file:
         content = temp_file.read().decode("utf-8")
         assert content == '{"key": "value"}'
 
-def test_download_temporary_token_error(client_fixture, patch_response_error):
+def test_download_temporary_token_error(client, patch_response_error):
     patch_response_error(TokenError("Token is missing or invalid"))
     with pytest.raises(TokenError):
-        with client_fixture.download_temporary("/test"):
+        with client.download_temporary("/test"):
             pass
 
-def test_download_temporary_client_error(client_fixture, patch_response_error):
+def test_download_temporary_client_error(client, patch_response_error):
     patch_response_error(ClientError("Error getting server response"))
     with pytest.raises(ClientError):
-        with client_fixture.download_temporary("/test"):
+        with client.download_temporary("/test"):
             pass
 
 
 def test_remote_timestamp(mocker):
-    custom_validate_instance_arg = lambda arg_name, arg_value, expected_type: arg_value
     timestamp = "2023-10-27T12:00:00"
     mocker.patch("tradinghours.remote.default_client.get_json", return_value={"last_updated": timestamp})
-    mocker.patch("tradinghours.remote.validate_instance_arg", side_effect=custom_validate_instance_arg)
 
     expected_datetime = datetime.datetime.fromisoformat(timestamp)
     assert default_data_manager.remote_timestamp == expected_datetime
