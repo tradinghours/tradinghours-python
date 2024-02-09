@@ -98,6 +98,8 @@ class MissingSqlAlchemyError(TradingHoursError):
             "`pip install tradinghours[sql]` from the command line."
         )
 
+class NoAccess(TradingHoursError):
+    pass
 
 class MissingTzdata(TradingHoursError):
     pass

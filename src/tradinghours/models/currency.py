@@ -81,7 +81,7 @@ class CurrencyHoliday(BaseObject):
     holiday_name = StringField()
     """Describes the name of the holiday."""
 
-    settlement = BooleanField({'Yes': True, 'No': False})
+    settlement = StringField()
     """Whether the market has settlement for the holiday."""
 
     observed = BooleanField({'OBS': True, '': False, None: False})
@@ -91,3 +91,7 @@ class CurrencyHoliday(BaseObject):
     """A description or additional details about the holiday, if applicable."""
 
     _string_format = "{currency_code} {date} {holiday_name}"
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'

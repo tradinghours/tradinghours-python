@@ -6,7 +6,7 @@ from .base import BaseObject
 from .models.market import Market, MarketHoliday, MicMapping
 from .models.season import SeasonDefinition
 from .models.currency import CurrencyHoliday, Currency
-from .models.schedule import Schedule
+from .models.schedule import Schedule, PhaseType
 from .remote import default_data_manager
 from .store.engine import Store, default_store
 from .store.file import FileCollection
@@ -51,7 +51,8 @@ class DeclaredFile(SourceFile[B]):
             cluster = self.resolve_cluster(current)
             key = self.resolve_key(current)
             key = str(key).upper() if key else key
-            data = current.to_tuple(raw=True)
+
+            data = current._to_tuple(raw=True)
             store.store_tuple(data, collection, cluster=cluster, key=key)
 
 
@@ -108,7 +109,6 @@ class MicMappingFile(DeclaredFile[MicMapping]):
     def resolve_key(self, item: MicMapping) -> Optional[str]:
         return item.mic
 
-
 class ScheduleFile(DeclaredFile[Schedule]):
     name = "schedules"
     model = Schedule
@@ -118,6 +118,11 @@ class ScheduleFile(DeclaredFile[Schedule]):
 
     def pre_ingest(self, store: "Store"):
         store.clear_collection(self.name)
+
+class PhaseTypeFile(DeclaredFile[PhaseType]):
+    name = "phases"
+    model = PhaseType
+
 
 
 class Catalog:

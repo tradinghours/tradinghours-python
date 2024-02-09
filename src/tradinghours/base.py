@@ -23,16 +23,22 @@ T = TypeVar("T")
 
 def class_decorator(cls):
     fields = []
+    extra_fields = []
     for att_name in cls.__dict__:
         if att_name.startswith("_"):
             continue
-
         att = getattr(cls, att_name)
-        if callable(att) or isinstance(att, property):
+        if callable(att):
             continue
 
-        fields.append(att_name)
-    cls.fields = fields
+        if isinstance(att, property):
+            extra_fields.append(att_name)
+        else:
+            fields.append(att_name)
+
+    cls._fields = fields
+    cls._extra_fields = extra_fields
+    cls.fields = [*fields, *extra_fields]
     cls.set_string_format(cls._string_format, prefix_class=True)
     cls._original_string_format = cls.get_string_format()
     return cls
@@ -81,7 +87,7 @@ class BaseObject:
         # print(self.__class__)
         # print(self.__class__.fields)
         # print(data)
-        for i, field in enumerate(self.fields):
+        for i, field in enumerate(self._fields):
             if data_is_dict:
                 raw_value = data[field]
             else:
@@ -97,16 +103,17 @@ class BaseObject:
             self.data[field] = prepared_value
 
     def to_dict(self) -> Dict:
-        return self.data
+        return {f: getattr(self, f) for f in self.fields}
 
-    def to_tuple(self, raw=False) -> Tuple:
+    # TODO: remove from this, it should be specific to writing the data
+    def _to_tuple(self, raw=False) -> Tuple:
         """Used when adding data to store for ingestion"""
         data = self.raw_data if raw else self.data
-        return tuple(data[f] for f in self.fields)
+        return tuple(data[f] for f in self._fields)
 
     @classmethod
     def from_tuple(cls, data: Tuple):
-        """Used when reading from local/.../....dat for loading"""
+        """Used when reading from local/.../.dat for loading"""
         return cls(data)
 
     @classmethod
@@ -138,11 +145,14 @@ class BaseObject:
             fields_str = " ".join(all_str)
             return f"{class_name} {fields_str}"
 
-        return self._string_format.format(**self.data)
+        all_data = {f: getattr(self, f) for f in self.fields}
+        return self._string_format.format(**all_data)
 
 
 class Field(Generic[T]):
     """Base field class"""
+    def __set_name__(self, owner: Type[BaseObject], name):
+        self._field_name = f"{owner}.{name}"
 
     def safe_prepare(self, value: str) -> T:
         if value in (None, ''):
@@ -150,7 +160,7 @@ class Field(Generic[T]):
         try:
             return self.prepare(value)
         except Exception as error:
-            raise PrepareError(self, value, inner=error)
+            raise PrepareError(self, value, inner=error) from error
 
     def prepare(self, value: str) -> str:
         return value
@@ -162,7 +172,7 @@ class StringField(Field[str]):
 class BooleanField(Field[bool]):
     """Field of boolean type"""
 
-    def __init__(self, bool_mapping):
+    def __init__(self, bool_mapping=None):
         self.bool_mapping = bool_mapping
 
     def safe_prepare(self, value: str) -> T:
@@ -170,9 +180,12 @@ class BooleanField(Field[bool]):
             # print("trying to prepare", repr(value), self.bool_mapping)
             return self.prepare(value)
         except Exception as error:
-            raise PrepareError(self, value, inner=error)
+            raise PrepareError(self, value, inner=error) from error
 
-    def prepare(self, value: str) -> [T, tuple]:
+    def prepare(self, value: [str, bool]) -> [T, tuple]:
+        if self.bool_mapping is None:
+            assert isinstance(value, bool), f"Invalid type passed to BooleanField of {self._field_name}"
+            return value
         return self.bool_mapping[value]
 
 

@@ -1,20 +1,21 @@
-import pytest, io, sys
+import pytest, io, sys, os
 
 from tradinghours.models.market import Market, MarketHoliday
 from tradinghours.models.currency import Currency, CurrencyHoliday
 from tradinghours.models.schedule import Phase
+from tradinghours.exceptions import NoAccess
 
 from pathlib import Path
 from pprint import pprint
-# print("\nMarkets")
+LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
-def test_market_list_all():
+def test_market_list_all(level):
 
     for obj in Market.list_all():
         assert str(obj) == Market.get_string_format().format(**obj.data)
 
 
-def test_get_by_finid_or_mic():
+def test_get_by_finid_or_mic(level):
     # Get by either FinID or MIC
     market = Market.get('US.NYSE')
     assert str(market) == "Market: US.NYSE New York Stock Exchange America/New_York"
@@ -22,7 +23,7 @@ def test_get_by_finid_or_mic():
     assert str(market) == "Market: US.NYSE New York Stock Exchange America/New_York"
 
 
-def test_follow_market():
+def test_follow_market(level):
     # AR.BCBA is permanently closed and replaced by AR.BYMA
     market = Market.get('AR.BCBA')
     original = Market.get('AR.BCBA', follow=False)
@@ -31,15 +32,15 @@ def test_follow_market():
     assert original.fin_id == "AR.BCBA"
 
 
-def test_market_list_holidays():
+def test_market_list_holidays(level):
     holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 
     for obj in holidays[:3]:
         assert str(obj) == MarketHoliday.get_string_format().format(**obj.data)
 
 
-
-def test_generate_schedules():
+@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", raises=NoAccess)
+def test_generate_schedules(level):
     market = Market.get('XNYS')
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
@@ -47,16 +48,15 @@ def test_generate_schedules():
         assert str(obj) == Phase.get_string_format().format(**obj.data)
 
 
-
-def test_currencies_list_all():
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
+def test_currencies_list_all(level):
     for obj in Currency.list_all():
         assert str(obj) == Currency.get_string_format().format(**obj.data)
 
 
-
-def test_currency_list_holidays():
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
+def test_currency_list_holidays(level):
     currency = Currency.get('AUD')
-
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
 

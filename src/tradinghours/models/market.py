@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from pprint import pprint
 from typing import Dict, Generator, Iterable, List, Tuple
 
 from ..base import (
@@ -13,7 +14,7 @@ from ..base import (
     StringField,
     WeekdaySetField,
 )
-from .schedule import Phase, Schedule
+from .schedule import PhaseType, Phase, Schedule
 from ..typing import StrOrDate, StrOrFinId
 from ..validate import (
     validate_date_arg,
@@ -130,6 +131,8 @@ class Market(BaseObject):
             validate_date_arg("end", end),
         )
         catalog = self.get_catalog(catalog)
+        phase_types_dict = PhaseType.as_dict()
+        # pprint(phase_types_dict)
 
         # Get required global data
         offset_start = start - timedelta(days=MAX_OFFSET_DAYS)
@@ -138,26 +141,22 @@ class Market(BaseObject):
 
         # Iterate through all dates generating phases
         current_date = offset_start
-        # print("\nStarting schedule calculation\n")
-        # tprint = lambda *s: print("\t", *s)
         while current_date <= end:
             # Starts with all schedules
             schedules = all_schedules
-            # print("Doing ", current_date)
+
             # Filter schedule group based on holiday if any
             schedule_group, fallback = self._pick_schedule_group(current_date, holidays)
-            # tprint("checked for schedule_group with holidays", schedule_group, fallback)
             schedules = self._filter_schedule_group(schedule_group, schedules)
+
             # Filters what is in force or for expected season
             schedules = self._filter_inforce(current_date, schedules)
             schedules = self._filter_season(current_date, schedules)
-            # tprint("filtered schedules by schedule_group, inforce and season")
+
             # Save for fallback and filter weekdays
             before_weekdays = list(schedules)
             found_schedules = list(self._filter_weekdays(current_date, before_weekdays))
-            # tprint("filtered schedules by applicable weekdays")
-            # for s in found_schedules:
-                # tprint(" ", s.start, s.end, s.schedule_group, s.phase_type, s.days)
+
             # Consider fallback if needed
             if not found_schedules and fallback:
                 initial_weekday = current_date.weekday()
@@ -199,11 +198,15 @@ class Market(BaseObject):
                     # end_datetime = current_schedule.timezone_obj.localize(end_datetime)
                     start_datetime = start_datetime.replace(tzinfo=current_schedule.timezone_obj)
                     end_datetime = end_datetime.replace(tzinfo=current_schedule.timezone_obj)
+
+                    phase_type = phase_types_dict[current_schedule.phase_type]
                     yield Phase(
                         dict(
                             phase_type=current_schedule.phase_type,
                             phase_name=current_schedule.phase_name,
                             phase_memo=current_schedule.phase_memo,
+                            status=phase_type.status,
+                            settlement=phase_type.settlement,
                             start=start_datetime.isoformat(),
                             end=end_datetime.isoformat(),
                         )
@@ -281,8 +284,8 @@ class MarketHoliday(BaseObject):
     schedule = StringField()
     """Describes if the market closes for the holiday."""
 
-    settlement = BooleanField({'Yes': True, 'No': False})
-    """Displays in true/false if the market has settlement for the holiday."""
+    settlement = StringField()
+    """Displays Yes/No indicating if the market has settlement for the holiday."""
 
     observed = BooleanField({'OBS': True, '': False, None: False})
     """Displays in true/false if the holiday is observed."""
@@ -290,10 +293,19 @@ class MarketHoliday(BaseObject):
     memo = StringField()
     """A description or additional details about the holiday."""
 
-    status = BooleanField({'Open': True, 'Closed': False})
+    status = StringField()
     """Displays in true/false if the market is open for the holiday."""
 
     _string_format = "{fin_id} {date} {holiday_name}"
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'
+
 
 @class_decorator
 class MicMapping(BaseObject):
