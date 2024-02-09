@@ -67,13 +67,14 @@ jobs:
             TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY_HOLIDAYS_ONLY }}
           fi
           export TRADINGHOURS_TOKEN
-          export API_KEY_LEVEL=${{ matrix.level }}
-          
+
           tradinghours import
           tradinghours status --extended
 
       - name: Run New Tests
-        run: pytest tests
+        run: |
+          export API_KEY_LEVEL=${{ matrix.level }}
+          pytest tests
 
   python-versions:
     runs-on: ubuntu-latest
