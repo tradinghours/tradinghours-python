@@ -37,7 +37,43 @@ jobs:
           coverage report
           coverage xml
 
+  os-versions-api-levels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        level: [full, no_currencies, only_holidays]
 
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Set up test data
+        shell: bash
+        run: |
+          if [ "${{ matrix.level }}" = "full" ]; then
+            TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
+          elif [ "${{ matrix.level }}" = "no_currencies" ]; then
+            TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY_NO_CURRENCIES }}
+          elif [ "${{ matrix.level }}" = "only_holidays" ]; then
+            TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY_HOLIDAYS_ONLY }}
+          fi
+          export TRADINGHOURS_TOKEN
+          export API_KEY_LEVEL=${{ matrix.level }}
+          
+          tradinghours import
+          tradinghours status --extended
+
+      - name: Run New Tests
+        run: pytest tests
 
   python-versions:
     runs-on: ubuntu-latest
