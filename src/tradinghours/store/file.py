@@ -53,7 +53,8 @@ class FileCluster(Cluster):
             if source == "default.dat":
                 source = self.location.parts[-2]
             else:
-                source = source.replace(".dat", "")
+                source = Path(self.location.parts[-2], source.replace(".dat", ""))
+
             raise NoAccess(f"You dont seem to have access to {source}.") from None
 
 

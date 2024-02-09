@@ -39,6 +39,9 @@ def test_market_list_holidays(level):
 
 
 def test_generate_schedules(level):
+    if level == "only_holidays":
+        pytest.xfail()
+
     market = Market.get('XNYS')
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
@@ -48,7 +51,7 @@ def test_generate_schedules(level):
 
 
 def test_currencies_list_all(level):
-    if level == "no_currencies":
+    if level != "full":
         pytest.xfail()
 
     for obj in Currency.list_all():
@@ -57,7 +60,7 @@ def test_currencies_list_all(level):
 
 
 def test_currency_list_holidays(level):
-    if level == "no_currencies":
+    if level != "full":
         pytest.xfail()
 
     currency = Currency.get('AUD')

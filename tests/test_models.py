@@ -119,16 +119,22 @@ def test_market_holiday_instance_fields(level):
 
 
 def test_currency_instance_fields(level):
-    if level == "no_currencies":
+    if level != "full":
         pytest.xfail("No access to currencies")
 
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
 
 def test_phase_type_instance_fields(level):
-    phase_types = PhaseType.as_dict()
-    assert len(phase_types) == 11
+    if level == "only_holidays":
+        with pytest.raises(NoAccess) as exception:
+            PhaseType.as_dict()
+        assert str(exception.value) == "You dont seem to have access to phases."
+        return
+    else:
+        phase_types = PhaseType.as_dict()
 
+    assert len(phase_types) == 11
     expected = {
         'Primary Trading Session': ('Primary Trading Session', 'Open', 'Yes', True, True,),
         'Primary Trading Session, No Settlement': ('Primary Trading Session, No Settlement', 'Open', 'No', False, True,),
@@ -158,7 +164,7 @@ def test_string_format(level):
     market_holiday = market.list_holidays("2007-11-20", "2007-11-23")[0]
     assert str(market_holiday) == 'MarketHoliday: US.NYSE 2007-11-22 Thanksgiving Day'
 
-    if level == "no_currencies":
+    if level != "full":
         with pytest.raises(NoAccess) as exception:
             Currency.get('AUD')
         assert str(exception.value) == "You dont seem to have access to currencies."
@@ -169,14 +175,28 @@ def test_string_format(level):
         currency_holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
         assert str(currency_holiday) == 'CurrencyHoliday: AUD 2020-01-27 Australia Day'
 
-    schedule = Schedule.list_all("US.NYSE")
-    assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
+    if level == "only_holidays":
+        with pytest.raises(NoAccess) as exception:
+            Schedule.list_all("US.NYSE")
+        assert str(exception.value) == r"You dont seem to have access to schedules\us-nyse."
 
-    concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
-    assert str(concrete_phase) == 'ConcretePhase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
+        with pytest.raises(NoAccess) as exception:
+            list(market.generate_schedules("2024-02-06", "2024-02-06"))
+        assert str(exception.value) == r"You dont seem to have access to phases."
 
-    season = SeasonDefinition.get("First day of March", 2022)
-    assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
+        with pytest.raises(NoAccess) as exception:
+            SeasonDefinition.get("First day of March", 2022)
+        assert str(exception.value) == r"You dont seem to have access to season-definitions."
+
+    else:
+        schedule = Schedule.list_all("US.NYSE")
+        assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
+
+        concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
+        assert str(concrete_phase) == 'ConcretePhase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
+
+        season = SeasonDefinition.get("First day of March", 2022)
+        assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
 
 def test_set_string_format(level):
     market = Market.get('ZA.JSE.SAFEX')
@@ -212,7 +232,7 @@ def test_market_raw_data(level):
     assert holiday.data["observed"] is False
 
 def test_currency_raw_data(level):
-    if level == "no_currencies":
+    if level != "full":
         pytest.xfail()
 
     currency = Currency.get('AUD')
