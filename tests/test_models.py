@@ -180,7 +180,7 @@ def test_string_format(level):
     if level == "only_holidays":
         with pytest.raises(NoAccess) as exception:
             Schedule.list_all("US.NYSE")
-        assert str(exception.value) == r"You dont seem to have access to schedules\us-nyse."
+        assert str(exception.value) == r"You dont seem to have access to schedules/us-nyse."
 
         with pytest.raises(NoAccess) as exception:
             list(market.generate_schedules("2024-02-06", "2024-02-06"))
