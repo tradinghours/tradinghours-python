@@ -16,6 +16,9 @@ default_settings = {
         "remote_dir": PROJECT_PATH / "store_dir" / "remote",
         "db_url": f"sqlite:///{PROJECT_PATH / 'store_dir' / 'local.db'}",
     },
+    "control": {
+        "check_tzdata": True,
+    }
 }
 
 # Read config file with defaults

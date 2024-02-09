@@ -1,5 +1,16 @@
 import pytest, json
-from tradinghours.util import StrEncoder, slugify, snake_case, snake_dict
+from unittest.mock import MagicMock
+from requests.models import Response
+
+from tradinghours.util import (StrEncoder,
+                               slugify,
+                               snake_case,
+                               snake_dict,
+                               _get_latest_tzdata_version,
+                               check_if_tzdata_required_and_up_to_date)
+
+from tradinghours.exceptions import MissingTzdata
+import importlib.metadata as metadata
 
 
 @pytest.mark.parametrize("name, expected", [
@@ -56,3 +67,70 @@ def test_str_encoder_non_serializable(level):
     data = {"name": "John", "age": 30, "non_serializable": set()}
     expected = '{"name": "John", "age": 30, "non_serializable": "set()"}'
     assert json.dumps(data, cls=StrEncoder) == expected
+
+
+################
+# TZDATA CHECK #
+################
+
+@pytest.fixture
+def mock_requests_get(mocker):
+    mock_response = MagicMock(spec=Response)
+    mocker.patch("requests.get", return_value=mock_response)
+    return mock_response
+
+#############################
+### _get_latest_version tests
+
+def test_latest_version_success(mock_requests_get):
+    mock_requests_get.status_code = 200
+    mock_requests_get.json.return_value = {"info": {"version": "2021.1"}}
+    assert _get_latest_tzdata_version() == "2021.1"
+
+def test_latest_version_failure(mock_requests_get):
+    mock_requests_get.status_code = 404
+    assert _get_latest_tzdata_version() is None
+
+
+#################################################
+### check_if_tzdata_required_and_up_to_date tests
+
+def test_check_tzdata_disbaled(mocker):
+    mocker.patch("tradinghours.util.main_config.getboolean", return_value=False)
+    assert check_if_tzdata_required_and_up_to_date() is False
+
+def test_check_tzdata_required_and_missing(mocker):
+    mocker.patch("tradinghours.util.main_config.getboolean", return_value=True)
+    mocker.patch("zoneinfo.TZPATH", new=tuple())
+    mocker.patch("importlib.metadata.version", side_effect=metadata.PackageNotFoundError)
+    with pytest.raises(MissingTzdata):
+        check_if_tzdata_required_and_up_to_date()
+
+def test_check_tzdata_required_and_outdated(mocker, mock_requests_get):
+    mocker.patch("tradinghours.util.main_config.getboolean", return_value=True)
+    mocker.patch("zoneinfo.TZPATH", new=tuple())
+    mocker.patch("importlib.metadata.version", return_value="2020.1")
+    mock_requests_get.status_code = 200
+    mock_requests_get.json.return_value = {"info": {"version": "2021.1"}}
+    with pytest.warns(UserWarning, match="The installed version of tzdata is 2020.1"):
+        assert check_if_tzdata_required_and_up_to_date() is None
+
+def test_check_tzdata_required_and_up_to_date(mocker, mock_requests_get):
+    mocker.patch("tradinghours.util.main_config.getboolean", return_value=True)
+    mocker.patch("zoneinfo.TZPATH", new=tuple())
+    mocker.patch("importlib.metadata.version", return_value="2021.1")
+    mock_requests_get.status_code = 200
+    mock_requests_get.json.return_value = {"info": {"version": "2021.1"}}
+    assert check_if_tzdata_required_and_up_to_date() is True
+
+
+def test_check_tzdata_required_and_fail(mocker, mock_requests_get):
+    mocker.patch("tradinghours.util.main_config.getboolean", return_value=True)
+    mocker.patch("zoneinfo.TZPATH", new=tuple())
+    mocker.patch("importlib.metadata.version", return_value="2021.1")
+    mock_requests_get.status_code = 500
+    mock_requests_get.return_value = None
+    with pytest.warns(UserWarning, match="Failed to get latest version of tzdata."):
+        assert check_if_tzdata_required_and_up_to_date() is None
+
+

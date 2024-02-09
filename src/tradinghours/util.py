@@ -10,6 +10,7 @@ import requests, warnings
 
 from .validate import validate_instance_arg, validate_str_arg
 from .exceptions import MissingTzdata
+from .config import main_config
 
 def snake_case(text):
     text = validate_str_arg("text", text, strip=True)
@@ -154,7 +155,6 @@ def _get_latest_tzdata_version():
     response = requests.get(f"https://pypi.org/pypi/tzdata/json")
     if response.status_code == 200:
         return response.json()["info"]["version"]
-    print("Error getting latest tzdata version")
 
 
 def check_if_tzdata_required_and_up_to_date():
@@ -163,6 +163,7 @@ def check_if_tzdata_required_and_up_to_date():
     required notinstalled # raise error
     notrequired installed # doesn't matter
     notrequired notinstalled # doesn't matter
+    [don't check]
 
     if required (no tzpath)
         get version
@@ -173,6 +174,9 @@ def check_if_tzdata_required_and_up_to_date():
     else (tzpath):
 
     """
+    if not main_config.getboolean("control", "check_tzdata"):
+        return False
+
     required = len(TZPATH) == 0
     if required:
         try:
@@ -184,9 +188,15 @@ def check_if_tzdata_required_and_up_to_date():
 
         latest_version = _get_latest_tzdata_version()
         if latest_version is None:
-            return
+            warnings.warn("Failed to get latest version of tzdata. "
+                          "Check your internet connection or set "
+                          "check_tzdata = False under [control] in tradinghours.ini")
+            return None
 
         if installed_version < latest_version:
             warnings.warn(f"\nThe installed version of tzdata is {installed_version}\n"
                           f"The latest version of tzdata is    {latest_version}\n"
                           f"Please run: pip install tzdata --upgrade")
+            return None
+
+    return True
