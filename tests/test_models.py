@@ -195,8 +195,8 @@ def test_string_format(level):
         schedule = Schedule.list_all("US.NYSE")
         assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
 
-    concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
-    assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
+        concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
+        assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
 
         season = SeasonDefinition.get("First day of March", 2022)
         assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
