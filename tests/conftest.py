@@ -10,5 +10,5 @@ def level():
         only_holidays = only holidays
     """
 
-    return os.environ.get("API_KEY_LEVEL", "full")
+    return os.environ.get("API_KEY_LEVEL", "full").strip()
 
