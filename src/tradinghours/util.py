@@ -152,7 +152,11 @@ class StrEncoder(json.JSONEncoder):
 
 
 def _get_latest_tzdata_version():
-    response = requests.get(f"https://pypi.org/pypi/tzdata/json")
+    try:
+        response = requests.get(f"https://pypi.org/pypi/tzdata/json")
+    except requests.exceptions.RequestException:
+        return None
+
     if response.status_code == 200:
         return response.json()["info"]["version"]
 

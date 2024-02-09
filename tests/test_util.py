@@ -1,5 +1,7 @@
 import pytest, json
 from unittest.mock import MagicMock
+
+import requests.exceptions
 from requests.models import Response
 
 from tradinghours.util import (StrEncoder,
@@ -90,6 +92,13 @@ def test_latest_version_success(mock_requests_get):
 def test_latest_version_failure(mock_requests_get):
     mock_requests_get.status_code = 404
     assert _get_latest_tzdata_version() is None
+
+    mock_requests_get.side_effect = requests.exceptions.ConnectionError
+    assert _get_latest_tzdata_version() is None
+
+    mock_requests_get.side_effect = requests.exceptions.Timeout
+    assert _get_latest_tzdata_version() is None
+
 
 
 #################################################
