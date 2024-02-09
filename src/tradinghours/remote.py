@@ -96,6 +96,19 @@ class DataManager:
             with zipfile.ZipFile(temp_file, "r") as zip_ref:
                 zip_ref.extractall(self.root)
 
+        for file in ("currencies.csv",
+                     "currency-holidays.csv",
+                     "holidays.csv",
+                     "markets.csv",
+                     "mic-mapping.csv",
+                     "phases.csv",
+                     "regional-holidays.csv",
+                     "schedules.csv",
+                     "season-definitions.csv"):
+
+            if not (self.csv_dir/file).exists():
+                open(self.csv_dir/file, "w").close()
+
 
 default_client = Client(
     main_config.get("api", "token"),
