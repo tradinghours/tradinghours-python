@@ -39,7 +39,7 @@ def test_market_list_holidays(level):
         assert str(obj) == MarketHoliday.get_string_format().format(**obj.data)
 
 
-@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", raises=NoAccess)
+@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
 def test_generate_schedules(level):
     market = Market.get('XNYS')
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
@@ -60,6 +60,7 @@ def test_currency_list_holidays(level):
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
 
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_code_blocks():
     with open(Path("README.md"), "r") as readme:
         readme = readme.readlines()

@@ -1,8 +1,11 @@
-import pytest
+import pytest, os
 from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 
 from tradinghours import Currency, Market
+from tradinghours.exceptions import NoAccess
+
+LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 def _convert(naive_dt, timezone_str):
     return naive_dt.replace(tzinfo=ZoneInfo(timezone_str))
@@ -48,7 +51,7 @@ def test_timezone_conversion(dt, new_timezone_str, expected_dt):
     assert dt.astimezone(ZoneInfo(new_timezone_str)) == expected_dt
 
 
-
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 @pytest.mark.parametrize("currency, timezone", [
     ("BRL", "America/Sao_Paulo"),
     ("CAD", "America/Toronto"),
