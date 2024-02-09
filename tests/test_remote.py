@@ -5,7 +5,7 @@ from tradinghours.catalog import default_catalog, default_data_manager, MarketFi
 from tradinghours.market import Market
 
 
-def test_no_duplicates():
+def test_no_duplicates(level):
 
     collection = default_catalog.find_model_collection(Market)
     cluster = collection.clusters.get("us")

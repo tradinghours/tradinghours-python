@@ -79,14 +79,14 @@ from pprint import pprint
                  "Settlement"]
      )
 ])
-def test_model_fields(model, columns):
+def test_model_fields(level, model, columns):
 
     column_snakes = sorted([snake_case(c) for c in columns])
     field_names = sorted(model._fields)
     assert field_names == column_snakes
 
 
-def test_market_instance_fields():
+def test_market_instance_fields(level):
     nyse = Market.get("US.NYSE")
     assert nyse.fin_id == "US.NYSE"
     assert nyse.fin_id_obj.country == "US"
@@ -96,7 +96,7 @@ def test_market_instance_fields():
     assert nyse.weekend_definition == "Sat-Sun"
     assert str(nyse.weekend_definition_obj) == "Sat-Sun"
 
-def test_market_holiday_instance_fields():
+def test_market_holiday_instance_fields(level):
     nyse = Market.get("XNYS")
     holidays = nyse.list_holidays("2007-11-20", "2007-11-23")
     assert len(holidays) == 2
@@ -117,11 +117,11 @@ def test_market_holiday_instance_fields():
     assert second.observed is True
 
 
-def test_currency_instance_fields():
+def test_currency_instance_fields(level):
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
 
-def test_phase_type_instance_fields():
+def test_phase_type_instance_fields(level):
     phase_types = PhaseType.as_dict()
     assert len(phase_types) == 11
 
@@ -147,7 +147,7 @@ def test_phase_type_instance_fields():
                                phase.is_open)
 
 
-def test_string_format():
+def test_string_format(level):
     market = Market.get('US.NYSE')
     assert str(market) == 'Market: US.NYSE New York Stock Exchange America/New_York'
 
@@ -169,7 +169,7 @@ def test_string_format():
     season = SeasonDefinition.get("First day of March", 2022)
     assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
 
-def test_set_string_format():
+def test_set_string_format(level):
     market = Market.get('ZA.JSE.SAFEX')
 
     # change format
@@ -191,7 +191,7 @@ def test_set_string_format():
 
     MarketHoliday.reset_string_format()
 
-def test_raw_data():
+def test_raw_data(level):
 
     nyse = Market.get("XNYS")
     holiday = nyse.list_holidays("2007-11-20", "2007-11-23")[0]

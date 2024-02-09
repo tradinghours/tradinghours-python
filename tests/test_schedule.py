@@ -719,7 +719,7 @@ from pprint import pprint
        'is_open': False}]
      ),
 ])
-def test_schedule(fin_id, start, end, expected):
+def test_schedule(level, fin_id, start, end, expected):
     market = Market.get(fin_id)
     calculated = list(market.generate_schedules(start, end))
 
