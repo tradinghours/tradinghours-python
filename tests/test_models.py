@@ -5,6 +5,7 @@ from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.schedule import Schedule, PhaseType
 from tradinghours.season import SeasonDefinition
 from tradinghours.util import snake_case
+from tradinghours.exceptions import NoAccess
 
 from pprint import pprint
 
@@ -118,6 +119,9 @@ def test_market_holiday_instance_fields(level):
 
 
 def test_currency_instance_fields(level):
+    if level == "no_currencies":
+        pytest.xfail("No access to currencies")
+
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
 
@@ -154,11 +158,16 @@ def test_string_format(level):
     market_holiday = market.list_holidays("2007-11-20", "2007-11-23")[0]
     assert str(market_holiday) == 'MarketHoliday: US.NYSE 2007-11-22 Thanksgiving Day'
 
-    currency = Currency.get('AUD')
-    assert str(currency) == 'Currency: AUD Australian Dollar'
+    if level == "no_currencies":
+        with pytest.raises(NoAccess) as exception:
+            Currency.get('AUD')
+        assert str(exception.value) == "You dont seem to have access to currencies."
+    else:
+        currency = Currency.get('AUD')
+        assert str(currency) == 'Currency: AUD Australian Dollar'
 
-    currency_holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
-    assert str(currency_holiday) == 'CurrencyHoliday: AUD 2020-01-27 Australia Day'
+        currency_holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
+        assert str(currency_holiday) == 'CurrencyHoliday: AUD 2020-01-27 Australia Day'
 
     schedule = Schedule.list_all("US.NYSE")
     assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
@@ -191,7 +200,7 @@ def test_set_string_format(level):
 
     MarketHoliday.reset_string_format()
 
-def test_raw_data(level):
+def test_market_raw_data(level):
 
     nyse = Market.get("XNYS")
     holiday = nyse.list_holidays("2007-11-20", "2007-11-23")[0]
@@ -201,6 +210,10 @@ def test_raw_data(level):
     assert holiday.data["settlement"] == "No"
     assert holiday.data["status"] == "Closed"
     assert holiday.data["observed"] is False
+
+def test_currency_raw_data(level):
+    if level == "no_currencies":
+        pytest.xfail()
 
     currency = Currency.get('AUD')
     holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]

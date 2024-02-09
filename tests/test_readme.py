@@ -1,3 +1,5 @@
+import pytest
+
 from tradinghours.market import Market, MarketHoliday
 from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.schedule import ConcretePhase
@@ -46,14 +48,19 @@ def test_generate_schedules(level):
 
 
 def test_currencies_list_all(level):
+    if level == "no_currencies":
+        pytest.xfail()
+
     for obj in Currency.list_all():
         assert str(obj) == Currency.get_string_format().format(**obj.data)
 
 
 
 def test_currency_list_holidays(level):
-    currency = Currency.get('AUD')
+    if level == "no_currencies":
+        pytest.xfail()
 
+    currency = Currency.get('AUD')
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
 
