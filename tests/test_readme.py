@@ -1,11 +1,13 @@
+import os
 import pytest
 
 from tradinghours.market import Market, MarketHoliday
 from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.schedule import ConcretePhase
+from tradinghours.exceptions import NoAccess
 
 from pprint import pprint
-# print("\nMarkets")
+LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 def test_market_list_all(level):
 
@@ -37,11 +39,8 @@ def test_market_list_holidays(level):
         assert str(obj) == MarketHoliday.get_string_format().format(**obj.data)
 
 
-
+@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", raises=NoAccess)
 def test_generate_schedules(level):
-    if level == "only_holidays":
-        pytest.xfail()
-
     market = Market.get('XNYS')
     schedules = market.generate_schedules("2023-09-01", "2023-09-30")
 
@@ -49,20 +48,14 @@ def test_generate_schedules(level):
         assert str(obj) == ConcretePhase.get_string_format().format(**obj.data)
 
 
-
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_currencies_list_all(level):
-    if level != "full":
-        pytest.xfail()
-
     for obj in Currency.list_all():
         assert str(obj) == Currency.get_string_format().format(**obj.data)
 
 
-
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_currency_list_holidays(level):
-    if level != "full":
-        pytest.xfail()
-
     currency = Currency.get('AUD')
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)

@@ -1,7 +1,12 @@
+import os
 import pytest
 from tradinghours.market import Market
+from tradinghours.exceptions import NoAccess
 from pprint import pprint
 
+LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
+
+@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
 @pytest.mark.parametrize("fin_id, start, end, expected", [
     ("US.NYSE", "2023-11-15", "2023-11-15",
      [{'phase_type': 'Pre-Trading Session',
@@ -720,9 +725,6 @@ from pprint import pprint
      ),
 ])
 def test_schedule(level, fin_id, start, end, expected):
-    if level == "only_holidays":
-        pytest.xfail()
-
     market = Market.get(fin_id)
     calculated = list(market.generate_schedules(start, end))
 

@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from tradinghours.market import Market, MarketHoliday, MicMapping
@@ -6,6 +7,8 @@ from tradinghours.schedule import Schedule, PhaseType
 from tradinghours.season import SeasonDefinition
 from tradinghours.util import snake_case
 from tradinghours.exceptions import NoAccess
+
+LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 from pprint import pprint
 
@@ -118,12 +121,11 @@ def test_market_holiday_instance_fields(level):
     assert second.observed is True
 
 
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_currency_instance_fields(level):
-    if level != "full":
-        pytest.xfail("No access to currencies")
-
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
+
 
 def test_phase_type_instance_fields(level):
     if level == "only_holidays":
@@ -231,9 +233,11 @@ def test_market_raw_data(level):
     assert holiday.data["status"] == "Closed"
     assert holiday.data["observed"] is False
 
+
+@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_currency_raw_data(level):
-    if level != "full":
-        pytest.xfail()
+
+    # assert 1 == 1
 
     currency = Currency.get('AUD')
     holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
