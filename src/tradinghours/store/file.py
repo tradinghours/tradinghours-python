@@ -5,6 +5,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 from tradinghours.store.base import Cluster, Collection, Registry
 from tradinghours.typing import StrOrPath
 from tradinghours.validate import validate_path_arg
+from tradinghours.exceptions import NoAccess
 
 
 class FileCluster(Cluster):
@@ -37,14 +38,25 @@ class FileCluster(Cluster):
     def load_all(self) -> Dict[str, Tuple]:
         keyed_items = {}
         next_key = 1
-        with open(self.location, "r", encoding="utf-8", newline="") as file:
-            for row in csv.reader(file):
-                key = row[0] or str(next_key)
-                next_key += 1
-                data = row[1:]
-                if key:
-                    keyed_items[key] = data
-        return keyed_items
+        try:
+            with open(self.location, "r", encoding="utf-8", newline="") as file:
+                for row in csv.reader(file):
+                    key = row[0] or str(next_key)
+                    next_key += 1
+                    data = row[1:]
+                    if key:
+                        keyed_items[key] = data
+            return keyed_items
+
+        except FileNotFoundError:
+            source = self.location.parts[-1]
+            if source == "default.dat":
+                source = self.location.parts[-2]
+            else:
+                source = f'{self.location.parts[-2]}/{source.replace(".dat", "")}'
+
+            raise NoAccess(f"You dont seem to have access to {source}.") from None
+
 
 
 class FileClusterRegistry(Registry[FileCluster]):
