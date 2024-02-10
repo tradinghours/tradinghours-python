@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 from .exceptions import PrepareError
 from .structure import FinId, Mic, Weekday, WeekdayPeriod, WeekdaySet
 from .util import snake_dict
+from pprint import pprint
 
 if TYPE_CHECKING:
     from .catalog import Catalog
@@ -72,6 +73,25 @@ class BaseObject:
     def reset_string_format(cls):
         cls._string_format = cls._original_string_format
 
+    @classmethod
+    def from_tuple(cls, data: Tuple):
+        """Used when reading from local/.../.dat for loading"""
+        return cls(data)
+
+    @classmethod
+    def from_dict(cls, data: Dict):
+        """Used when reading from remote/csv for ingestion"""
+        normalized = snake_dict(data)
+        return cls(normalized)
+
+    @classmethod
+    def get_catalog(cls, catalog: Optional["Catalog"]) -> "Catalog":
+        if catalog is None:
+            from .catalog import default_catalog
+
+            return default_catalog
+        return catalog
+
     def __init__(self, data: [Dict, tuple]):
         """
         Sets the instance attributes, prepared according to their type.
@@ -111,24 +131,8 @@ class BaseObject:
         data = self.raw_data if raw else self.data
         return tuple(data[f] for f in self._fields)
 
-    @classmethod
-    def from_tuple(cls, data: Tuple):
-        """Used when reading from local/.../.dat for loading"""
-        return cls(data)
-
-    @classmethod
-    def from_dict(cls, data: Dict):
-        """Used when reading from remote/csv for ingestion"""
-        normalized = snake_dict(data)
-        return cls(normalized)
-
-    @classmethod
-    def get_catalog(cls, catalog: Optional["Catalog"]) -> "Catalog":
-        if catalog is None:
-            from .catalog import default_catalog
-
-            return default_catalog
-        return catalog
+    def pprint(self):
+        pprint(self.to_dict())
 
     def __repr__(self):
         class_name = self.__class__.__name__
