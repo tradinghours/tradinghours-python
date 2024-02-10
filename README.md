@@ -8,7 +8,7 @@ This library allows clients to easily integrate our market holidays and trading 
 This packages downlods all available data from TradingHours.com and then allows you to work with the data locally.
 
 ### About the Data
-We supports over 1000 exchanges and trading venues, including all major currencies.
+We support over 1000 exchanges and trading venues, including all major currencies.
 [See all supported markets](https://www.tradinghours.com/coverage).
 
 Our comprehensive data covers:
@@ -135,11 +135,11 @@ from tradinghours import Market
 market = Market.get('AR.BCBA')
 original = Market.get('AR.BCBA', follow=False)
 
-print(market.fin_id, market.exchange_name)
-print(original.fin_id, original.exchange_name)
+print(f'{market.fin_id} replaced by {market.replaced_by} on {market.permanently_closed}')
+print(f'{original.fin_id} replaced by {original.replaced_by} on {original.permanently_closed}')
 
->>> AR.BYMA Bolsas y Mercados Argentinos
-    AR.BCBA Bolsa de Comercio de Buenos Aires
+>>> AR.BYMA replaced by None on None
+    AR.BCBA replaced by AR.BYMA on 2017-04-17
 ```
 
 ### Market Holidays
@@ -162,8 +162,8 @@ for holiday in holidays[:3]:
 from tradinghours import Market
 
 market = Market.get('XNYS')
-for concrete_phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
-    print(concrete_phase)
+for phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
+    print(phase)
 
 >>> Phase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
     Phase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
@@ -198,8 +198,8 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
     CurrencyHoliday: AUD 2023-12-25 Christmas Day
 ```
 
-### Advanced
-## Optional Advanced Configuration
+## Advanced
+### Optional Advanced Configuration
 
 By default, the library uses local file storage. Optionally you can 
 configure the library to use an SQL store. You can adjust settings
@@ -248,8 +248,8 @@ CREATE TABLE thstore_schedules (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR
 CREATE TABLE thstore_season_definitions (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
 ```
 
-## Time Zone Database 
-This package employs zoneinfo for timezone management, utilizing the IANA Time Zone Database, 
+### Time Zone Database 
+This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
 which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
 `tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 
 if an update is needed.
