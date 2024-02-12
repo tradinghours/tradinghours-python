@@ -1,7 +1,7 @@
 name: Testing and Coverage
 
 on:
-  push:
+  pull_request:
     branches:
       - pre-release
 
