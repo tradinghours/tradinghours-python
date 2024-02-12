@@ -102,8 +102,5 @@ jobs:
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
           tradinghours import 
 
-      - name: Run New Tests
+      - name: Run Tests
         run: pytest tests
-
-      - name: Run Old Tests
-        run: pytest old_tests

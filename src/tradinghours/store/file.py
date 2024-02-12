@@ -2,10 +2,10 @@ import csv
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple
 
-from tradinghours.store.base import Cluster, Collection, Registry
-from tradinghours.typing import StrOrPath
-from tradinghours.validate import validate_path_arg
-from tradinghours.exceptions import NoAccess
+from .base import Cluster, Collection, Registry
+from ..typing import StrOrPath
+from ..validate import validate_path_arg
+from ..exceptions import NoAccess
 
 
 class FileCluster(Cluster):

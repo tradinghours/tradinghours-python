@@ -1,6 +1,6 @@
 import os
 import pytest
-from tradinghours.market import Market
+from tradinghours.models.market import Market
 from tradinghours.exceptions import NoAccess
 from pprint import pprint
 
@@ -733,17 +733,17 @@ def test_schedule(level, fin_id, start, end, expected):
         calced = calced.to_dict()
         calced["start"] = str(calced["start"]), calced["start"].tzname()
         calced["end"] = str(calced["end"]), calced["end"].tzname()
-        
+
         assert ((calced["has_settlement"] is False and calced["settlement"] == 'No') or
                 (calced["has_settlement"] is True and calced["settlement"] == 'Yes'))
         assert ((calced["is_open"] is False and calced["status"] == 'Closed') or
                 (calced["is_open"] is True and calced["status"] == 'Open'))
-                    
+
         assert ((exp["has_settlement"] is False and exp["settlement"] == 'No') or
                 (exp["has_settlement"] is True and exp["settlement"] == 'Yes'))
         assert ((exp["is_open"] is False and exp["status"] == 'Closed') or
                 (exp["is_open"] is True and exp["status"] == 'Open'))
-            
+
         assert str(calced) == str(exp)
 
 

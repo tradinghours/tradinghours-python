@@ -1,9 +1,9 @@
 import datetime
 from typing import List
 
-from tradinghours.season import SeasonDefinition
+from .season import SeasonDefinition
 
-from .base import (
+from ..base import (
     class_decorator,
     BooleanField,
     BaseObject,
@@ -11,13 +11,13 @@ from .base import (
     DateTimeField,
     FinIdField,
     IntegerField,
-    OlsonTimezoneField,
+    ZoneInfoField,
     StringField,
     TimeField,
     WeekdaySetField,
 )
-from .typing import StrOrDate, StrOrFinId
-from .validate import validate_date_arg, validate_finid_arg, validate_range_args
+from ..typing import StrOrDate, StrOrFinId
+from ..validate import validate_date_arg, validate_finid_arg, validate_range_args
 
 @class_decorator
 class PhaseType(BaseObject):
@@ -44,7 +44,7 @@ class PhaseType(BaseObject):
         return {t[1].name: t[1] for t in catalog.list(cls)}
 
 @class_decorator
-class ConcretePhase(BaseObject):
+class Phase(BaseObject):
     """A period within a schedule"""
 
     phase_type = StringField()
@@ -86,7 +86,7 @@ class Schedule(BaseObject):
     fin_id = FinIdField()
     schedule_group = StringField()
     schedule_group_memo = StringField()
-    timezone = OlsonTimezoneField()
+    timezone = ZoneInfoField()
     phase_type = StringField()
     phase_name = StringField()
     phase_memo = StringField()

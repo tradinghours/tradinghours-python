@@ -1,6 +1,6 @@
 from typing import Dict, Iterator, Tuple
 
-from tradinghours.exceptions import MissingSqlAlchemyError
+from ..exceptions import MissingSqlAlchemyError
 
 try:
     from sqlalchemy import (
