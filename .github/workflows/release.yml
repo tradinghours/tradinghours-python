@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11' # Specify your Python version here
+
+    - name: Install Flit
+      run: pip install flit
+
+    - name: Extract project version
+      id: project_version
+      run: |
+        VERSION=$(grep '__version__' src/tradinghours/__init__.py | cut -d '"' -f 2)
+        echo "::set-output name=version::$VERSION"
+
+    - name: Build and publish package using Flit
+      run: |
+        export FLIT_USERNAME=__token__
+        export FLIT_PASSWORD=${{ secrets.PYPI_TOKEN }}
+
+        flit publish
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: ${{ steps.project_version.outputs.version }}
+        tag_name: ${{ steps.project_version.outputs.version }}
+        body: |
+          ${{ github.event.pull_request.body }}
+  

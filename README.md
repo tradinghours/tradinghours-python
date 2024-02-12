@@ -254,6 +254,8 @@ which is routinely updated. In certain environments, it's essential to update th
 `tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 
 if an update is needed.
 
+To update `tzdata` run this command: `pip install tzdata --upgrade`
+
 To disable this verification and prevent the request, add this section to your tradinghours.ini file:
 ```ini
 [control]
