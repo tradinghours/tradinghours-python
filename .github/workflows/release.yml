@@ -1,0 +1,23 @@
+name: Testing and Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+
+# check version number increase
+jobs:
+  test_pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: get current version
+        id: current_version
+        run: |
+          PYPI_VERSION=$(pip index versions tradinghours | cut -d'(' -f2 | cut -d')' -f1 | sed 1q)
+          NEW_VERSION=$(grep '__version__' src/tradinghours/__init__.py | cut -d '"' -f 2)
+          if [[ $NEW_VERSION <= $PYPI_VERSION ]]; then
+            echo "Version needs to be incremented."
+            exit 1
+          fi
+
+    
