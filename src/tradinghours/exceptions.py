@@ -100,3 +100,6 @@ class MissingSqlAlchemyError(TradingHoursError):
 
 class NoAccess(TradingHoursError):
     pass
+
+class MissingTzdata(TradingHoursError):
+    pass

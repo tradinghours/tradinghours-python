@@ -3,19 +3,20 @@ from datetime import timedelta
 from pprint import pprint
 from typing import Dict, Generator, Iterable, List, Tuple
 
-from .base import (
+from ..base import (
     class_decorator,
     BaseObject,
     BooleanField,
     DateField,
     FinIdField,
+    ZoneInfoField,
     MicField,
     StringField,
     WeekdaySetField,
 )
-from .schedule import PhaseType, ConcretePhase, Schedule
-from .typing import StrOrDate, StrOrFinId
-from .validate import (
+from .schedule import PhaseType, Phase, Schedule
+from ..typing import StrOrDate, StrOrFinId
+from ..validate import (
     validate_date_arg,
     validate_finid_arg,
     validate_range_args,
@@ -56,7 +57,7 @@ class Market(BaseObject):
     permanently_closed = DateField()
     """If a market is permanently closed, this shows the date."""
 
-    timezone = StringField()
+    timezone = ZoneInfoField()
     """Gives the timezone the market utilizes."""
 
     weekend_definition = WeekdaySetField()
@@ -124,7 +125,7 @@ class Market(BaseObject):
 
     def generate_schedules(
         self, start: StrOrDate, end: StrOrDate, catalog=None
-    ) -> Generator[ConcretePhase, None, None]:
+    ) -> Generator[Phase, None, None]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
@@ -193,10 +194,13 @@ class Market(BaseObject):
                     end_datetime = datetime.datetime.combine(
                         end_date, current_schedule.end
                     )
-                    start_datetime = current_schedule.timezone_obj.localize(start_datetime)
-                    end_datetime = current_schedule.timezone_obj.localize(end_datetime)
+                    # start_datetime = current_schedule.timezone_obj.localize(start_datetime)
+                    # end_datetime = current_schedule.timezone_obj.localize(end_datetime)
+                    start_datetime = start_datetime.replace(tzinfo=current_schedule.timezone_obj)
+                    end_datetime = end_datetime.replace(tzinfo=current_schedule.timezone_obj)
+
                     phase_type = phase_types_dict[current_schedule.phase_type]
-                    yield ConcretePhase(
+                    yield Phase(
                         dict(
                             phase_type=current_schedule.phase_type,
                             phase_name=current_schedule.phase_name,

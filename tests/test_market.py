@@ -1,5 +1,5 @@
 import pytest
-from tradinghours.market import Market
+from tradinghours.models import Market
 
 # Test whether you can follow or not a permanently closed market
 @pytest.mark.parametrize("method, args, expected", [

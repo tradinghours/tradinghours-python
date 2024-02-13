@@ -5,12 +5,11 @@ from contextlib import contextmanager
 from textwrap import wrap
 from threading import Thread
 
-from tradinghours import __version__
-from tradinghours.catalog import default_catalog
-from tradinghours.currency import Currency
-from tradinghours.exceptions import TradingHoursError
-from tradinghours.market import Market
-from tradinghours.remote import default_data_manager
+from . import __version__
+from .catalog import default_catalog
+from .models import Currency, Market
+from .exceptions import TradingHoursError
+from .remote import default_data_manager
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2

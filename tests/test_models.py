@@ -1,10 +1,10 @@
 import os
 import pytest
 
-from tradinghours.market import Market, MarketHoliday, MicMapping
-from tradinghours.currency import Currency, CurrencyHoliday
-from tradinghours.schedule import Schedule, PhaseType
-from tradinghours.season import SeasonDefinition
+from tradinghours.models.market import Market, MarketHoliday, MicMapping
+from tradinghours.models.currency import Currency, CurrencyHoliday
+from tradinghours.models.schedule import Schedule, PhaseType
+from tradinghours.models.season import SeasonDefinition
 from tradinghours.util import snake_case
 from tradinghours.exceptions import NoAccess
 
@@ -96,6 +96,7 @@ def test_market_instance_fields(level):
     assert nyse.fin_id_obj.country == "US"
     assert nyse.fin_id_obj.acronym == "NYSE"
     assert str(nyse.fin_id_obj) == "US.NYSE"
+
     assert nyse.mic == "XNYS"
     assert nyse.weekend_definition == "Sat-Sun"
     assert str(nyse.weekend_definition_obj) == "Sat-Sun"
@@ -195,7 +196,7 @@ def test_string_format(level):
         assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
 
         concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
-        assert str(concrete_phase) == 'ConcretePhase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
+        assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
 
         season = SeasonDefinition.get("First day of March", 2022)
         assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'

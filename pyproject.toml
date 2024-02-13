@@ -17,7 +17,7 @@ classifiers = [
     "Topic :: Office/Business :: Financial",
     "Topic :: Software Development :: Libraries",   
 ]
-dependencies = ['pytz']
+dependencies = ['tzdata']
 
 [project.urls]
 "Homepage" = "https://github.com/tradinghours/tradinghours-python"
@@ -32,6 +32,7 @@ dev = [
     'black',
     'coverage[toml]',
     'pytest',
+    'pytest-mock',
 ]
 sql = [
     'sqlalchemy',

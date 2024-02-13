@@ -1,16 +1,16 @@
 from typing import List
 
-from .base import (
+from ..base import (
     class_decorator,
     BaseObject,
     BooleanField,
     DateField,
-    OlsonTimezoneField,
+    ZoneInfoField,
     StringField,
     WeekdaySetField,
 )
-from .typing import StrOrDate
-from .validate import validate_date_arg, validate_range_args, validate_str_arg
+from ..typing import StrOrDate
+from ..validate import validate_date_arg, validate_range_args, validate_str_arg
 
 @class_decorator
 class Currency(BaseObject):
@@ -31,7 +31,7 @@ class Currency(BaseObject):
     financial_capital = StringField()
     """City where the central bank is located."""
 
-    financial_capital_timezone = OlsonTimezoneField()
+    financial_capital_timezone = ZoneInfoField()
     """Timezone Olson timezone identifier format."""
 
     weekend_definition = WeekdaySetField()

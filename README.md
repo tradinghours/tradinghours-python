@@ -3,19 +3,12 @@
 <h1>TradingHours.com Python Library</h1>
 </div>
 
-[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over 900 exchanges and trading venues around the world.
+[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1000** exchanges and trading venues around the world.
 This library allows clients to easily integrate our market holidays and trading hours data into existing applications.
 This packages downlods all available data from TradingHours.com and then allows you to work with the data locally.
 
-**A paid subscription is required to use this package**
-
-[Learn more »](https://www.tradinghours.com/data)
-
-## About the Data
-
-### Market coverage
-
-We supports over 900 exchanges and trading venues, including all major currencies.
+### About the Data
+We support over 1000 exchanges and trading venues, including all major currencies.
 [See all supported markets](https://www.tradinghours.com/coverage).
 
 Our comprehensive data covers:
@@ -28,32 +21,44 @@ Our comprehensive data covers:
 - Detailed trading phases
 
 ### How is data collected?
-
 Our global research team collects and verifies trading hours and market holidays using exclusively primary sources.
 Manual and automated checks ensure the highest degree of accuracy and reliability.
 
 Once data is collected, we then continually monitor for changes to ensure the data is always up-to-date.
 Data is updated daily.
 
-## Installation
+[Learn more »](https://www.tradinghours.com/data)
 
-```console
+### Getting Started
+
+Just install `tradinghours` with pip and set your API key. [Click here to get your key](https://www.tradinghours.com/user/api-tokens).
+```
 pip install tradinghours
+
+export TRADINGHOURS_TOKEN=<your-key-goes-here>
 ```
-
-## Basic Configuration
-
-```console
-export TRADINGHOURS_TOKEN=<your-token-goes-here>
-```
-
-If you have an active subscription, [click here to get your API key](https://www.tradinghours.com/user/api-tokens).
-
 See [advanced configuration options](#optional-advanced-configuration). 
 
-## Usage
+---
+### Contents
+- [Importing Data](#importing-data)
+- [Markets](#markets)
+  - [View Available Markets](#view-available-markets)
+  - [Get A Specific Market](#get-a-specific-market)
+  - [Market Holidays](#market-holidays)
+  - [Trading Hours](#trading-hours)
+- [Currencies](#currencies)
+  - [List Currencies](#list-currencies)
+  - [Currency Holidays](#currency-holidays)
+- [Advanced](#advanced)
+  - [Optional Advanced Configuration](#optional-advanced-configuration)
+  - [Database Schema](#database-schema)
+  - [Time Zone Database](#time-zone-database)
+  - [Model Configuration](#model-configuration)
+    - [Change String Format](#change-string-format)
 
-### Importing Data
+---
+## Importing Data
 
 You just need to run the following command to download and import official data. Remember that you need to have a valid **TRADINGHOURS_TOKEN** environment variable.
 
@@ -78,10 +83,12 @@ Extended Information:
   Markets count:      1012
 ```
 
-### List Markets
+## Markets
 
+### View Available Markets
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
+
 for market in Market.list_all()[:3]:
     print(market)
     
@@ -90,14 +97,31 @@ for market in Market.list_all()[:3]:
     Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai
 ```
 
-### Get Market
+### Get A Specific Market   
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 # Get by either FinID or MIC
 market = Market.get('US.NYSE')
 market = Market.get('XNYS')
+
+# Easily see what attributes an object has
+# (You can call this on any object)
+market.pprint()
+>>> {'acronym': 'NYSE',
+     'asset_type': 'Securities',
+     'country_code': 'US',
+     'exchange_name': 'New York Stock Exchange',
+     'fin_id': 'US.NYSE',
+     'market_name': 'Canonical',
+     'memo': 'Canonical',
+     'mic': 'XNYS',
+     'permanently_closed': None,
+     'replaced_by': None,
+     'security_group': None,
+     'timezone': 'America/New_York',
+     'weekend_definition': 'Sat-Sun'}
 ```
 
 If a market is marked "permanently closed" it may be replaced or superseded by another market. 
@@ -105,25 +129,26 @@ By default, the newer market will be returned automatically. You can still retri
 older market object for historical analysis by using the `follow=False` parameter.
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 # AR.BCBA is permanently closed and replaced by AR.BYMA
 market = Market.get('AR.BCBA')
 original = Market.get('AR.BCBA', follow=False)
 
-print(market.fin_id)
-print(original.fin_id)
+print(f'{market.fin_id} replaced by {market.replaced_by} on {market.permanently_closed}')
+print(f'{original.fin_id} replaced by {original.replaced_by} on {original.permanently_closed}')
 
->>> AR.BYMA
-    AR.BCBA
+>>> AR.BYMA replaced by None on None
+    AR.BCBA replaced by AR.BYMA on 2017-04-17
 ```
 
 ### Market Holidays
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
-holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
+market = Market.get('US.NYSE')
+holidays = market.list_holidays("2024-01-01", "2024-12-31")
 for holiday in holidays[:3]:
     print(holiday)
 
@@ -134,21 +159,22 @@ for holiday in holidays[:3]:
 ### Trading Hours
 
 ```python
-from tradinghours.market import Market
+from tradinghours import Market
 
 market = Market.get('XNYS')
-for concrete_phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
-    print(concrete_phase)
+for phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
+    print(phase)
 
->>> ConcretePhase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
-    ConcretePhase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
-    ConcretePhase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
+>>> Phase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
+    Phase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
+    Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 
+## Currencies
 ### List Currencies
 
 ```python
-from tradinghours.currency import Currency
+from tradinghours import Currency
 
 for currency in Currency.list_all()[:3]:
     print(currency)
@@ -161,7 +187,7 @@ for currency in Currency.list_all()[:3]:
 ### Currency Holidays
 
 ```python
-from tradinghours.currency import Currency
+from tradinghours import Currency
 
 currency = Currency.get('AUD')
 for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
@@ -172,21 +198,8 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
     CurrencyHoliday: AUD 2023-12-25 Christmas Day
 ```
 
-
-### Change String Format
-```python
-from tradinghours.currency import Currency
-
-Currency.set_string_format("{currency_code}: {financial_capital} - {financial_capital_timezone}")
-currency = Currency.get("EUR")
-print(currency)
->>> EUR: Frankfurt - Europe/Berlin
-
-Currency.reset_string_format()
-print(currency)
->>> Currency: EUR Euro
-```
-## Optional Advanced Configuration
+## Advanced
+### Optional Advanced Configuration
 
 By default, the library uses local file storage. Optionally you can 
 configure the library to use an SQL store. You can adjust settings
@@ -233,4 +246,34 @@ CREATE TABLE thstore_markets (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, 
 CREATE TABLE thstore_mic_mapping (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
 CREATE TABLE thstore_schedules (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
 CREATE TABLE thstore_season_definitions (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
+```
+
+### Time Zone Database 
+This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
+which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
+`tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 
+if an update is needed.
+
+To update `tzdata` run this command: `pip install tzdata --upgrade`
+
+To disable this verification and prevent the request, add this section to your tradinghours.ini file:
+```ini
+[control]
+check_tzdata = False
+```
+
+## Model Configuration
+### Change String Format
+```python
+from tradinghours import Currency
+
+Currency.set_string_format("{currency_code}: {financial_capital} - {financial_capital_timezone}")
+currency = Currency.get("EUR")
+print(currency)
+
+Currency.reset_string_format()
+print(currency)
+
+>>> EUR: Frankfurt - Europe/Berlin
+    Currency: EUR Euro
 ```

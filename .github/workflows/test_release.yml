@@ -1,0 +1,61 @@
+name: Testing Release
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test_pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'  # Ensure this matches your project's Python version
+
+      - name: get current version
+        id: current_version
+        run: |
+          PYPI_VERSION=$(pip index versions tradinghours | cut -d'(' -f2 | cut -d')' -f1 | sed 1q)
+          NEW_VERSION=$(grep '__version__' src/tradinghours/__init__.py | cut -d '"' -f 2)
+          echo "comparing $NEW_VERSION with $PYPI_VERSION"
+          if [[ $NEW_VERSION == $PYPI_VERSION ]]; then
+            echo "Version needs to be incremented."
+            exit 1
+          fi
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          
+          DEV_VERSION=$NEW_VERSION.rc${{github.run_number}}.dev${{github.run_attempt}}
+          echo "setting version to $DEV_VERSION"
+          sed -i "s/$NEW_VERSION/$DEV_VERSION/" src/tradinghours/__init__.py
+
+      - name: Install dependencies
+        run: pip install flit pytest pytest-mock
+
+      - name: release to test pypi
+        run: |
+          export FLIT_USERNAME=__token__
+          export FLIT_PASSWORD=${{ secrets.TEST_PYPI_TOKEN }}
+          export FLIT_INDEX_URL=https://test.pypi.org/legacy
+          flit publish
+
+      - name: get from test pypi
+        run: |
+          DEV_VERSION=${NEW_VERSION}rc${{github.run_number}}.dev${{github.run_attempt}}
+          echo "$DEV_VERSION"
+          while [ "$DEV_VERSION" != "$(pip index versions -i https://test.pypi.org/simple --pre tradinghours | cut -d'(' -f2 | cut -d')' -f1 | sed 1q)" ];\
+            do echo not found yet, sleeping 5s; sleep 5s; done
+          pip install -i https://test.pypi.org/simple tradinghours==$DEV_VERSION
+
+      - name: run tests
+        run: |          
+          export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
+
+          tradinghours import
+          tradinghours status --extended
+
+          pytest tests

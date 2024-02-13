@@ -4,8 +4,13 @@ import re
 from io import StringIO
 from typing import Dict
 
-from .validate import validate_instance_arg, validate_str_arg
+from zoneinfo import TZPATH
+import importlib.metadata as metadata
+import requests, warnings
 
+from .validate import validate_instance_arg, validate_str_arg
+from .exceptions import MissingTzdata
+from .config import main_config
 
 def snake_case(text):
     text = validate_str_arg("text", text, strip=True)
@@ -144,3 +149,58 @@ class StrEncoder(json.JSONEncoder):
         except TypeError:
             encoded = str(obj)
         return encoded
+
+
+def _get_latest_tzdata_version():
+    try:
+        response = requests.get(f"https://pypi.org/pypi/tzdata/json")
+    except requests.exceptions.RequestException:
+        return None
+
+    if response.status_code == 200:
+        return response.json()["info"]["version"]
+
+
+def check_if_tzdata_required_and_up_to_date():
+    """
+    required installed # check for version
+    required notinstalled # raise error
+    notrequired installed # doesn't matter
+    notrequired notinstalled # doesn't matter
+    [don't check]
+
+    if required (no tzpath)
+        get version
+        if not version:
+            raise Error # required notinstalled
+        else:
+            check version/give warning # required installed
+    else (tzpath):
+
+    """
+    if not main_config.getboolean("control", "check_tzdata"):
+        return False
+
+    required = len(TZPATH) == 0
+    if required:
+        try:
+            installed_version = metadata.version('tzdata')
+        except metadata.PackageNotFoundError:
+            raise MissingTzdata("\nYour environment does not provide timezone data and\n"
+                                "you don't have tzdata installed, please run:\n"
+                                " pip install tzdata") from None
+
+        latest_version = _get_latest_tzdata_version()
+        if latest_version is None:
+            warnings.warn("Failed to get latest version of tzdata. "
+                          "Check your internet connection or set "
+                          "check_tzdata = False under [control] in tradinghours.ini")
+            return None
+
+        if installed_version < latest_version:
+            warnings.warn(f"\nThe installed version of tzdata is {installed_version}\n"
+                          f"The latest version of tzdata is    {latest_version}\n"
+                          f"Please run: pip install tzdata --upgrade")
+            return None
+
+    return True
