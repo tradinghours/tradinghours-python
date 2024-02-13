@@ -1,7 +1,7 @@
 name: Testing and Coverage
 
 on:
-  push:
+  pull_request:
     branches:
       - pre-release
 
@@ -40,6 +40,7 @@ jobs:
   os-versions-api-levels:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         level: [full, no_currencies, only_holidays]
