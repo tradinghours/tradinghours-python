@@ -168,12 +168,6 @@ class Schedule(BaseObject):
         return some_date >= start_date and some_date <= end_date
 
     @classmethod
-    def list_all(cls, finid: StrOrFinId, catalog=None) -> List["Schedule"]:
-        finid = validate_finid_arg("finid", finid)
-        catalog = cls.get_catalog(catalog)
-        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(finid))))
-
-    @classmethod
     def is_group_open(cls, group):
         # TODO: implement a ScheduleGroup type and consider other open groups
         return group.lower() == "regular"

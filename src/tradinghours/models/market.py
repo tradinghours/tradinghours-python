@@ -123,7 +123,7 @@ class Market(BaseObject):
             keyed[current.date] = current
         return keyed
 
-    def generate_schedules(
+    def generate_phases(
         self, start: StrOrDate, end: StrOrDate, catalog=None
     ) -> Generator[Phase, None, None]:
         start, end = validate_range_args(
@@ -239,6 +239,9 @@ class Market(BaseObject):
         )
         return holidays
 
+    def list_schedules(self, catalog=None) -> List["Schedule"]:
+        catalog = self.get_catalog(catalog)
+        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(self.fin_id))))
 
     @classmethod
     def get_by_finid(cls, finid: StrOrFinId, follow=True, catalog=None) -> "Market":

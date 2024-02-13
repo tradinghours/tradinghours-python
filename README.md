@@ -162,7 +162,7 @@ for holiday in holidays[:3]:
 from tradinghours import Market
 
 market = Market.get('XNYS')
-for phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
+for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     print(phase)
 
 >>> Phase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session

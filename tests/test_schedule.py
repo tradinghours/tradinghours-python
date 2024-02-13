@@ -726,7 +726,7 @@ LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 ])
 def test_schedule(level, fin_id, start, end, expected):
     market = Market.get(fin_id)
-    calculated = list(market.generate_schedules(start, end))
+    calculated = list(market.generate_phases(start, end))
 
     assert len(calculated) == len(expected)
     for calced, exp in zip(calculated, expected):

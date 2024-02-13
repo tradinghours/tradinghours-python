@@ -42,7 +42,7 @@ def test_market_list_holidays(level):
 @pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
 def test_generate_schedules(level):
     market = Market.get('XNYS')
-    schedules = market.generate_schedules("2023-09-01", "2023-09-30")
+    schedules = market.generate_phases("2023-09-01", "2023-09-30")
 
     for obj in schedules:
         assert str(obj) == Phase.get_string_format().format(**obj.data)

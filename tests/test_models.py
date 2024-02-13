@@ -184,7 +184,7 @@ def test_string_format(level):
         assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to schedules/us-nyse."
 
         with pytest.raises(NoAccess) as exception:
-            list(market.generate_schedules("2024-02-06", "2024-02-06"))
+            list(market.generate_phases("2024-02-06", "2024-02-06"))
         assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to phases."
 
         with pytest.raises(NoAccess) as exception:
@@ -195,7 +195,7 @@ def test_string_format(level):
         schedule = Schedule.list_all("US.NYSE")
         assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
 
-        concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
+        concrete_phase = list(market.generate_phases("2024-02-06", "2024-02-06"))[0]
         assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
 
         season = SeasonDefinition.get("First day of March", 2022)
