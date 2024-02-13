@@ -55,7 +55,7 @@ class FileCluster(Cluster):
             else:
                 source = f'{self.location.parts[-2]}/{source.replace(".dat", "")}'
 
-            raise NoAccess(f"You dont seem to have access to {source}.") from None
+            raise NoAccess(f"You didn't run `tradinghours import` or you dont have access to {source}.") from None
 
 
 
