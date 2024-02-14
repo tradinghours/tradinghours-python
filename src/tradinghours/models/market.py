@@ -136,7 +136,7 @@ class Market(BaseObject):
 
         # Get required global data
         offset_start = start - timedelta(days=MAX_OFFSET_DAYS)
-        all_schedules = Schedule.list_all(self.fin_id)
+        all_schedules = self.list_schedules()
         holidays = self._build_keyed_holidays(offset_start, end)
 
         # Iterate through all dates generating phases

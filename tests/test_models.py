@@ -180,7 +180,7 @@ def test_string_format(level):
 
     if level == "only_holidays":
         with pytest.raises(NoAccess) as exception:
-            Schedule.list_all("US.NYSE")
+            Market.get("US.NYSE").list_schedules()
         assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to schedules/us-nyse."
 
         with pytest.raises(NoAccess) as exception:
@@ -192,7 +192,7 @@ def test_string_format(level):
         assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to season-definitions."
 
     else:
-        schedule = Schedule.list_all("US.NYSE")
+        schedule = Market.get("US.NYSE").list_schedules()
         assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
 
         concrete_phase = list(market.generate_phases("2024-02-06", "2024-02-06"))[0]
