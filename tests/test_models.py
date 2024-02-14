@@ -193,7 +193,7 @@ def test_string_format(level):
 
     else:
         schedule = Market.get("US.NYSE").list_schedules()
-        assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
+        assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Pre-Trading Session (Regular)"
 
         concrete_phase = list(market.generate_phases("2024-02-06", "2024-02-06"))[0]
         assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'

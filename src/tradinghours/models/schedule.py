@@ -104,7 +104,7 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
-    _string_format = "{fin_id} {start} - {end} {days} {schedule_group}"
+    _string_format = "{fin_id} {start} - {end} {days} {phase_type} ({schedule_group})"
 
     @property
     def has_season(self) -> bool:
