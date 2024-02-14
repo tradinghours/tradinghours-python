@@ -17,17 +17,24 @@ jobs:
       with:
         python-version: '3.11' # Specify your Python version here
 
-    - name: Install Flit
-      run: pip install flit
+#    - name: Download artifact
+#      uses: actions/download-artifact@v2
+#      with:
+#        name: pr-body
 
-    - name: Extract project version
-      id: project_version
+    - name: Extract project version and PR body
+      id: update_info
       run: |
         VERSION=$(grep '__version__' src/tradinghours/__init__.py | cut -d '"' -f 2)
         echo "::set-output name=version::$VERSION"
 
+#        PR_BODY=$(cat pr_body.txt)
+#        echo "::set-output name=pr_body::$PR_BODY"
+
     - name: Build and publish package using Flit
       run: |
+        pip install flit
+
         export FLIT_USERNAME=__token__
         export FLIT_PASSWORD=${{ secrets.PYPI_TOKEN }}
 
@@ -36,8 +43,9 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        name: ${{ steps.project_version.outputs.version }}
-        tag_name: ${{ steps.project_version.outputs.version }}
+        name: ${{ steps.update_info.outputs.version }}
+        tag_name: ${{ steps.update_info.outputs.version }}
         body: |
-          ${{ github.event.pull_request.body }}
+
+#          ${{ steps.update_info.outputs.pr_body }}
   
