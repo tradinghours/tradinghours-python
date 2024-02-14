@@ -1,0 +1,29 @@
+## new_release
+Breaking Changes:
+  * renamed Market.generate_schedules to Market.generate_phases
+  * moved Schedule.list_all to Market.list_schedules
+  * environment variables now take precedence over the .ini file
+
+Other Changes:
+  * updated test_release.yml for non-dev dependency test
+  * updated release.yml to include summary from release_log.txt
+  * added release_log.txt
+  * added dev-readme.md, showing set up for dev environment and CI/CD
+
+
+## 0.2.1
+Changes:
+  * add missing dependency to pyproject.toml
+
+
+## 0.2.0
+Breaking Changes:
+  * imports changed, see readme examples.
+
+Other Changes:
+  * replace pytz with zoneinfo
+  * added automated check for tzdata version
+  * complete migration to pytest
+  * add tests for API access levels
+  * added workflows for releasing
+

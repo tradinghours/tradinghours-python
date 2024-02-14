@@ -17,19 +17,26 @@ jobs:
       with:
         python-version: '3.11' # Specify your Python version here
 
-#    - name: Download artifact
-#      uses: actions/download-artifact@v2
-#      with:
-#        name: pr-body
-
-    - name: Extract project version and PR body
+    - name: Version and Summary
       id: update_info
       run: |
         VERSION=$(grep '__version__' src/tradinghours/__init__.py | cut -d '"' -f 2)
-        echo "::set-output name=version::$VERSION"
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-#        PR_BODY=$(cat pr_body.txt)
-#        echo "::set-output name=pr_body::$PR_BODY"
+        line_number=$(grep -n '^## ' "release_log.txt" | head -2 | tail -1 | cut -d: -f1)
+        SUMMARY="$(sed -n "2,$(( ${line_number} -1))p" release_log.txt)"
+        echo "${SUMMARY}"
+        
+        echo "summary<<EOF" >> $GITHUB_OUTPUT
+        echo "${SUMMARY}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        sed -i "s/## new_release/## ${VERSION} ($(date +%Y-%m-%d))/" release_log.txt
+
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        file_pattern: release_log.txt
+        commit_message: '[GH-Actions] v${{ steps.update_info.outputs.version }} -- updated release_log.txt'
 
     - name: Build and publish package using Flit
       run: |
@@ -46,6 +53,5 @@ jobs:
         name: ${{ steps.update_info.outputs.version }}
         tag_name: ${{ steps.update_info.outputs.version }}
         body: |
-
-#          ${{ steps.update_info.outputs.pr_body }}
+          ${{ steps.update_info.outputs.summary }}
   

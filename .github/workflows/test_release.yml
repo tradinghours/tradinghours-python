@@ -84,14 +84,3 @@ jobs:
 
           tradinghours import
           tradinghours status --extended
-
-          pytest
-
-#      - name: Save PR body to a file
-#        run: echo "${{ github.event.pull_request.body }}" > pr_body.txt
-#
-#      - name: Upload PR body as artifact
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: pr-body
-#          path: pr_body.txt
