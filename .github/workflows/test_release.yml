@@ -78,6 +78,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: run all tests
+        run: |          
           pip install pytest pytest-mock
 
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
