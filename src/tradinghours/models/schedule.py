@@ -104,7 +104,7 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
-    _string_format = "{fin_id} {start} - {end} {days} {schedule_group}"
+    _string_format = "{fin_id} {start} - {end} {days} {phase_type} ({schedule_group})"
 
     @property
     def has_season(self) -> bool:
@@ -166,12 +166,6 @@ class Schedule(BaseObject):
         if end_date < start_date:
             return some_date <= end_date or some_date >= start_date
         return some_date >= start_date and some_date <= end_date
-
-    @classmethod
-    def list_all(cls, finid: StrOrFinId, catalog=None) -> List["Schedule"]:
-        finid = validate_finid_arg("finid", finid)
-        catalog = cls.get_catalog(catalog)
-        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(finid))))
 
     @classmethod
     def is_group_open(cls, group):

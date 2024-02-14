@@ -158,17 +158,39 @@ for holiday in holidays[:3]:
 ```
 ### Trading Hours
 
+To get open and closing times for a particular date range, use the `Market.generate_phases` method.
+This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes. These are based on the general schedule of a market (see next paragraph) but consider the impact of holidays and potential changes in the schedule.
 ```python
 from tradinghours import Market
 
 market = Market.get('XNYS')
-for phase in list(market.generate_schedules("2023-09-01", "2023-09-30"))[:3]:
+for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     print(phase)
 
 >>> Phase: 2023-09-01 04:00:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Trading Session
     Phase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
     Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
+
+To get the general schedule that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule independent of holidays.
+```python
+from tradinghours import Market
+
+market = Market.get('XNYS')
+for schedule in market.list_schedules():
+    print(schedule)
+    
+>>> Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Pre-Trading Session (Regular)
+    Schedule: US.NYSE 06:30:00 - 09:30:00 Mon-Fri Pre-Open (Regular)
+    Schedule: US.NYSE 09:30:00 - 09:30:00 Mon-Fri Call Auction (Regular)
+    Schedule: US.NYSE 09:30:00 - 16:00:00 Mon-Fri Primary Trading Session (Regular)
+    Schedule: US.NYSE 15:50:00 - 16:00:00 Mon-Fri Pre-Close (Regular)
+    Schedule: US.NYSE 16:00:00 - 20:00:00 Mon-Fri Post-Trading Session (Regular)
+    Schedule: US.NYSE 06:30:00 - 09:30:00 Mon-Fri Pre-Trading Session (Partial)
+    Schedule: US.NYSE 09:30:00 - 13:00:00 Mon-Fri Primary Trading Session (Partial)
+    Schedule: US.NYSE 13:00:00 - 13:30:00 Mon-Fri Post-Trading Session (Partial)
+```
+
 
 ## Currencies
 ### List Currencies
