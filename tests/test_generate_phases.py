@@ -724,7 +724,7 @@ LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
        'is_open': False}]
      ),
 ])
-def test_schedule(level, fin_id, start, end, expected):
+def test_generate_phases(level, fin_id, start, end, expected):
     market = Market.get(fin_id)
     calculated = list(market.generate_phases(start, end))
 
