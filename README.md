@@ -3,12 +3,12 @@
 <h1>TradingHours.com Python Library</h1>
 </div>
 
-[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1000** exchanges and trading venues around the world.
-This library allows clients to easily integrate our market holidays and trading hours data into existing applications.
+[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world.
+This library allows clients to easily integrate market holidays and trading hours data into existing applications.
 This packages downlods all available data from TradingHours.com and then allows you to work with the data locally.
 
 ### About the Data
-We support over 1000 exchanges and trading venues, including all major currencies.
+We support over 1,000 exchanges and trading venues, including all major currencies.
 [See all supported markets](https://www.tradinghours.com/coverage).
 
 Our comprehensive data covers:
@@ -38,6 +38,11 @@ pip install tradinghours
 export TRADINGHOURS_TOKEN=<your-key-goes-here>
 ```
 See [advanced configuration options](#optional-advanced-configuration). 
+
+### Alternatives
+
+Instead of using this Python Library, clients can also use the web-based [Trading Hours API](https://docs.tradinghours.com/). 
+The web-based API is programming language agnostic.
 
 ---
 ### Contents
@@ -159,7 +164,7 @@ for holiday in holidays[:3]:
 ### Trading Hours
 
 To get open and closing times for a particular date range, use the `Market.generate_phases` method.
-This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes. These are based on the general schedule of a market (see next paragraph) but consider the impact of holidays and potential changes in the schedule.
+This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes. These are based on the "general schedule" of a market (see next paragraph) but consider the impact of holidays and potential changes in the schedule.
 ```python
 from tradinghours import Market
 
@@ -172,7 +177,7 @@ for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 
-To get the general schedule that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule independent of holidays.
+To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule without concideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above.
 ```python
 from tradinghours import Market
 
