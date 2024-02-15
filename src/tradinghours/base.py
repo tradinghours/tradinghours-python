@@ -132,7 +132,7 @@ class BaseObject:
         return tuple(data[f] for f in self._fields)
 
     def pprint(self):
-        pprint(self.to_dict())
+        pprint(self.to_dict(), sort_dicts=False)
 
     def __repr__(self):
         class_name = self.__class__.__name__

@@ -60,6 +60,12 @@ def test_currency_list_holidays(level):
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
 
+def strip(line, sub):
+    try:
+        return line[:line.index(sub)]
+    except ValueError:
+        return line
+
 @pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_code_blocks():
     with open(Path("README.md"), "r") as readme:
