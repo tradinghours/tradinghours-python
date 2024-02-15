@@ -242,7 +242,7 @@ class Market(BaseObject):
     def list_schedules(self, catalog=None) -> List["Schedule"]:
         catalog = self.get_catalog(catalog)
         schedules = map(lambda t: t[1], catalog.list(Schedule, cluster=str(self.fin_id)))
-        return sorted(schedules, key= lambda s: (s.schedule_group, s.in_force_start_date, s.season_start, s.start, s.end))
+        return sorted(schedules, key= lambda s: (s.schedule_group or "", str(s.in_force_start_date or ""), s.season_start or "", s.start, s.end))
 
     @classmethod
     def get_by_finid(cls, finid: StrOrFinId, follow=True, catalog=None) -> "Market":
