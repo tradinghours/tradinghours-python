@@ -177,7 +177,9 @@ for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 #### Schedules
-To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule without consideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above. US.NYSE is one of the simplest examples for schedules:
+To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide a list of `tradinghours.models.Schedule` objects, representing the schedule without consideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above.
+
+`US.NYSE` is one of the simplest examples for schedules:
 ```python
 from tradinghours import Market
 
@@ -197,7 +199,7 @@ for schedule in market.list_schedules():
     Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
 ```
 
-A more complex example is US.MGEX, where less common schedules and offsets are used. (More on these fields in the next paragraph)
+`US.MGEX` is a more complex example, where uncommon schedules and offsets are needed. (More on these fields in the next paragraph)
 ```python
 from tradinghours import Market
 
@@ -245,7 +247,7 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'end_with_offset': '08:30:00 +2', # end time of the phase (including the number of days offset)
      'has_season': False} # Indicator whether this schedule only applies to a specific season
 ```
-Comparing the schedules of US.NYSE and US.MGEX, we already saw two key differences, demonstrating the complexity of this data. US.NYSE has much fewer Schedule objects, only needing the schedule groups 'Partial' and 'Regular'. US.MGEX has a lot more and needs special 
+As mentioned previously, it can be very error-prone to interpret these schedules yourself, so we recommend sticking to the `generate_phases` method as much as possible.
 
 
 ## Currencies
