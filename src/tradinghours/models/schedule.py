@@ -104,7 +104,7 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
-    _string_format = "{fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type} "
+    _string_format = "{fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type}"
 
     @property
     def end_with_offset(self):

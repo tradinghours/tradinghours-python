@@ -177,25 +177,41 @@ for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 
-To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule without concideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above.
+To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule without consideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above. US.NYSE is one of the simplest examples for schedules:
 ```python
 from tradinghours import Market
 
 market = Market.get('XNYS')
 for schedule in market.list_schedules():
     print(schedule)
-    
->>> Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Pre-Trading Session (Regular)
-    Schedule: US.NYSE 06:30:00 - 09:30:00 Mon-Fri Pre-Open (Regular)
-    Schedule: US.NYSE 09:30:00 - 09:30:00 Mon-Fri Call Auction (Regular)
-    Schedule: US.NYSE 09:30:00 - 16:00:00 Mon-Fri Primary Trading Session (Regular)
-    Schedule: US.NYSE 15:50:00 - 16:00:00 Mon-Fri Pre-Close (Regular)
-    Schedule: US.NYSE 16:00:00 - 20:00:00 Mon-Fri Post-Trading Session (Regular)
-    Schedule: US.NYSE 06:30:00 - 09:30:00 Mon-Fri Pre-Trading Session (Partial)
-    Schedule: US.NYSE 09:30:00 - 13:00:00 Mon-Fri Primary Trading Session (Partial)
-    Schedule: US.NYSE 13:00:00 - 13:30:00 Mon-Fri Post-Trading Session (Partial)
+
+# US.NYSE does not have offsets for the endtimes
+>>> Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session
+    Schedule: US.NYSE (Partial) 09:30:00 - 13:00:00    Mon-Fri Primary Trading Session
+    Schedule: US.NYSE (Partial) 13:00:00 - 13:30:00    Mon-Fri Post-Trading Session
+    Schedule: US.NYSE (Regular) 04:00:00 - 09:30:00    Mon-Fri Pre-Trading Session
+    Schedule: US.NYSE (Regular) 06:30:00 - 09:30:00    Mon-Fri Pre-Open
+    Schedule: US.NYSE (Regular) 09:30:00 - 09:30:00    Mon-Fri Call Auction
+    Schedule: US.NYSE (Regular) 09:30:00 - 16:00:00    Mon-Fri Primary Trading Session
+    Schedule: US.NYSE (Regular) 15:50:00 - 16:00:00    Mon-Fri Pre-Close
+    Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
 ```
 
+```python
+from tradinghours import Market
+
+market = Market.get('US.MGEX')
+for schedule in market.list_schedules()[-11:-5]:
+    print(schedule)
+
+# US.MGEX does have offsets, which are number of days that need to be added to the end time
+>>> Schedule: US.MGEX (Regular) 19:00:00 - 07:45:00 +1 Sun-Thu Primary Trading Session
+    Schedule: US.MGEX (Thanksgiving2022) 08:00:00 - 08:30:00    Wed Pre-Open
+    Schedule: US.MGEX (Thanksgiving2022) 08:30:00 - 12:15:00    Fri Primary Trading Session
+    Schedule: US.MGEX (Thanksgiving2022) 08:30:00 - 13:30:00    Wed Primary Trading Session
+    Schedule: US.MGEX (Thanksgiving2022) 14:30:00 - 16:00:00    Wed Post-Trading Session
+    Schedule: US.MGEX (Thanksgiving2022) 16:45:00 - 08:30:00 +2 Wed Pre-Open
+```
 
 ## Currencies
 ### List Currencies
