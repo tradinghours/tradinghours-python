@@ -1,9 +1,11 @@
 import pytest, os, datetime
-from tradinghours import Market, Currency
+from tradinghours import Market
+from tradinghours.exceptions import NoAccess
 
 
 LEVEL = os.getenv("API_KEY_LEVEL", "full").strip()
 
+@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
 @pytest.mark.parametrize("fin_id, expected", [
     ("US.NYSE", [{'schedule_group': 'Partial', 'in_force_start_date': None, 'season_start': None,
                   'start': datetime.time(6, 30), 'end': datetime.time(9, 30), 'fin_id': 'US.NYSE',
