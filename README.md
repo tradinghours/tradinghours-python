@@ -113,20 +113,20 @@ market = Market.get('XNYS')
 
 # Easily see what attributes an object has
 # (You can call this on any object)
-market.pprint()
->>> {'acronym': 'NYSE',
-     'asset_type': 'Securities',
-     'country_code': 'US',
+market.pprint() # same as pprint(market.to_dict())
+>>> {'fin_id': 'US.NYSE',
      'exchange_name': 'New York Stock Exchange',
-     'fin_id': 'US.NYSE',
      'market_name': 'Canonical',
-     'memo': 'Canonical',
-     'mic': 'XNYS',
-     'permanently_closed': None,
-     'replaced_by': None,
      'security_group': None,
+     'mic': 'XNYS',
+     'acronym': 'NYSE',
+     'asset_type': 'Securities',
+     'memo': 'Canonical',
+     'permanently_closed': None,
      'timezone': 'America/New_York',
-     'weekend_definition': 'Sat-Sun'}
+     'weekend_definition': 'Sat-Sun',
+     'replaced_by': None,
+     'country_code': 'US'}
 ```
 
 If a market is marked "permanently closed" it may be replaced or superseded by another market. 
@@ -162,9 +162,9 @@ for holiday in holidays[:3]:
     MarketHoliday: US.NYSE 2024-02-19 Washington's Birthday
 ```
 ### Trading Hours
-
+#### Phases
 To get open and closing times for a particular date range, use the `Market.generate_phases` method.
-This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes. These are based on the "general schedule" of a market (see next paragraph) but consider the impact of holidays and potential changes in the schedule.
+This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes. These are based on the "general schedule" of a market (see next section) but consider the impact of holidays and potential changes in the schedule.
 ```python
 from tradinghours import Market
 
@@ -176,7 +176,7 @@ for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     Phase: 2023-09-01 06:30:00-04:00 - 2023-09-01 09:30:00-04:00 Pre-Open
     Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
-
+#### Schedules
 To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide you with a list of `tradinghours.models.Schedule` objects, representing the schedule without consideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above. US.NYSE is one of the simplest examples for schedules:
 ```python
 from tradinghours import Market
@@ -197,6 +197,7 @@ for schedule in market.list_schedules():
     Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
 ```
 
+A more complex example is US.MGEX, where less common schedules and offsets are used. (More on these fields in the next paragraph)
 ```python
 from tradinghours import Market
 
@@ -212,6 +213,40 @@ for schedule in market.list_schedules()[-11:-5]:
     Schedule: US.MGEX (Thanksgiving2022) 14:30:00 - 16:00:00    Wed Post-Trading Session
     Schedule: US.MGEX (Thanksgiving2022) 16:45:00 - 08:30:00 +2 Wed Pre-Open
 ```
+The string representation created by `print(schedule)` is using the following format, along with the following available fields. With each of the fields, you will find a brief description of their meaning. These fields are based on the data that is returned from the API's `download` endpoint described [here](https://docs.tradinghours.com/3.x/enterprise/download.html).
+```python
+from tradinghours import Market
+schedule = Market.get('US.MGEX').list_schedules()[-6]
+
+print(schedule.get_string_format())
+schedule.pprint() # same as pprint(schedule.to_dict())
+
+>>> Schedule: {fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type}
+    {'fin_id': 'US.MGEX', # Fin ID of the market of this schedule
+     'schedule_group': 'Thanksgiving2022', # an identifier to handle particular handling of holidays
+     'schedule_group_memo': None, # additional description for the schedule_group
+     'timezone': 'America/Chicago', # timezone of the market
+     'phase_type': 'Pre-Open', # normalized name for the phase
+     'phase_name': 'Pre-Open', # name for the phase as it is used by the market
+     'phase_memo': None, # additional description for the phase_name
+     'days': 'Wed', # days of the week that this schedule applies to
+     'start': datetime.time(16, 45), # start time of the phase
+     'end': datetime.time(8, 30), # end time of the phase
+     'offset_days': 2, # number of days that need to be added to the end time
+     'duration': '143100', # total length of this phase in seconds
+     'min_start': None, # start of the possibly start time
+     'max_start': None, # end of the possibly random start time
+     'min_end': None, # start of the possibly random end time
+     'max_end': None, # end of the possibly random end time
+     'in_force_start_date': None, # date that this schedule starts being in effect
+     'in_force_end_date': None, # date that this schedule stops being in effect
+     'season_start': None, # the start of the season, if this is seasonal
+     'season_end': None, # the end of the season
+     'end_with_offset': '08:30:00 +2', # end time of the phase (including the number of days offset)
+     'has_season': False} # Indicator whether this schedule only applies to a specific season
+```
+Comparing the schedules of US.NYSE and US.MGEX, we already saw two key differences, demonstrating the complexity of this data. US.NYSE has much fewer Schedule objects, only needing the schedule groups 'Partial' and 'Regular'. US.MGEX has a lot more and needs special 
+
 
 ## Currencies
 ### List Currencies
