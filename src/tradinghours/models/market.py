@@ -241,7 +241,8 @@ class Market(BaseObject):
 
     def list_schedules(self, catalog=None) -> List["Schedule"]:
         catalog = self.get_catalog(catalog)
-        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(self.fin_id))))
+        schedules = map(lambda t: t[1], catalog.list(Schedule, cluster=str(self.fin_id)))
+        return sorted(schedules, key= lambda s: (s.schedule_group, s.in_force_start_date, s.season_start, s.start, s.end))
 
     @classmethod
     def get_by_finid(cls, finid: StrOrFinId, follow=True, catalog=None) -> "Market":
@@ -327,3 +328,4 @@ class MicMapping(BaseObject):
         mic = validate_str_arg("mic", mic)
         catalog = cls.get_catalog(catalog)
         return catalog.get(cls, mic)
+
