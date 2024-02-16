@@ -187,7 +187,6 @@ market = Market.get('XNYS')
 for schedule in market.list_schedules():
     print(schedule)
 
-# US.NYSE does not have offsets for the endtimes
 >>> Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session
     Schedule: US.NYSE (Partial) 09:30:00 - 13:00:00    Mon-Fri Primary Trading Session
     Schedule: US.NYSE (Partial) 13:00:00 - 13:30:00    Mon-Fri Post-Trading Session
@@ -199,7 +198,7 @@ for schedule in market.list_schedules():
     Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
 ```
 
-`US.MGEX` is a more complex example, where uncommon schedules and offsets are needed. (More on these fields in the next paragraph)
+`US.MGEX` is a more complex example, multiple irregular schedules and overnight trading sessions. (More on these fields in the next paragraph)
 ```python
 from tradinghours import Market
 
@@ -207,7 +206,7 @@ market = Market.get('US.MGEX')
 for schedule in market.list_schedules()[-11:-5]:
     print(schedule)
 
-# US.MGEX does have offsets, which are number of days that need to be added to the end time
+# US.MGEX has multiple irregular schedules and overnight trading sessions
 >>> Schedule: US.MGEX (Regular) 19:00:00 - 07:45:00 +1 Sun-Thu Primary Trading Session
     Schedule: US.MGEX (Thanksgiving2022) 08:00:00 - 08:30:00    Wed Pre-Open
     Schedule: US.MGEX (Thanksgiving2022) 08:30:00 - 12:15:00    Fri Primary Trading Session
@@ -215,7 +214,7 @@ for schedule in market.list_schedules()[-11:-5]:
     Schedule: US.MGEX (Thanksgiving2022) 14:30:00 - 16:00:00    Wed Post-Trading Session
     Schedule: US.MGEX (Thanksgiving2022) 16:45:00 - 08:30:00 +2 Wed Pre-Open
 ```
-The string representation created by `print(schedule)` is using the following format, along with the following available fields. With each of the fields, you will find a brief description of their meaning. These fields are based on the data that is returned from the API's `download` endpoint described [here](https://docs.tradinghours.com/3.x/enterprise/download.html).
+The string representation created by `print(schedule)` is using the format shown below. Other available fields are also listed. These fields are based on the data that is returned from the API's `download` endpoint described [here](https://docs.tradinghours.com/3.x/enterprise/download.html).
 ```python
 from tradinghours import Market
 schedule = Market.get('US.MGEX').list_schedules()[-6]
@@ -225,7 +224,7 @@ schedule.pprint() # same as pprint(schedule.to_dict())
 
 >>> Schedule: {fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type}
     {'fin_id': 'US.MGEX', # Fin ID of the market of this schedule
-     'schedule_group': 'Thanksgiving2022', # an identifier to handle particular handling of holidays
+     'schedule_group': 'Thanksgiving2022', # Used to group phases together. If there is no holiday then the “Regular” phase applies.
      'schedule_group_memo': None, # additional description for the schedule_group
      'timezone': 'America/Chicago', # timezone of the market
      'phase_type': 'Pre-Open', # normalized name for the phase
@@ -236,15 +235,15 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'end': datetime.time(8, 30), # end time of the phase
      'offset_days': 2, # number of days that need to be added to the end time
      'duration': '143100', # total length of this phase in seconds
-     'min_start': None, # start of the possibly start time
-     'max_start': None, # end of the possibly random start time
-     'min_end': None, # start of the possibly random end time
-     'max_end': None, # end of the possibly random end time
+     'min_start': None, # earliest possible start when random start/stop times apply
+     'max_start': None, # latest possible start when random start/stop times apply
+     'min_end': None, # earliest possible end when random start/stop times apply
+     'max_end': None, # latest possible start when random start/stop times apply
      'in_force_start_date': None, # date that this schedule starts being in effect
      'in_force_end_date': None, # date that this schedule stops being in effect
      'season_start': None, # the start of the season, if this is seasonal
      'season_end': None, # the end of the season
-     'end_with_offset': '08:30:00 +2', # end time of the phase (including the number of days offset)
+     'end_with_offset': '08:30:00 +2', # string representation of the end time with offset_days concatinated
      'has_season': False} # Indicator whether this schedule only applies to a specific season
 ```
 As mentioned previously, it can be very error-prone to interpret these schedules yourself, so we recommend sticking to the `generate_phases` method as much as possible.
