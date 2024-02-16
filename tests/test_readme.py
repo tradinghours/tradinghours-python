@@ -40,9 +40,9 @@ def test_market_list_holidays(level):
 
 
 @pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
-def test_generate_schedules(level):
+def test_generate_phases(level):
     market = Market.get('XNYS')
-    schedules = market.generate_schedules("2023-09-01", "2023-09-30")
+    schedules = market.generate_phases("2023-09-01", "2023-09-30")
 
     for obj in schedules:
         assert str(obj) == Phase.get_string_format().format(**obj.data)
@@ -59,6 +59,12 @@ def test_currency_list_holidays(level):
     currency = Currency.get('AUD')
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.data)
+
+def strip(line, sub):
+    try:
+        return line[:line.index(sub)]
+    except ValueError:
+        return line
 
 @pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_code_blocks():
@@ -109,7 +115,7 @@ if __name__ == '__main__':
     nprint("MarketHolidays:")
     test_market_list_holidays()
     nprint("Schedules:")
-    test_generate_schedules()
+    test_generate_phases()
     nprint("Currency:")
     test_currencies_list_all()
     nprint("CurrencyHolidays:")

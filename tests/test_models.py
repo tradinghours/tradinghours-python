@@ -132,7 +132,7 @@ def test_phase_type_instance_fields(level):
     if level == "only_holidays":
         with pytest.raises(NoAccess) as exception:
             PhaseType.as_dict()
-        assert str(exception.value) == "You dont seem to have access to phases."
+        assert str(exception.value) == "You didn't run `tradinghours import` or you dont have access to phases."
         return
     else:
         phase_types = PhaseType.as_dict()
@@ -170,7 +170,7 @@ def test_string_format(level):
     if level != "full":
         with pytest.raises(NoAccess) as exception:
             Currency.get('AUD')
-        assert str(exception.value) == "You dont seem to have access to currencies."
+        assert str(exception.value) == "You didn't run `tradinghours import` or you dont have access to currencies."
     else:
         currency = Currency.get('AUD')
         assert str(currency) == 'Currency: AUD Australian Dollar'
@@ -180,22 +180,25 @@ def test_string_format(level):
 
     if level == "only_holidays":
         with pytest.raises(NoAccess) as exception:
-            Schedule.list_all("US.NYSE")
-        assert str(exception.value) == r"You dont seem to have access to schedules/us-nyse."
+            Market.get("US.NYSE").list_schedules()
+        assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to schedules/us-nyse."
 
         with pytest.raises(NoAccess) as exception:
-            list(market.generate_schedules("2024-02-06", "2024-02-06"))
-        assert str(exception.value) == r"You dont seem to have access to phases."
+            list(market.generate_phases("2024-02-06", "2024-02-06"))
+        assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to phases."
 
         with pytest.raises(NoAccess) as exception:
             SeasonDefinition.get("First day of March", 2022)
-        assert str(exception.value) == r"You dont seem to have access to season-definitions."
+        assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to season-definitions."
 
     else:
-        schedule = Schedule.list_all("US.NYSE")
-        assert str(schedule[0]) == "Schedule: US.NYSE 04:00:00 - 09:30:00 Mon-Fri Regular"
+        schedule = Market.get("US.NYSE").list_schedules()
+        assert str(schedule[0]) == "Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session"
 
-        concrete_phase = list(market.generate_schedules("2024-02-06", "2024-02-06"))[0]
+        schedule = Market.get("US.MGEX").list_schedules()
+        assert str(schedule[-1]) == "Schedule: US.MGEX (Thanksgiving2023) 16:45:00 - 08:30:00 +2 Wed Pre-Open"
+
+        concrete_phase = list(market.generate_phases("2024-02-06", "2024-02-06"))[0]
         assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
 
         season = SeasonDefinition.get("First day of March", 2022)

@@ -104,13 +104,20 @@ class Schedule(BaseObject):
     season_start = StringField()
     season_end = StringField()
 
-    _string_format = "{fin_id} {start} - {end} {days} {schedule_group}"
+    _string_format = "{fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type}"
+
+    @property
+    def end_with_offset(self):
+        end = str(self.end)
+        if self.offset_days:
+            return end + f" +{self.offset_days}"
+        return end + "   "
 
     @property
     def has_season(self) -> bool:
         season_start = (self.season_start or "").strip()
         season_end = (self.season_end or "").strip()
-        return season_start and season_end
+        return bool(season_start and season_end)
 
     def is_in_force(self, start: StrOrDate, end: StrOrDate) -> bool:
         start, end = validate_range_args(
@@ -166,12 +173,6 @@ class Schedule(BaseObject):
         if end_date < start_date:
             return some_date <= end_date or some_date >= start_date
         return some_date >= start_date and some_date <= end_date
-
-    @classmethod
-    def list_all(cls, finid: StrOrFinId, catalog=None) -> List["Schedule"]:
-        finid = validate_finid_arg("finid", finid)
-        catalog = cls.get_catalog(catalog)
-        return list(map(lambda t: t[1], catalog.list(Schedule, cluster=str(finid))))
 
     @classmethod
     def is_group_open(cls, group):

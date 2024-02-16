@@ -246,7 +246,7 @@ if __name__ == "__main__":
 
     print("\nGenerating Schedules...")
     start = time()
-    for concrete in us_market.generate_schedules(date(2023, 9, 1), date(2023, 9, 30)):
+    for concrete in us_market.generate_phases(date(2023, 9, 1), date(2023, 9, 30)):
         print(concrete)
     elapsed = time() - start
     print("Elapsed seconds", elapsed, len(loaded))
