@@ -198,7 +198,7 @@ for schedule in market.list_schedules():
     Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
 ```
 
-`US.MGEX` is a more complex example, multiple irregular schedules and overnight trading sessions. (More on these fields in the next paragraph)
+`US.MGEX` is a more complex example, which has multiple irregular schedules and overnight trading sessions. (More on these fields in the next paragraph)
 ```python
 from tradinghours import Market
 
@@ -238,12 +238,12 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'min_start': None, # earliest possible start when random start/stop times apply
      'max_start': None, # latest possible start when random start/stop times apply
      'min_end': None, # earliest possible end when random start/stop times apply
-     'max_end': None, # latest possible start when random start/stop times apply
+     'max_end': None, # latest possible end when random start/stop times apply
      'in_force_start_date': None, # date that this schedule starts being in effect
      'in_force_end_date': None, # date that this schedule stops being in effect
      'season_start': None, # the start of the season, if this is seasonal
      'season_end': None, # the end of the season
-     'end_with_offset': '08:30:00 +2', # string representation of the end time with offset_days concatinated
+     'end_with_offset': '08:30:00 +2', # string representation of the end time with offset_days concatenated
      'has_season': False} # Indicator whether this schedule only applies to a specific season
 ```
 As mentioned previously, it can be very error-prone to interpret these schedules yourself, so we recommend sticking to the `generate_phases` method as much as possible.
