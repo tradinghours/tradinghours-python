@@ -18,13 +18,13 @@ class Currency(Base):
     __tablename__ = 'thstore_currencies'
 
     id = Column(Integer, primary_key=True)
-    currency_code = Column(String(3), nullable=False, comment="3-letter code of the currency (ISO 4217).")
-    currency_name = Column(String, nullable=False, comment="English name of the currency.")
-    country_code = Column(String(2), nullable=False, comment="2-letter country code for the currency's country.")
-    central_bank = Column(String, nullable=True, comment="Name of the central bank for the currency.")
-    financial_capital = Column(String, nullable=True, comment="City where the central bank is located.")
-    financial_capital_timezone = Column(String, nullable=True, comment="Timezone Olson timezone identifier format.")
-    weekend_definition = Column(String, nullable=True, comment="Weekend definition. Most markets are Sat-Sun.")
+    currency_code = Column(String(3), nullable=False)
+    currency_name = Column(String, nullable=False)
+    country_code = Column(String(2), nullable=False)
+    central_bank = Column(String, nullable=True)
+    financial_capital = Column(String, nullable=True)
+    financial_capital_timezone = Column(String, nullable=True)
+    weekend_definition = Column(String, nullable=True)
 
 ## CurrencyHoliday
 class CurrencyHoliday(Base):
@@ -91,6 +91,7 @@ class PhaseType(Base):
     settlement = Column(String, nullable=False)
 
 ## Phase (GENERATED)
+# TODO: consider moving this or creating a wrapper to
 class Phase(Base):
     __tablename__ = 'thstore_phases'
 
@@ -104,7 +105,6 @@ class Phase(Base):
     end = Column(DateTime, nullable=False)
 
 ## Schedule
-
 class Schedule(Base):
     __tablename__ = 'thstore_schedules'
 

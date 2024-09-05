@@ -91,11 +91,17 @@ class DataManager:
         return True
 
     def download(self):
+        """
+        Downloads zip file from tradinghours and unzips it into the
+        folder set in main_config.data.remote_dir
+        """
         self.root.mkdir(parents=True, exist_ok=True)
         with default_client.download_temporary("download") as temp_file:
             with zipfile.ZipFile(temp_file, "r") as zip_ref:
                 zip_ref.extractall(self.root)
 
+        # TODO: Check how this would be handled differently
+        #  for table creation and setting of access_level
         for file in ("currencies.csv",
                      "currency-holidays.csv",
                      "holidays.csv",

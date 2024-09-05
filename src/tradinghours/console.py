@@ -6,7 +6,7 @@ from textwrap import wrap
 from threading import Thread
 
 from . import __version__
-from .catalog import default_catalog
+from .store import Writer
 from .models import Currency, Market
 from .exceptions import TradingHoursError
 from .remote import default_data_manager
@@ -87,11 +87,11 @@ def run_status(args):
 
 
 def run_import(args):
-    if args.force or default_data_manager.needs_download:
-        with timed_action("Downloading"):
-            default_data_manager.download()
+    if True or args.force or default_data_manager.needs_download:
+        # with timed_action("Downloading"):
+        #     default_data_manager.download()
         with timed_action("Ingesting"):
-            default_catalog.ingest_all()
+            Writer().ingest_all()
     else:
         print("Local data is up-to-date.")
 
