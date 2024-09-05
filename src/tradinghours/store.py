@@ -21,7 +21,7 @@ def create_db_connection():
 db = create_db_connection()
 
 def clean_name(name):
-    return re.sub(r'[^a-zA-Z0-9_]', '_', name.lower())
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name.replace('"', '').lower())
 
 
 class Writer:
@@ -69,8 +69,10 @@ class Writer:
             for row in reader:
                 batch.append(dict(zip(columns, row)))
 
+        print(f"inserting {len(batch)} records")
         with db.engine.connect() as conn:
-            conn.execute(table.insert(), batch)
+            with conn.begin():
+                conn.execute(table.insert(), batch)
 
         return table
 
