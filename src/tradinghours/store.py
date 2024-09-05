@@ -65,13 +65,14 @@ class Writer:
             )
             table.create(db.engine)
 
-            # Insert each row into the table
-            with db.engine.connect() as conn:
-                for row in reader:
-                    insert_stmt = table.insert().values(dict(zip(columns, row)))
-                    conn.execute(insert_stmt)
+            batch = []
+            for row in reader:
+                batch.append(dict(zip(columns, row)))
 
-            return table
+        with db.engine.connect() as conn:
+            conn.execute(table.insert(), batch)
+
+        return table
 
 
     def ingest_all(self):
