@@ -64,7 +64,6 @@ class Market(BaseModel):
             if not current.has_season:
                 yield current
 
-            some_date = validate_date_arg("some_date", some_date)
             start_date = SeasonDefinition.get(current.season_start, some_date.year).date
             end_date = SeasonDefinition.get(current.season_end, some_date.year).date
 
@@ -76,10 +75,10 @@ class Market(BaseModel):
                 yield current
 
     def _filter_weekdays(
-        self, some_date: dt.date, schedules: Iterable[Schedule]
+        self, weekday: str, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
         for current in schedules:
-            if weekdays_match(current.days, some_date):
+            if weekdays_match(current.days, weekday):
                 yield current
 
     def generate_phases(
@@ -89,6 +88,8 @@ class Market(BaseModel):
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
+        print(f"generating phases between {start} and {end}")
+
         phase_types_dict = PhaseType.as_dict()
         # pprint(phase_types_dict)
 
@@ -100,6 +101,9 @@ class Market(BaseModel):
         # Iterate through all dates generating phases
         current_date = offset_start
         while current_date <= end:
+            current_date_str = current_date.isoformat()
+            current_weekday = current_date.weekday()
+            print(f"checking {current_date_str} {current_weekday}")
             # Starts with all schedules
             schedules = all_schedules
 
@@ -108,19 +112,18 @@ class Market(BaseModel):
             schedules = self._filter_schedule_group(schedule_group, schedules)
 
             # Filters what is in force or for expected season
-            schedules = self._filter_inforce(current_date, schedules)
-            schedules = self._filter_season(current_date, schedules)
+            schedules = self._filter_inforce(current_date_str, schedules)
+            schedules = self._filter_season(current_date_str, schedules)
 
             # Save for fallback and filter weekdays
             before_weekdays = list(schedules)
-            found_schedules = list(self._filter_weekdays(current_date, before_weekdays))
+            found_schedules = list(self._filter_weekdays(current_weekday, before_weekdays))
 
             # Consider fallback if needed
             if not found_schedules and fallback:
-                initial_weekday = current_date.weekday()
-                fallback_weekday = 6 if initial_weekday == 0 else initial_weekday - 1
+                fallback_weekday = 6 if current_weekday == 0 else current_weekday - 1
                 fallback_schedules = []
-                while not fallback_schedules and fallback_weekday != initial_weekday:
+                while not fallback_schedules and fallback_weekday != current_weekday:
                     fallback_schedules = list(
                         filter(
                             lambda s: weekdays_match(s.days, fallback_weekday),

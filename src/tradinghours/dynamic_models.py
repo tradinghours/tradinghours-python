@@ -55,7 +55,7 @@ class PhaseType(BaseModel):
     _table = "phases"
     @classmethod
     def as_dict(cls) -> dict[str, "PhaseType"]:
-        return {pt.name: pt for pt in db.query(cls)}
+        return {pt.name: pt for pt in db.query(cls.table)}
 
 
 class Schedule(BaseModel):
@@ -73,10 +73,10 @@ class Schedule(BaseModel):
         return bool(season_start and season_end)
 
     def is_in_force(self, start: StrOrDate, end: StrOrDate) -> bool:
-        start, end = validate_range_args(
-            validate_date_arg("start", start),
-            validate_date_arg("end", end),
-        )
+        # start, end = validate_range_args(
+        #     validate_date_arg("start", start),
+        #     validate_date_arg("end", end),
+        # )
         if self.in_force_start_date is None and self.in_force_end_date is None:
             return True
         elif self.in_force_start_date is None:
