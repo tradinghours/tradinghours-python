@@ -23,6 +23,33 @@ def clean_name(name):
     return re.sub(r'[^a-zA-Z0-9_]', '_', name)
 
 
+WEEKDAYS = {
+    d: i for i, d in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+}
+
+def weekdays_match(weekday_set, date):
+    weekday = date.weekday()
+    for period_str in weekday_set.split(","):
+        if "-" in period_str:
+            day_range = [WEEKDAYS[x] for x in period_str.split("-")]
+            if weekday in day_range:
+                return True
+
+            start_day, end_day = day_range
+            day = start_day
+            while day != end_day:
+                if day == 6:
+                    day = 0
+                else:
+                    day += 1
+                if weekday == day:
+                    return True
+
+        elif weekday == WEEKDAYS[period_str]:
+            return True
+
+    return False
+
 
 def snake_case(text):
     text = validate_str_arg("text", text, strip=True)

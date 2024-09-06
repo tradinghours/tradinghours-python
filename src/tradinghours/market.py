@@ -1,10 +1,18 @@
 import datetime as dt
 from typing import Iterable, Generator, Union
+from zoneinfo import ZoneInfo
 
 from .typing import StrOrDate
-from .dynamic_models import BaseModel, Schedule, Phase, PhaseType, MarketHoliday, MicMapping
+from .dynamic_models import (BaseModel,
+                             Schedule,
+                             Phase,
+                             PhaseType,
+                             MarketHoliday,
+                             MicMapping,
+                             SeasonDefinition)
 from .validate import validate_range_args, validate_date_arg, validate_finid_arg, validate_str_arg
 from .store import db
+from .util import weekdays_match
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -22,6 +30,7 @@ class Market(BaseModel):
         some_date: dt.date,
         holidays: dict[dt.date, "MarketHoliday"],
     ) -> tuple[str, bool]:
+
         if found := holidays.get(some_date):
             schedule_group = found.schedule.lower()
             fallback = Schedule.is_group_open(schedule_group)
@@ -34,8 +43,9 @@ class Market(BaseModel):
         self, schedule_group: str, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
         for current in schedules:
-            if current.schedule_group.lower() == schedule_group:
+            if current.schedule_group.lower() == schedule_group.lower():
                 yield current
+
 
     def _filter_inforce(
         self, some_date: dt.date, schedules: Iterable[Schedule]
@@ -48,25 +58,29 @@ class Market(BaseModel):
         self, some_date: dt.date, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
         for current in schedules:
-            if current.match_season(some_date):
+            # If there is no season, it means there is no restriction in terms
+            # of the season when this schedule is valid, and as such it is valid,
+            # from a season-perspective for any date
+            if not current.has_season:
+                yield current
+
+            some_date = validate_date_arg("some_date", some_date)
+            start_date = SeasonDefinition.get(current.season_start, some_date.year).date
+            end_date = SeasonDefinition.get(current.season_end, some_date.year).date
+
+            if end_date < start_date:
+                if some_date <= end_date or some_date >= start_date:
+                    yield current
+
+            if some_date >= start_date and some_date <= end_date:
                 yield current
 
     def _filter_weekdays(
         self, some_date: dt.date, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
         for current in schedules:
-            if current.days_obj.matches(some_date):
+            if weekdays_match(current.days, some_date):
                 yield current
-
-    def _build_keyed_holidays(
-        self, start: StrOrDate, end: StrOrDate
-    ) -> dict[dt.date, "MarketHoliday"]:
-
-        holidays = self.list_holidays(start, end)
-        keyed = {}
-        for current in holidays:
-            keyed[current.date] = current
-        return keyed
 
     def generate_phases(
         self, start: StrOrDate, end: StrOrDate
@@ -75,14 +89,13 @@ class Market(BaseModel):
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
-        catalog = self.get_catalog(catalog)
         phase_types_dict = PhaseType.as_dict()
         # pprint(phase_types_dict)
 
         # Get required global data
         offset_start = start - dt.timedelta(days=MAX_OFFSET_DAYS)
         all_schedules = self.list_schedules()
-        holidays = self._build_keyed_holidays(offset_start, end)
+        holidays = self.list_holidays(offset_start, end, as_dict=True)
 
         # Iterate through all dates generating phases
         current_date = offset_start
@@ -110,7 +123,7 @@ class Market(BaseModel):
                 while not fallback_schedules and fallback_weekday != initial_weekday:
                     fallback_schedules = list(
                         filter(
-                            lambda s: s.days_obj.matches(fallback_weekday),
+                            lambda s: weekdays_match(s.days, fallback_weekday),
                             before_weekdays,
                         ),
                     )
@@ -128,21 +141,22 @@ class Market(BaseModel):
             # Generate phases for current date
             for current_schedule in found_schedules:
                 start_date = current_date
-                end_date = current_date + dt.timedelta(days=current_schedule.offset_days)
+                end_date = current_date + dt.timedelta(days=int(current_schedule.offset_days))
 
                 # Filter out phases not finishing after start because we
                 # began looking a few days ago to cover offset days
                 if end_date >= start:
                     start_datetime = dt.datetime.combine(
-                        start_date, current_schedule.start
+                        start_date, dt.time.fromisoformat(current_schedule.start)
                     )
                     end_datetime = dt.datetime.combine(
-                        end_date, current_schedule.end
+                        end_date, dt.time.fromisoformat(current_schedule.end)
                     )
                     # start_datetime = current_schedule.timezone_obj.localize(start_datetime)
                     # end_datetime = current_schedule.timezone_obj.localize(end_datetime)
-                    start_datetime = start_datetime.replace(tzinfo=current_schedule.timezone_obj)
-                    end_datetime = end_datetime.replace(tzinfo=current_schedule.timezone_obj)
+                    zoneinfo_obj = ZoneInfo(current_schedule.timezone)
+                    start_datetime = start_datetime.replace(tzinfo=zoneinfo_obj)
+                    end_datetime = end_datetime.replace(tzinfo=zoneinfo_obj)
 
                     phase_type = phase_types_dict[current_schedule.phase_type]
                     yield Phase(
@@ -166,8 +180,8 @@ class Market(BaseModel):
 
 
     def list_holidays(
-        self, start: StrOrDate, end: StrOrDate
-    ) -> list["MarketHoliday"]:
+        self, start: StrOrDate, end: StrOrDate, as_dict: bool = False
+    ) -> Union[list["MarketHoliday"], dict[dt.date, "MarketHoliday"]]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
@@ -178,6 +192,12 @@ class Market(BaseModel):
             table.c["date"] >= start.isoformat(),
             table.c["date"] <= end.isoformat()
         )
+        if as_dict:
+            dateix = list(table.c.keys()).index("date")
+            return {
+                dt.date.fromisoformat(r[dateix]): MarketHoliday(r) for r in result
+            }
+
         return [MarketHoliday(r) for r in result]
 
     def list_schedules(self) -> list["Schedule"]:
