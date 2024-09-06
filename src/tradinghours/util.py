@@ -19,7 +19,8 @@ def tname(table_name):
     return f"{tprefix}{table_name}"
 
 def clean_name(name):
-    return re.sub(r'[^a-zA-Z0-9_]', '_', name.replace('"', '').lower())
+    name = name.lower().replace('"', '').replace("finid", "fin_id")
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
 
 
 

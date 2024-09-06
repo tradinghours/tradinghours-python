@@ -29,6 +29,10 @@ class DB:
     def admin_table(self):
         return self.metadata.tables[tname("admin")]
 
+    def table(self, table_name):
+        return self.metadata.tables[tname(table_name)]
+
+
     @contextmanager
     def session(self):
         s = self.Session()
@@ -187,3 +191,6 @@ class Writer:
         self.update_admin("full")
 
         print("Ingested all CSV files and created tables.")
+
+
+

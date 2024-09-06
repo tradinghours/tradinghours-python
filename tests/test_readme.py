@@ -1,12 +1,12 @@
 import pytest, io, sys, os
 
 from tradinghours.models.market import Market, MarketHoliday
-from tradinghours.models.currency import Currency, CurrencyHoliday
+from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.models.schedule import Phase
 from tradinghours.exceptions import NoAccess
 
 from pathlib import Path
-from pprint import pprint
+
 LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 def test_market_list_all(level):

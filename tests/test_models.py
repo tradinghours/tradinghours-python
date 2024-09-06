@@ -2,7 +2,7 @@ import os
 import pytest
 
 from tradinghours.models.market import Market, MarketHoliday, MicMapping
-from tradinghours.models.currency import Currency, CurrencyHoliday
+from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.models.schedule import Schedule, PhaseType
 from tradinghours.models.season import SeasonDefinition
 from tradinghours.util import snake_case
@@ -10,7 +10,6 @@ from tradinghours.exceptions import NoAccess
 
 LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
-from pprint import pprint
 
 @pytest.mark.parametrize("model, columns", [
     (Market, ["Exchange Name",
