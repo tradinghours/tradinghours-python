@@ -77,7 +77,7 @@ class Schedule(BaseModel):
         #     validate_date_arg("start", start),
         #     validate_date_arg("end", end),
         # )
-        if self.in_force_start_date is None and self.in_force_end_date is None:
+        if not self.in_force_start_date and not self.in_force_end_date:
             return True
         elif self.in_force_start_date is None:
             return self.in_force_end_date >= start
@@ -101,7 +101,7 @@ class SeasonDefinition(BaseModel):
         ).one_or_none()
 
         if not result:
-            raise MissingDefinitionError
+            raise MissingDefinitionError(f"missing definition {season} - {year}")
         return cls(result)
 
 #### Special Class that does not have a _table because

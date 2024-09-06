@@ -57,22 +57,23 @@ class Market(BaseModel):
     def _filter_season(
         self, some_date: dt.date, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
+        some_date_str = some_date.isoformat()
         for current in schedules:
             # If there is no season, it means there is no restriction in terms
             # of the season when this schedule is valid, and as such it is valid,
             # from a season-perspective for any date
             if not current.has_season:
                 yield current
+            else:
+                start_date = SeasonDefinition.get(current.season_start, some_date.year).date
+                end_date = SeasonDefinition.get(current.season_end, some_date.year).date
 
-            start_date = SeasonDefinition.get(current.season_start, some_date.year).date
-            end_date = SeasonDefinition.get(current.season_end, some_date.year).date
+                if end_date < start_date:
+                    if some_date_str <= end_date or some_date_str >= start_date:
+                        yield current
 
-            if end_date < start_date:
-                if some_date <= end_date or some_date >= start_date:
+                if some_date_str >= start_date and some_date_str <= end_date:
                     yield current
-
-            if some_date >= start_date and some_date <= end_date:
-                yield current
 
     def _filter_weekdays(
         self, weekday: str, schedules: Iterable[Schedule]
@@ -103,7 +104,6 @@ class Market(BaseModel):
         while current_date <= end:
             current_date_str = current_date.isoformat()
             current_weekday = current_date.weekday()
-            print(f"checking {current_date_str} {current_weekday}")
             # Starts with all schedules
             schedules = all_schedules
 
@@ -113,7 +113,7 @@ class Market(BaseModel):
 
             # Filters what is in force or for expected season
             schedules = self._filter_inforce(current_date_str, schedules)
-            schedules = self._filter_season(current_date_str, schedules)
+            schedules = self._filter_season(current_date, schedules)
 
             # Save for fallback and filter weekdays
             before_weekdays = list(schedules)

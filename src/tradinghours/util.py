@@ -27,8 +27,7 @@ WEEKDAYS = {
     d: i for i, d in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
 }
 
-def weekdays_match(weekday_set, date):
-    weekday = date.weekday()
+def weekdays_match(weekday_set, weekday):
     for period_str in weekday_set.split(","):
         if "-" in period_str:
             day_range = [WEEKDAYS[x] for x in period_str.split("-")]
