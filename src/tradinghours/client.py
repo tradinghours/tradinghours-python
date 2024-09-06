@@ -46,6 +46,13 @@ def get_json(path):
         data = json.load(response)
     return data
 
+def get_remote_timestamp() -> datetime.datetime:
+    data = get_json("last-updated")
+    last_updated = data["last_updated"]
+    timestamp = datetime.datetime.fromisoformat(last_updated)
+    return timestamp
+
+
 def download():
     """
     Downloads zip file from tradinghours and unzips it into the

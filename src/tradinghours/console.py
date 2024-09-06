@@ -7,7 +7,7 @@ from threading import Thread
 
 from . import __version__
 from .store import Writer, db
-from .client import download as client_download
+from .client import download as client_download, get_remote_timestamp as client_get_remote_timestamp
 from .models import Currency, Market
 from .exceptions import TradingHoursError
 
@@ -68,8 +68,8 @@ def create_parser():
 
 def run_status(args):
     with timed_action("Collecting timestamps"):
-        remote_timestamp = default_data_manager.remote_timestamp
-        local_timestamp = default_data_manager.local_timestamp
+        remote_timestamp = client_get_remote_timestamp()
+        local_timestamp = db.get_local_timestamp()
     print("TradingHours Data Status:")
     print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())

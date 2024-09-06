@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 
 from .config import main_config
-from .client import get_json as client_get_json
+from .client import get_json as client_get_json, get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name
 
 
@@ -44,13 +44,15 @@ class DB:
     def get_local_timestamp(self):
         table = self.admin_table
         with self.session() as s:
-            return s.query(table).order_by(table.c["id"].desc()).first()
+            result = s.query(
+                table.c["data_timestamp"]).order_by(
+                    table.c["id"].desc()).first()
+            if result:
+                return result[0]
 
     def needs_download(self):
         if local := self.get_local_timestamp():
-            data = client_get_json("last-updated")
-            last_updated = data["last_updated"]
-            remote_timestamp = dt.datetime.fromisoformat(last_updated)
+            remote_timestamp = client_get_remote_timestamp()
             return remote_timestamp > local
         return True
 
