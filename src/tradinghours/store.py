@@ -49,7 +49,6 @@ class Writer:
 
     def create_table_from_csv(self, file_path, table_name):
         """Creates a SQL table dynamically from a CSV file."""
-        print(f"\ncreating table from {file_path} as {table_name}")
 
         with codecs.open(file_path, mode='r', encoding='utf-8-sig') as file:
             reader = csv.reader(file)
@@ -63,15 +62,13 @@ class Writer:
                 db.metadata,
                 *[Column(col_name, String) for col_name in columns]
             )
-            table.create(db.engine)
-
             batch = []
             for row in reader:
                 batch.append(dict(zip(columns, row)))
 
-        print(f"inserting {len(batch)} records")
         with db.engine.connect() as conn:
             with conn.begin():
+                table.create(db.engine)
                 conn.execute(table.insert(), batch)
 
         return table
