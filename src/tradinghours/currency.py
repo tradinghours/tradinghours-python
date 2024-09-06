@@ -1,19 +1,36 @@
 from typing import List
 
-from .models.base import BaseModel
+from .typing import StrOrDate
+from .validate import validate_range_args, validate_date_arg
+from .dynamic_models import BaseModel, CurrencyHoliday
 from .store import db
 
 class Currency(BaseModel):
+    _table = "currencies"
+
+    def list_holidays(
+        self, start: StrOrDate, end: StrOrDate
+    ) -> List["CurrencyHoliday"]:
+        start, end = validate_range_args(
+            validate_date_arg("start", start),
+            validate_date_arg("end", end),
+        )
+        table = CurrencyHoliday.table
+        result = db.query(table).filter(
+            table.c["currency_code"] == self.currency_code,
+            table.c["date"] >= start.isoformat(),
+            table.c["date"] <= end.isoformat()
+        )
+        return [CurrencyHoliday(r) for r in result]
 
     @classmethod
     def list_all(cls) -> List["Currency"]:
-        table = db.table("currencies")
-        with db.session() as s:
-            return [cls(
-                {col:v for col, v in zip(table.c.keys(), r)}
-            ) for r in s.query(table)]
+        return [cls(r) for r in db.query(cls.table)]
+
 
     @classmethod
-    def get(cls, code: str, catalog=None) -> "Currency":
-        catalog = cls.get_catalog(catalog)
-        return catalog.get(cls, code)
+    def get(cls, code: str) -> "Currency":
+        result = db.query(cls.table).filter(
+            cls.table.c["currency_code"] == code
+        ).one()
+        return cls(result)

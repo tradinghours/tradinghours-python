@@ -25,10 +25,6 @@ class DB:
 
         return cls._instance
 
-    @property
-    def admin_table(self):
-        return self.metadata.tables[tname("admin")]
-
     def table(self, table_name):
         return self.metadata.tables[tname(table_name)]
 
@@ -45,8 +41,13 @@ class DB:
             s.commit()
             return result
 
+    def query(self, *query):
+        with self.session() as s:
+            return s.query(*query)
+
+
     def get_local_timestamp(self):
-        table = self.admin_table
+        table = self.table("admin")
         with self.session() as s:
             result = s.query(
                 table.c["data_timestamp"]).order_by(
@@ -70,7 +71,6 @@ class Writer:
 
     def __init__(self):
         self.remote = Path(main_config.get("data", "remote_dir"))
-        self.table_mapping = {}  # Map of table_name -> Table object
 
     def prepare_th_admin(self):
         """Preserves the last 9 records from the thstore_admin table,
@@ -160,7 +160,7 @@ class Writer:
         data_timestamp = dt.datetime.strptime(line, timestamp_format)
 
         db.execute(
-            db.admin_table.insert().values(
+            db.table("admin").insert().values(
                 data_timestamp=data_timestamp,
                 access_level=access_level,
                 download_timestamp=dt.datetime.now(dt.UTC).replace(tzinfo=None)
@@ -181,11 +181,7 @@ class Writer:
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
 
-                # Create a SQL table and insert data from the CSV file
                 table = self.create_table_from_csv(file_path, table_name)
-
-                # Store the table in the mapping
-                self.table_mapping[table_name] = table
 
         db.update_metadata()
         self.update_admin("full")
