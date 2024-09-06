@@ -8,7 +8,8 @@ from threading import Thread
 from . import __version__
 from .store import Writer, db
 from .client import download as client_download, get_remote_timestamp as client_get_remote_timestamp
-from .models import Currency, Market
+from .currency import Currency
+from .market import Market
 from .exceptions import TradingHoursError
 
 EXIT_CODE_EXPECTED_ERROR = 1
