@@ -12,6 +12,7 @@ default_settings = {
     "data": {
         "remote_dir": PROJECT_PATH / "store_dir" / "remote",
         "db_url": f"sqlite:///{PROJECT_PATH / 'store_dir' / 'tradinghours.db'}",
+        "table_prefix": "thstore_"
     },
     "control": {
         "check_tzdata": True,

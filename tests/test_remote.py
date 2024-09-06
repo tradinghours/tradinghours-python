@@ -8,7 +8,7 @@ import pytest, datetime
 from unittest.mock import MagicMock, patch
 from urllib.request import HTTPError
 
-from tradinghours.remote import Client, default_data_manager
+from tradinghours.client import Client, default_data_manager
 from tradinghours.exceptions import TokenError, ClientError
 
 @pytest.fixture

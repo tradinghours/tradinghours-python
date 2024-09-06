@@ -12,6 +12,17 @@ from .validate import validate_instance_arg, validate_str_arg
 from .exceptions import MissingTzdata
 from .config import main_config
 
+tprefix = main_config.get("data", "table_prefix")
+
+
+def tname(table_name):
+    return f"{tprefix}{table_name}"
+
+def clean_name(name):
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name.replace('"', '').lower())
+
+
+
 def snake_case(text):
     text = validate_str_arg("text", text, strip=True)
     if "-" in text:

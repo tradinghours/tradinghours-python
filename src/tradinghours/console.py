@@ -6,10 +6,10 @@ from textwrap import wrap
 from threading import Thread
 
 from . import __version__
-from .store import Writer
+from .store import Writer, db
+from .client import download as client_download
 from .models import Currency, Market
 from .exceptions import TradingHoursError
-from .remote import default_data_manager
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
@@ -87,9 +87,9 @@ def run_status(args):
 
 
 def run_import(args):
-    if True or args.force or default_data_manager.needs_download:
-        # with timed_action("Downloading"):
-        #     default_data_manager.download()
+    if args.force or db.needs_download:
+        with timed_action("Downloading"):
+            client_download()
         with timed_action("Ingesting"):
             Writer().ingest_all()
     else:

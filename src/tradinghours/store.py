@@ -1,50 +1,103 @@
-import os, csv, re, collections, codecs
-from sqlalchemy import create_engine, MetaData, Table, Column, String
+import os, csv, re, codecs
+import datetime as dt
+from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, func
 from sqlalchemy.orm import sessionmaker
 
 from .config import main_config
-
-# Create a named tuple to hold the database components
-DB = collections.namedtuple("DB", ["db_url", "engine", "metadata", "Session", "session"])
-
-
-def create_db_connection():
-    db_url = main_config.get("data", "db_url")
-    engine = create_engine(db_url)
-    metadata = MetaData()
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    return DB(db_url, engine, metadata, Session, session)
+from .client import get_json as client_get_json
+from .util import tprefix, tname, clean_name
 
 
-# Initialize the db object
-db = create_db_connection()
+class DB:
+    _instance = None
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = self = super().__new__(cls)
+            self.db_url = main_config.get("data", "db_url")
+            self.engine = create_engine(self.db_url)
+            self.metadata = MetaData()
+            self.update_metadata()
+            self.Session = sessionmaker(bind=self.engine)
+            self.session = self.Session()
 
-def clean_name(name):
-    return re.sub(r'[^a-zA-Z0-9_]', '_', name.replace('"', '').lower())
+        return cls._instance
 
+    @property
+    def admin_table(self):
+        return self.metadata.tables[tname("admin")]
+
+    def get_local_timestamp(self):
+        table = self.admin_table
+        return self.session.query(table).order_by(table.c["id"].desc()).first()
+
+    def needs_download(self):
+        if local := self.get_local_timestamp():
+            data = client_get_json("last-updated")
+            last_updated = data["last_updated"]
+            remote_timestamp = dt.datetime.fromisoformat(last_updated)
+            return remote_timestamp > local
+        return True
+
+    def update_metadata(self):
+        self.metadata.reflect(bind=self.engine)
+
+db = DB()
 
 class Writer:
+
     def __init__(self):
         self.remote = main_config.get("data", "remote_dir")
         self.table_mapping = {}  # Map of table_name -> Table object
 
+    def prepare_th_admin(self):
+        """Preserves the last 9 records from the thstore_admin table,
+        drops the table, recreates it, and re-inserts the 9 records."""
+        table_name = tname("admin")
+        table_exists = table_name in db.metadata.tables
+        last_9_records = []
+
+        if table_exists:
+            table = db.metadata.tables[table_name]
+            columns_to_select = [col for col in table.c.keys() if col.name != 'id']
+
+            result = db.session.execute(
+                table.select()
+                .with_only_columns(columns_to_select)
+                .order_by(table.c['id'].desc())
+                .limit(9)
+            )
+
+            # Fetch all results
+            last_9_records = result.fetchall()
+            last_9_records = [dict(row) for row in last_9_records[::-1]]
+            table.drop(db.engine)
+
+        table = Table(
+            table_name,
+            db.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('data_timestamp', DateTime, nullable=False),
+            Column('access_level', String, nullable=False),
+            Column('download_timestamp', DateTime, nullable=False),
+        )
+        table.create(db.engine)
+        if last_9_records:
+            db.session.execute(table.insert(), last_9_records)
+
+        db.update_metadata()
+
     def drop_th_tables(self):
         """Drops all tables from the database that start with 'thstore_'."""
-        # Reflect the current database state to get all tables
-        db.metadata.reflect(bind=db.engine)
-
         # Iterate over all tables in the metadata
         for table_name in db.metadata.tables:
-            if table_name.startswith("thstore_"):
-                # Drop the table
+            if table_name.startswith(tprefix) and "admin" not in table_name:
                 table = db.metadata.tables[table_name]
                 print(f"Dropping table: {table_name}")
                 table.drop(db.engine)
 
         # Clear the metadata cache after dropping tables
-        db.metadata.clear()
-        print("Dropped all tables starting with 'thstore_'.")
+        db.update_metadata()
+        print(f"Dropped all tables starting with {tprefix}.")
 
 
     def create_table_from_csv(self, file_path, table_name):
@@ -60,22 +113,37 @@ class Writer:
             table = Table(
                 table_name,
                 db.metadata,
+                Column('id', Integer, primary_key=True),
                 *[Column(col_name, String) for col_name in columns]
             )
             batch = []
             for row in reader:
                 batch.append(dict(zip(columns, row)))
 
-        with db.engine.connect() as conn:
-            with conn.begin():
-                table.create(db.engine)
-                conn.execute(table.insert(), batch)
-
+        table.create(db.engine)
+        db.session.execute(table.insert(), batch)
+        db.update_metadata()
         return table
+
+    def update_admin(self, access_level):
+        version_file = self.remote / "VERSION.txt"
+        timestamp_format = "Generated at %a, %d %b %Y %H:%M:%S %z"
+        content = version_file.read_text()
+        line = content.splitlines()[0]
+        data_timestamp = dt.datetime.strptime(line, timestamp_format)
+
+        db.session.execute(
+            db.admin_table.insert(dict(
+                data_timestamp=data_timestamp,
+                access_level=access_level,
+                download_timestamp=dt.datetime.now(dt.UTC).replace(tzinfo=None)
+            )),
+        )
 
 
     def ingest_all(self):
         """Iterates over CSV files in the remote directory and ingests them."""
+        self.prepare_th_admin()
         self.drop_th_tables()
         csv_dir = os.path.join(self.remote, "csv")
 
@@ -84,13 +152,14 @@ class Writer:
             if csv_file.endswith('.csv'):
                 file_path = os.path.join(csv_dir, csv_file)
                 table_name = os.path.splitext(csv_file)[0]
-                # TODO: allow changing prefix
-                table_name = f"thstore_{clean_name(table_name)}"
+                table_name = tname(clean_name(table_name))
 
                 # Create a SQL table and insert data from the CSV file
                 table = self.create_table_from_csv(file_path, table_name)
 
                 # Store the table in the mapping
                 self.table_mapping[table_name] = table
+
+        self.update_admin("full")
 
         print("Ingested all CSV files and created tables.")
