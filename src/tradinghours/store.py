@@ -1,7 +1,10 @@
 import os, csv, re, codecs
 import datetime as dt
+from pathlib import Path
+from pprint import pprint
 from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, func
 from sqlalchemy.orm import sessionmaker
+from contextlib import contextmanager
 
 from .config import main_config
 from .client import get_json as client_get_json
@@ -18,7 +21,7 @@ class DB:
             self.metadata = MetaData()
             self.update_metadata()
             self.Session = sessionmaker(bind=self.engine)
-            self.session = self.Session()
+            # self.session = self.Session()
 
         return cls._instance
 
@@ -26,9 +29,22 @@ class DB:
     def admin_table(self):
         return self.metadata.tables[tname("admin")]
 
+    @contextmanager
+    def session(self):
+        s = self.Session()
+        yield s
+        s.close()
+
+    def execute(self, *query):
+        with self.session() as s:
+            result = s.execute(*query)
+            s.commit()
+            return result
+
     def get_local_timestamp(self):
         table = self.admin_table
-        return self.session.query(table).order_by(table.c["id"].desc()).first()
+        with self.session() as s:
+            return s.query(table).order_by(table.c["id"].desc()).first()
 
     def needs_download(self):
         if local := self.get_local_timestamp():
@@ -39,6 +55,7 @@ class DB:
         return True
 
     def update_metadata(self):
+        self.metadata.clear()
         self.metadata.reflect(bind=self.engine)
 
 db = DB()
@@ -46,31 +63,36 @@ db = DB()
 class Writer:
 
     def __init__(self):
-        self.remote = main_config.get("data", "remote_dir")
+        self.remote = Path(main_config.get("data", "remote_dir"))
         self.table_mapping = {}  # Map of table_name -> Table object
 
     def prepare_th_admin(self):
         """Preserves the last 9 records from the thstore_admin table,
         drops the table, recreates it, and re-inserts the 9 records."""
+        print("preparing admin")
         table_name = tname("admin")
         table_exists = table_name in db.metadata.tables
         last_9_records = []
 
         if table_exists:
+            print("getting last rows")
             table = db.metadata.tables[table_name]
-            columns_to_select = [col for col in table.c.keys() if col.name != 'id']
-
-            result = db.session.execute(
+            columns_to_select = [col for col in table.c.values() if col.name != 'id']
+            result = db.execute(
                 table.select()
-                .with_only_columns(columns_to_select)
+                .with_only_columns(*columns_to_select)
                 .order_by(table.c['id'].desc())
                 .limit(9)
             )
 
             # Fetch all results
             last_9_records = result.fetchall()
-            last_9_records = [dict(row) for row in last_9_records[::-1]]
+            last_9_records = [
+                {col.name: value for col, value in zip(columns_to_select, row)}
+                for row in last_9_records[::-1]
+            ]
             table.drop(db.engine)
+            db.metadata.clear()
 
         table = Table(
             table_name,
@@ -82,7 +104,7 @@ class Writer:
         )
         table.create(db.engine)
         if last_9_records:
-            db.session.execute(table.insert(), last_9_records)
+            db.execute(table.insert(), last_9_records)
 
         db.update_metadata()
 
@@ -121,8 +143,7 @@ class Writer:
                 batch.append(dict(zip(columns, row)))
 
         table.create(db.engine)
-        db.session.execute(table.insert(), batch)
-        db.update_metadata()
+        db.execute(table.insert(), batch)
         return table
 
     def update_admin(self, access_level):
@@ -132,12 +153,12 @@ class Writer:
         line = content.splitlines()[0]
         data_timestamp = dt.datetime.strptime(line, timestamp_format)
 
-        db.session.execute(
-            db.admin_table.insert(dict(
+        db.execute(
+            db.admin_table.insert().values(
                 data_timestamp=data_timestamp,
                 access_level=access_level,
                 download_timestamp=dt.datetime.now(dt.UTC).replace(tzinfo=None)
-            )),
+            )
         )
 
 
@@ -145,12 +166,12 @@ class Writer:
         """Iterates over CSV files in the remote directory and ingests them."""
         self.prepare_th_admin()
         self.drop_th_tables()
-        csv_dir = os.path.join(self.remote, "csv")
+        csv_dir = self.remote / "csv"
 
         # Iterate over all CSV files in the directory
         for csv_file in os.listdir(csv_dir):
             if csv_file.endswith('.csv'):
-                file_path = os.path.join(csv_dir, csv_file)
+                file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
 
@@ -160,6 +181,7 @@ class Writer:
                 # Store the table in the mapping
                 self.table_mapping[table_name] = table
 
+        db.update_metadata()
         self.update_admin("full")
 
         print("Ingested all CSV files and created tables.")

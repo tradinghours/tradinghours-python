@@ -12,14 +12,13 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 from .config import main_config
-from .store import db
 from .exceptions import ClientError, TokenError
 from .typing import StrOrPath
 from .validate import validate_instance_arg, validate_path_arg
 
 TOKEN = main_config.get("api", "token")
 BASE_URL = main_config.get("api", "base_url")
-ROOT = main_config.get("data", "remote_dir")
+ROOT = Path(main_config.get("data", "remote_dir"))
 
 @contextmanager
 def get_response(path):
