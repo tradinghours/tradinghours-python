@@ -63,6 +63,7 @@ def create_parser():
     # "import" subcommand
     import_parser = subparsers.add_parser("import", help="Import data")
     import_parser.add_argument("--force", action="store_true", help="Force the import")
+    import_parser.add_argument("--reset", action="store_true", help="Re-ingest data, without downloading. (Resets the database)")
 
     return parser
 
@@ -89,6 +90,11 @@ def run_status(args):
 
 
 def run_import(args):
+    if args.reset:
+        with timed_action("Ingesting"):
+            Writer().ingest_all()
+        return
+
     if args.force or db.needs_download():
         with timed_action("Downloading"):
             client_download()

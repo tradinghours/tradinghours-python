@@ -29,7 +29,12 @@ class BaseModel:
             setattr(self, key, value)
 
     def to_dict(self) -> dict:
-        return self._data.copy()
+        exclude = set(dir(BaseModel))
+        atts = [att for att in vars(self) if att[0]!="_"]
+        for att in dir(self):
+            if att[0] != "_" and att not in exclude and isinstance(getattr(self.__class__, att, None), property):
+                atts.append(att)
+        return {att: getattr(self, att) for att in atts}
 
     def pprint(self) -> None:
         pprint(self.to_dict(), sort_dicts=False)
@@ -108,3 +113,11 @@ class SeasonDefinition(BaseModel):
 # the data is generated
 class Phase(BaseModel):
     _table = None
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'

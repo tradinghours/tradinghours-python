@@ -41,9 +41,11 @@ class DB:
 
     @contextmanager
     def session(self):
-        s = self.Session()
+        if hasattr(self, "_session"):
+            s = self._session
+        else:
+            s = self._session = self.Session()
         yield s
-        s.close()
 
     def execute(self, *query):
         with self.session() as s:
@@ -157,7 +159,7 @@ class Writer:
             )
             batch = []
             for row in reader:
-                batch.append(dict(zip(columns, row)))
+                batch.append({col_name: value or None for col_name, value in zip(columns, row)})
 
         table.create(db.engine)
         db.execute(table.insert(), batch)

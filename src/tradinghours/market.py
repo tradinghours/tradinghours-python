@@ -169,8 +169,8 @@ class Market(BaseModel):
                             phase_memo=current_schedule.phase_memo,
                             status=phase_type.status,
                             settlement=phase_type.settlement,
-                            start=start_datetime.isoformat(),
-                            end=end_datetime.isoformat(),
+                            start=start_datetime,
+                            end=end_datetime,
                         )
                     )
 

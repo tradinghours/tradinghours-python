@@ -1,6 +1,6 @@
 import os
 import pytest
-from tradinghours.models.market import Market
+from tradinghours.market import Market
 from tradinghours.exceptions import NoAccess
 from pprint import pprint
 
