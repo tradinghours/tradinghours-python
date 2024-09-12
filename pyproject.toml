@@ -34,9 +34,6 @@ dev = [
     'pytest',
     'pytest-mock',
 ]
-sql = [
-    'sqlalchemy',
-]
 
 [project.scripts]
 tradinghours = "tradinghours.console:main"

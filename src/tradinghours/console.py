@@ -68,6 +68,7 @@ def create_parser():
 
 
 def run_status(args):
+    db.ready()
     with timed_action("Collecting timestamps"):
         remote_timestamp = client_get_remote_timestamp()
         local_timestamp = db.get_local_timestamp()
@@ -88,7 +89,7 @@ def run_status(args):
 
 
 def run_import(args):
-    if args.force or db.needs_download:
+    if args.force or db.needs_download():
         with timed_action("Downloading"):
             client_download()
         with timed_action("Ingesting"):

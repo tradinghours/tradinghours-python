@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 PROJECT_PATH = Path(__file__).parent
+DEFAULT_STORE_DIR = PROJECT_PATH / "store_dir"
+os.makedirs(DEFAULT_STORE_DIR, exist_ok=True)
 
 # Define default settings in this dictionary
 default_settings = {
@@ -10,8 +12,8 @@ default_settings = {
         "base_url": "https://api.tradinghours.com/v3/",
     },
     "data": {
-        "remote_dir": PROJECT_PATH / "store_dir" / "remote",
-        "db_url": f"sqlite:///{PROJECT_PATH / 'store_dir' / 'tradinghours.db'}",
+        "remote_dir": DEFAULT_STORE_DIR / "remote",
+        "db_url": f"sqlite:///{DEFAULT_STORE_DIR / 'tradinghours.db'}",
         "table_prefix": "thstore_"
     },
     "control": {

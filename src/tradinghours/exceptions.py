@@ -93,7 +93,7 @@ class MissingSqlAlchemyError(TradingHoursError):
 
     def build_help_message(self):
         return (
-            "You need to install SQLAlchemy in order to usee database "
+            "You need to install SQLAlchemy in order to use database "
             "ready store. You should be able to do that by running "
             "`pip install tradinghours[sql]` from the command line."
         )
@@ -103,3 +103,10 @@ class NoAccess(TradingHoursError):
 
 class MissingTzdata(TradingHoursError):
     pass
+
+class DBError(TradingHoursError):
+    """
+    Raise when the database could not be accessed
+    """
+    pass
+
