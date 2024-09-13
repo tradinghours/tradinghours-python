@@ -21,6 +21,7 @@ MAX_OFFSET_DAYS = 2
 
 class Market(BaseModel):
     _table = "markets"
+    _string_format = "Market: {fin_id} {exchange_name} {timezone}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -236,7 +237,6 @@ class Market(BaseModel):
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
         finid = finid.upper()
         finid = validate_finid_arg("finid", finid)
-        print("looking for", finid)
         found = db.query(cls.table).filter(
             cls.table.c["fin_id"] == finid
         ).one_or_none()
