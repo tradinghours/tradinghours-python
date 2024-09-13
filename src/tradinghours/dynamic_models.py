@@ -65,6 +65,18 @@ class BaseModel:
 
 class MarketHoliday(BaseModel):
     _table = "holidays"
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.fin_id = data["fin_id"]
+        self.date = data["date"]
+        self.holiday_name = data["holiday_name"]
+        self.schedule = data["schedule"]
+        self.settlement = data["settlement"]
+        self.observed = data["observed"]
+        self.memo = data["memo"]
+        self.status = data["status"]
+
     @property
     def has_settlement(self):
         return self.settlement == 'Yes'
@@ -77,13 +89,35 @@ class MarketHoliday(BaseModel):
 class MicMapping(BaseModel):
     _table = "mic_mapping"
 
+    def __init__(self, data):
+        super().__init__(data)
+        self.mic = data["mic"]
+        self.fin_id = data["fin_id"]
+
 
 class CurrencyHoliday(BaseModel):
     _table = "currency_holidays"
 
+    def __init__(self, data):
+        super().__init__(data)
+        self.currency_code = data["currency_code"]
+        self.date = data["date"]
+        self.holiday_name = data["holiday_name"]
+        self.settlement = data["settlement"]
+        self.observed = data["observed"]
+        self.memo = data["memo"]
+
 
 class PhaseType(BaseModel):
     _table = "phases"
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.name = data["name"]
+        self.status = data["status"]
+        self.settlement = data["settlement"]
+        self.closing_price = data["closing_price"]
+
     @classmethod
     def as_dict(cls) -> dict[str, "PhaseType"]:
         return {pt.name: pt[1:] for pt in db.query(cls.table)}
@@ -96,9 +130,31 @@ class PhaseType(BaseModel):
 class Schedule(BaseModel):
     _table = "schedules"
 
+    def __init__(self, data):
+        super().__init__(data)
+        self.fin_id = data["fin_id"]
+        self.schedule_group = data["schedule_group"]
+        self.schedule_group_memo = data["schedule_group_memo"]
+        self.timezone = data["timezone"]
+        self.phase_type = data["phase_type"]
+        self.phase_name = data["phase_name"]
+        self.phase_memo = data["phase_memo"]
+        self.days = data["days"]
+        self.start = data["start"]
+        self.end = data["end"]
+        self.offset_days = data["offset_days"]
+        self.duration = data["duration"]
+        self.min_start = data["min_start"]
+        self.max_start = data["max_start"]
+        self.min_end = data["min_end"]
+        self.max_end = data["max_end"]
+        self.in_force_start_date = data["in_force_start_date"]
+        self.in_force_end_date = data["in_force_end_date"]
+        self.season_start = data["season_start"]
+        self.season_end = data["season_end"]
+
     @classmethod
     def is_group_open(cls, group):
-        # TODO: implement a ScheduleGroup type and consider other open groups
         return group.lower() == "regular"
 
     @property
@@ -108,10 +164,6 @@ class Schedule(BaseModel):
         return bool(season_start and season_end)
 
     def is_in_force(self, start: StrOrDate, end: StrOrDate) -> bool:
-        # start, end = validate_range_args(
-        #     validate_date_arg("start", start),
-        #     validate_date_arg("end", end),
-        # )
         if not self.in_force_start_date and not self.in_force_end_date:
             return True
         elif self.in_force_start_date is None:
@@ -121,8 +173,15 @@ class Schedule(BaseModel):
         else:
             return self.in_force_start_date <= end and self.in_force_end_date >= start
 
+
 class SeasonDefinition(BaseModel):
     _table = "season_definitions"
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.season = data["season"]
+        self.year = data["year"]
+        self.date = data["date"]
 
     @classmethod
     def get(cls, season: str, year: int) -> "SeasonDefinition":
@@ -139,10 +198,16 @@ class SeasonDefinition(BaseModel):
             raise MissingDefinitionError(f"missing definition {season} - {year}")
         return cls(result)
 
-#### Special Class that does not have a _table because
-# the data is generated
+
 class Phase(BaseModel):
     _table = None
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.name = data.get("name")
+        self.status = data.get("status")
+        self.settlement = data.get("settlement")
+        self.closing_price = data.get("closing_price")
 
     @property
     def has_settlement(self):

@@ -3,13 +3,15 @@ from typing import Iterable, Generator, Union
 from zoneinfo import ZoneInfo
 
 from .typing import StrOrDate
-from .dynamic_models import (BaseModel,
-                             Schedule,
-                             Phase,
-                             PhaseType,
-                             MarketHoliday,
-                             MicMapping,
-                             SeasonDefinition)
+from .dynamic_models import (
+    BaseModel,
+    Schedule,
+    Phase,
+    PhaseType,
+    MarketHoliday,
+    MicMapping,
+    SeasonDefinition
+)
 from .validate import validate_range_args, validate_date_arg, validate_finid_arg, validate_str_arg
 from .store import db
 from .util import weekdays_match
@@ -19,6 +21,21 @@ MAX_OFFSET_DAYS = 2
 
 class Market(BaseModel):
     _table = "markets"
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.exchange_name = data["exchange_name"]
+        self.market_name = data["market_name"]
+        self.security_group = data["security_group"]
+        self.timezone = data["timezone"]
+        self.weekend_definition = data["weekend_definition"]
+        self.fin_id = data["fin_id"]
+        self.mic = data["mic"]
+        self.acronym = data["acronym"]
+        self.asset_type = data["asset_type"]
+        self.memo = data["memo"]
+        self.permanently_closed = data["permanently_closed"]
+        self.replaced_by = data["replaced_by"]
 
     @property
     def country_code(self):
@@ -219,6 +236,7 @@ class Market(BaseModel):
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
         finid = finid.upper()
         finid = validate_finid_arg("finid", finid)
+        print("looking for", finid)
         found = db.query(cls.table).filter(
             cls.table.c["fin_id"] == finid
         ).one_or_none()
