@@ -61,8 +61,7 @@ def test_timezone_conversion(dt, new_timezone_str, expected_dt):
 def test_currency_timezone(currency, timezone):
     currency = Currency.get(currency)
     assert currency.financial_capital_timezone == timezone
-    assert isinstance(currency.financial_capital_timezone_obj, ZoneInfo)
-    assert currency.financial_capital_timezone_obj == ZoneInfo(timezone)
+    assert ZoneInfo(currency.financial_capital_timezone) == ZoneInfo(timezone)
 
 
 
@@ -75,8 +74,7 @@ def test_currency_timezone(currency, timezone):
 def test_market_timezone(market, timezone):
     market = Market.get(market)
     assert market.timezone == timezone
-    assert isinstance(market.timezone_obj, ZoneInfo)
-    assert market.timezone_obj == ZoneInfo(timezone)
+    assert ZoneInfo(market.timezone) == ZoneInfo(timezone)
 
 
 

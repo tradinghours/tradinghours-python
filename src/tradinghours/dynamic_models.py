@@ -1,6 +1,7 @@
 from typing import Union
 from pprint import pprint
 from sqlalchemy import func
+import datetime as dt
 
 from .typing import StrOrDate
 from .store import db
@@ -24,17 +25,35 @@ class BaseModel:
                 )
             }
 
+        data = {k:v for k,v in data.items() if k != "id"}
         self._data = data
+        _fields = []
         for key, value in data.items():
+            if key == "observed":
+                value = value == "OBS"
+
             setattr(self, key, value)
+            _fields.append(key)
+
+        exclude = set(dir(BaseModel))
+        _extra_fields = [] # properties
+        for att in dir(self):
+            if (att[0] != "_" and
+                    att not in exclude
+                    and isinstance(getattr(self.__class__, att, None), property)
+            ):
+                _extra_fields.append(att)
+
+        self.fields = _fields + _extra_fields
+        self._fields = _fields
+        self._extra_fields = _extra_fields
+
+    @property
+    def raw_data(self):
+        return self._data.copy()
 
     def to_dict(self) -> dict:
-        exclude = set(dir(BaseModel))
-        atts = [att for att in vars(self) if att[0]!="_"]
-        for att in dir(self):
-            if att[0] != "_" and att not in exclude and isinstance(getattr(self.__class__, att, None), property):
-                atts.append(att)
-        return {att: getattr(self, att) for att in atts}
+        return {att: getattr(self, att) for att in self.fields}
 
     def pprint(self) -> None:
         pprint(self.to_dict(), sort_dicts=False)
@@ -46,6 +65,13 @@ class BaseModel:
 
 class MarketHoliday(BaseModel):
     _table = "holidays"
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'
 
 
 class MicMapping(BaseModel):
@@ -60,7 +86,11 @@ class PhaseType(BaseModel):
     _table = "phases"
     @classmethod
     def as_dict(cls) -> dict[str, "PhaseType"]:
-        return {pt.name: pt for pt in db.query(cls.table)}
+        return {pt.name: pt[1:] for pt in db.query(cls.table)}
+
+    @property
+    def is_open(self):
+        return self.status == 'Open'
 
 
 class Schedule(BaseModel):

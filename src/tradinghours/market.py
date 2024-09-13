@@ -23,7 +23,7 @@ class Market(BaseModel):
     @property
     def country_code(self):
         """Two-letter country code."""
-        return self.fin_id_obj.country
+        return self.fin_id.split(".")[0]
 
     def _pick_schedule_group(
         self,
@@ -217,6 +217,7 @@ class Market(BaseModel):
 
     @classmethod
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
+        finid = finid.upper()
         finid = validate_finid_arg("finid", finid)
         found = db.query(cls.table).filter(
             cls.table.c["fin_id"] == finid
@@ -232,6 +233,7 @@ class Market(BaseModel):
 
     @classmethod
     def get_by_mic(cls, mic: str, follow=True) -> Union[None, "Market"]:
+        mic = mic.upper()
         mic = validate_str_arg("mic", mic)
         mapping = db.query(MicMapping.table).filter(
             MicMapping.table.c["mic"] == mic

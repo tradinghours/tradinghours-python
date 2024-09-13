@@ -53,7 +53,7 @@ def validate_finid_arg(name: str, value: Any) -> str:
         segments = value.split(".")
         if len(segments) < 2:
             raise ValueError("Invalid FinID string")
-    return value
+    return value.upper()
 
 
 def validate_weekday_arg(name: str, value: Any) -> "Weekday":

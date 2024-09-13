@@ -159,7 +159,8 @@ class Writer:
             )
             batch = []
             for row in reader:
-                batch.append({col_name: value or None for col_name, value in zip(columns, row)})
+                # batch.append({col_name: value or None for col_name, value in zip(columns, row)})
+                batch.append(dict(zip(columns, row)))
 
         table.create(db.engine)
         db.execute(table.insert(), batch)
