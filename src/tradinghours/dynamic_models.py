@@ -9,7 +9,25 @@ from .validate import validate_str_arg, validate_int_arg, validate_range_args, v
 from .exceptions import MissingDefinitionError
 
 
+## This is just to ensure that
+def _clean(key: str, value: Union[bool, str]) -> Union[bool, str]:
+    match key:
+        case "observed":
+            return value * "OBS" if isinstance(value, bool) else value == "OBS"
+        case _:
+            return value
+
 class BaseModel:
+    """
+    Will receive records from the databse and set the instance attributes. The attributes
+     match the column names and some classes have additional properties.
+
+    Besides accessing the data through attributes like `market.exchange_name`,
+     you can also acces `raw_data` or `to_dict`. See their docstrings to see how they differ.
+
+    """
+
+
     _table: Union[str, None] = None
 
     @classmethod
@@ -25,13 +43,10 @@ class BaseModel:
                 )
             }
 
-        data = {k:v for k,v in data.items() if k != "id"}
+        data = {k: _clean(k, v) for k,v in data.items() if k != "id"}
         self._data = data
         _fields = []
         for key, value in data.items():
-            if key == "observed":
-                value = value == "OBS"
-
             setattr(self, key, value)
             _fields.append(key)
 
@@ -50,9 +65,19 @@ class BaseModel:
 
     @property
     def raw_data(self):
-        return self._data.copy()
+        """
+        Returns a dictionary with the values exactly as they were in the
+         database, excluding properties like .is_open. Keys are exact matches to the
+         column names of the matching table.
+        """
+        return {k: _clean(k, v) for k, v in self._data.items()}
 
     def to_dict(self) -> dict:
+        """
+        Returns a dictionary with the values as they are displayed to the user, including
+         properties like .is_open, which means that there are keys present that don't exist
+         in the matching table.
+        """
         return {att: getattr(self, att) for att in self.fields}
 
     def pprint(self) -> None:
@@ -68,14 +93,14 @@ class MarketHoliday(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.fin_id = data["fin_id"]
-        self.date = data["date"]
-        self.holiday_name = data["holiday_name"]
-        self.schedule = data["schedule"]
-        self.settlement = data["settlement"]
-        self.observed = data["observed"]
-        self.memo = data["memo"]
-        self.status = data["status"]
+        self.fin_id = self._data["fin_id"]
+        self.date = self._data["date"]
+        self.holiday_name = self._data["holiday_name"]
+        self.schedule = self._data["schedule"]
+        self.settlement = self._data["settlement"]
+        self.observed = self._data["observed"]
+        self.memo = self._data["memo"]
+        self.status = self._data["status"]
 
     @property
     def has_settlement(self):
@@ -91,8 +116,8 @@ class MicMapping(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.mic = data["mic"]
-        self.fin_id = data["fin_id"]
+        self.mic = self._data["mic"]
+        self.fin_id = self._data["fin_id"]
 
 
 class CurrencyHoliday(BaseModel):
@@ -100,12 +125,12 @@ class CurrencyHoliday(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.currency_code = data["currency_code"]
-        self.date = data["date"]
-        self.holiday_name = data["holiday_name"]
-        self.settlement = data["settlement"]
-        self.observed = data["observed"]
-        self.memo = data["memo"]
+        self.currency_code = self._data["currency_code"]
+        self.date = self._data["date"]
+        self.holiday_name = self._data["holiday_name"]
+        self.settlement = self._data["settlement"]
+        self.observed = self._data["observed"]
+        self.memo = self._data["memo"]
 
 
 class PhaseType(BaseModel):
@@ -113,14 +138,18 @@ class PhaseType(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.name = data["name"]
-        self.status = data["status"]
-        self.settlement = data["settlement"]
-        self.closing_price = data["closing_price"]
+        self.name = self._data["name"]
+        self.status = self._data["status"]
+        self.settlement = self._data["settlement"]
+        self.closing_price = self._data["closing_price"]
 
     @classmethod
     def as_dict(cls) -> dict[str, "PhaseType"]:
-        return {pt.name: pt[1:] for pt in db.query(cls.table)}
+        return {pt.name: cls(pt) for pt in db.query(cls.table)}
+
+    @property
+    def has_settlement(self):
+        return self.settlement == 'Yes'
 
     @property
     def is_open(self):
@@ -132,26 +161,26 @@ class Schedule(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.fin_id = data["fin_id"]
-        self.schedule_group = data["schedule_group"]
-        self.schedule_group_memo = data["schedule_group_memo"]
-        self.timezone = data["timezone"]
-        self.phase_type = data["phase_type"]
-        self.phase_name = data["phase_name"]
-        self.phase_memo = data["phase_memo"]
-        self.days = data["days"]
-        self.start = data["start"]
-        self.end = data["end"]
-        self.offset_days = data["offset_days"]
-        self.duration = data["duration"]
-        self.min_start = data["min_start"]
-        self.max_start = data["max_start"]
-        self.min_end = data["min_end"]
-        self.max_end = data["max_end"]
-        self.in_force_start_date = data["in_force_start_date"]
-        self.in_force_end_date = data["in_force_end_date"]
-        self.season_start = data["season_start"]
-        self.season_end = data["season_end"]
+        self.fin_id = self._data["fin_id"]
+        self.schedule_group = self._data["schedule_group"]
+        self.schedule_group_memo = self._data["schedule_group_memo"]
+        self.timezone = self._data["timezone"]
+        self.phase_type = self._data["phase_type"]
+        self.phase_name = self._data["phase_name"]
+        self.phase_memo = self._data["phase_memo"]
+        self.days = self._data["days"]
+        self.start = self._data["start"]
+        self.end = self._data["end"]
+        self.offset_days = self._data["offset_days"]
+        self.duration = self._data["duration"]
+        self.min_start = self._data["min_start"]
+        self.max_start = self._data["max_start"]
+        self.min_end = self._data["min_end"]
+        self.max_end = self._data["max_end"]
+        self.in_force_start_date = self._data["in_force_start_date"]
+        self.in_force_end_date = self._data["in_force_end_date"]
+        self.season_start = self._data["season_start"]
+        self.season_end = self._data["season_end"]
 
     @classmethod
     def is_group_open(cls, group):
@@ -179,9 +208,9 @@ class SeasonDefinition(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.season = data["season"]
-        self.year = data["year"]
-        self.date = data["date"]
+        self.season = self._data["season"]
+        self.year = self._data["year"]
+        self.date = self._data["date"]
 
     @classmethod
     def get(cls, season: str, year: int) -> "SeasonDefinition":
@@ -204,10 +233,13 @@ class Phase(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.name = data.get("name")
-        self.status = data.get("status")
-        self.settlement = data.get("settlement")
-        self.closing_price = data.get("closing_price")
+        self.phase_type = self._data["phase_type"]
+        self.phase_name = self._data["phase_name"]
+        self.phase_memo = self._data["phase_memo"]
+        self.status = self._data["status"]
+        self.settlement = self._data["settlement"]
+        self.start = self._data["start"]
+        self.end = self._data["end"]
 
     @property
     def has_settlement(self):

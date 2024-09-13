@@ -10,13 +10,13 @@ class Currency(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.currency_code = data["currency_code"]
-        self.currency_name = data["currency_name"]
-        self.country_code = data["country_code"]
-        self.central_bank = data["central_bank"]
-        self.financial_capital = data["financial_capital"]
-        self.financial_capital_timezone = data["financial_capital_timezone"]
-        self.weekend_definition = data["weekend_definition"]
+        self.currency_code = self._data["currency_code"]
+        self.currency_name = self._data["currency_name"]
+        self.country_code = self._data["country_code"]
+        self.central_bank = self._data["central_bank"]
+        self.financial_capital = self._data["financial_capital"]
+        self.financial_capital_timezone = self._data["financial_capital_timezone"]
+        self.weekend_definition = self._data["weekend_definition"]
 
     def list_holidays(
         self, start: StrOrDate, end: StrOrDate

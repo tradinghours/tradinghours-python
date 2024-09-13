@@ -24,18 +24,18 @@ class Market(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.exchange_name = data["exchange_name"]
-        self.market_name = data["market_name"]
-        self.security_group = data["security_group"]
-        self.timezone = data["timezone"]
-        self.weekend_definition = data["weekend_definition"]
-        self.fin_id = data["fin_id"]
-        self.mic = data["mic"]
-        self.acronym = data["acronym"]
-        self.asset_type = data["asset_type"]
-        self.memo = data["memo"]
-        self.permanently_closed = data["permanently_closed"]
-        self.replaced_by = data["replaced_by"]
+        self.exchange_name = self._data["exchange_name"]
+        self.market_name = self._data["market_name"]
+        self.security_group = self._data["security_group"]
+        self.timezone = self._data["timezone"]
+        self.weekend_definition = self._data["weekend_definition"]
+        self.fin_id = self._data["fin_id"]
+        self.mic = self._data["mic"]
+        self.acronym = self._data["acronym"]
+        self.asset_type = self._data["asset_type"]
+        self.memo = self._data["memo"]
+        self.permanently_closed = self._data["permanently_closed"]
+        self.replaced_by = self._data["replaced_by"]
 
     @property
     def country_code(self):

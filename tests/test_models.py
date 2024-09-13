@@ -137,19 +137,19 @@ def test_phase_type_instance_fields(level):
 
     assert len(phase_types) == 13
     expected = {
-        'Call Auction': ('Call Auction', 'Closed', 'No', 'No'),
-        'Intermission': ('Intermission', 'Closed', 'No', 'No'),
-        'Order Collection Period': ('Order Collection Period', 'Closed', 'No', 'No'),
-        'Other': ('Other', 'Closed', 'No', 'No'),
-        'Post-Trading Session': ('Post-Trading Session', 'Closed', 'No', 'No'),
-        'Pre-Close': ('Pre-Close', 'Closed', 'No', 'No'),
-        'Pre-Open': ('Pre-Open', 'Closed', 'No', 'No'),
-        'Pre-Trading Session': ('Pre-Trading Session', 'Closed', 'No', 'No'),
-        'Primary Trading Session': ('Primary Trading Session', 'Open', 'Yes', 'Yes'),
-        'Primary Trading Session, No Closing Price': ('Primary Trading Session, No Closing Price', 'Open', 'No', 'No'),
-        'Primary Trading Session, No Settlement': ('Primary Trading Session, No Settlement', 'Open', 'No', 'Yes'),
-        'Settlement Window': ('Settlement Window', 'Closed', 'No', 'No'),
-        'Trading-at-Last': ('Trading-at-Last', 'Closed', 'No', 'No')
+        'Primary Trading Session': ('Primary Trading Session', 'Open', 'Yes', True, True),
+        'Primary Trading Session, No Settlement': ('Primary Trading Session, No Settlement', 'Open', 'No', False, True),
+        'Primary Trading Session, No Closing Price': ('Primary Trading Session, No Closing Price', 'Open', 'No', False, True),
+        'Intermission': ('Intermission', 'Closed', 'No', False, False),
+        'Pre-Trading Session': ('Pre-Trading Session', 'Closed', 'No', False, False),
+        'Post-Trading Session': ('Post-Trading Session', 'Closed', 'No', False, False),
+        'Trading-at-Last': ('Trading-at-Last', 'Closed', 'No', False, False),
+        'Pre-Open': ('Pre-Open', 'Closed', 'No', False, False),
+        'Pre-Close': ('Pre-Close', 'Closed', 'No', False, False),
+        'Order Collection Period': ('Order Collection Period', 'Closed', 'No', False, False),
+        'Call Auction': ('Call Auction', 'Closed', 'No', False, False),
+        'Settlement Window': ('Settlement Window', 'Closed', 'No', False, False),
+        'Other': ('Other', 'Closed', 'No', False, False),
     }
     for k, phase in phase_types.items():
         assert expected[k] == (str(phase.name),
