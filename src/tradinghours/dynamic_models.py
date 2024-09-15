@@ -9,31 +9,30 @@ from .validate import validate_str_arg, validate_int_arg, validate_range_args, v
 from .exceptions import MissingDefinitionError
 
 
-## This is just to ensure that
-def _clean(key: str, value: Union[bool, str]) -> Union[bool, str]:
-    match key:
-        case "observed":
-            return value * "OBS" if isinstance(value, bool) else value == "OBS"
-        case _:
-            return value
-
 class BaseModel:
     """
     Will receive records from the databse and set the instance attributes. The attributes
      match the column names and some classes have additional properties.
 
     Besides accessing the data through attributes like `market.exchange_name`,
-     you can also acces `raw_data` or `to_dict`. See their docstrings to see how they differ.
+     you can also access `data` or `to_dict`. See their docstrings to see how they differ.
 
     """
     _table: Union[str, None] = None
     _string_format: str = ""
     _original_string_format: str = ""
+    _fields: list = [] # columns in database
+    _extra_fields: list = []  # properties of python class
 
     @classmethod
     @property
     def table(cls) -> "Table":
         return db.table(cls._table)
+
+    @classmethod
+    @property
+    def fields(cls):
+        return cls._fields + cls._extra_fields
 
     def __init__(self, data: Union[dict, tuple]):
         if not isinstance(data, dict):
@@ -43,34 +42,34 @@ class BaseModel:
                 )
             }
 
-        data = {k: _clean(k, v) for k,v in data.items() if k != "id"}
         self._data = data
         _fields = []
         for key, value in data.items():
-            setattr(self, key, value)
-            _fields.append(key)
+            if key != "id":
+                setattr(self, key, value)
+                _fields.append(key)
 
-        exclude = set(dir(BaseModel))
-        _extra_fields = [] # properties
-        for att in dir(self):
-            if (att[0] != "_" and
-                    att not in exclude
-                    and isinstance(getattr(self.__class__, att, None), property)
-            ):
-                _extra_fields.append(att)
+        if not self.__class__._fields:
+            exclude = set(dir(BaseModel))
+            _extra_fields = [] # properties
+            for att in dir(self):
+                if (att[0] != "_" and
+                        att not in exclude
+                        and isinstance(getattr(self.__class__, att, None), property)
+                ):
+                    _extra_fields.append(att)
 
-        self.fields = _fields + _extra_fields
-        self._fields = _fields
-        self._extra_fields = _extra_fields
+            self.__class__._fields = _fields
+            self.__class__._extra_fields = _extra_fields
 
     @property
-    def raw_data(self):
+    def data(self):
         """
         Returns a dictionary with the values exactly as they were in the
          database, excluding properties like .is_open. Keys are exact matches to the
          column names of the matching table.
         """
-        return {k: _clean(k, v) for k, v in self._data.items()}
+        return {f: getattr(self, f) for f in self._fields}
 
     def to_dict(self) -> dict:
         """
@@ -78,7 +77,7 @@ class BaseModel:
          properties like .is_open, which means that there are keys present that don't exist
          in the matching table.
         """
-        return {att: getattr(self, att) for att in self.fields}
+        return {f: getattr(self, f) for f in self.fields}
 
     def pprint(self) -> None:
         pprint(self.to_dict(), sort_dicts=False)
@@ -213,6 +212,13 @@ class Schedule(BaseModel):
         self.in_force_end_date = self._data["in_force_end_date"]
         self.season_start = self._data["season_start"]
         self.season_end = self._data["season_end"]
+
+    @property
+    def end_with_offset(self):
+        end = str(self.end)
+        if self.offset_days:
+            return end + f" +{self.offset_days}"
+        return end + "   "
 
     @classmethod
     def is_group_open(cls, group):

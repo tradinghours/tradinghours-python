@@ -230,26 +230,16 @@ def test_market_raw_data(level):
 
     nyse = Market.get("XNYS")
     holiday = nyse.list_holidays("2007-11-20", "2007-11-23")[0]
-    assert holiday.raw_data["settlement"] == "No"
-    assert holiday.raw_data["status"] == "Closed"
-    assert holiday.raw_data["observed"] == ""
-    holiday_data = holiday.to_dict()
-    assert holiday_data["settlement"] == "No"
-    assert holiday_data["status"] == "Closed"
-    assert holiday_data["observed"] is False
+    assert holiday.data["settlement"] == "No"
+    assert holiday.data["status"] == "Closed"
+    assert holiday.data["observed"] is False
 
 
 @pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
 def test_currency_raw_data(level):
-
-    # assert 1 == 1
-
     currency = Currency.get('AUD')
     holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
-    assert holiday.raw_data["settlement"] == "No"
-    assert holiday.raw_data["observed"] == "OBS"
-    holiday_data = holiday.to_dict()
-    assert holiday_data["settlement"] == "No"
-    assert holiday_data["observed"] is True
+    assert holiday.data["settlement"] == "No"
+    assert holiday.data["observed"] is True
 
 

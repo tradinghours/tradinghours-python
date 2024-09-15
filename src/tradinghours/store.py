@@ -2,9 +2,10 @@ import os, csv, re, codecs
 import datetime as dt
 from pathlib import Path
 from pprint import pprint
-from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, func
+from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, Time, Date, Boolean
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
+from typing import Union
 
 from .config import main_config
 from .client import get_json as client_get_json, get_remote_timestamp as client_get_remote_timestamp
@@ -13,6 +14,42 @@ from .exceptions import DBError
 
 class DB:
     _instance = None
+    _types = {
+        "date": (Date, dt.date.fromisoformat),
+        "observed": (Boolean, lambda v: v == "OBS"),
+        "start": (Time, dt.time.fromisoformat),
+        "end": (Time, dt.time.fromisoformat),
+        "offset_days": (Integer, int),
+        "duration": (Integer, int),
+        "min_start": (Time, dt.time.fromisoformat),
+        "max_start": (Time, dt.time.fromisoformat),
+        "min_end": (Time, dt.time.fromisoformat),
+        "max_end": (Time, dt.time.fromisoformat),
+        "in_force_start_date": (Date, dt.date.fromisoformat),
+        "in_force_end_date": (Date, dt.date.fromisoformat),
+        "year": (Integer, int),
+        # Everything else is String
+    }
+
+    @classmethod
+    def get_type(cls, col_name):
+        return cls._types.get(col_name, (String, None))[0]
+
+    @classmethod
+    def clean(cls, col_name: str, value: Union[bool, str, None]) -> Union[bool, str, None]:
+        """
+        Used to map values from the csv files to what they should be in the database
+         For observed columns 'OBS' is True, anything else is False
+         For other columns, empty strings should be converted to None
+        """
+        converter = cls._types.get(col_name, (None, str))[1]
+        match col_name:
+            case "observed":
+                return converter(value)
+            case _:
+                return converter(value) if value else None
+
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = self = super().__new__(cls)
@@ -155,12 +192,11 @@ class Writer:
                 table_name,
                 db.metadata,
                 Column('id', Integer, primary_key=True),
-                *[Column(col_name, String) for col_name in columns]
+                *(Column(col_name, DB.get_type(col_name)) for col_name in columns)
             )
             batch = []
             for row in reader:
-                # batch.append({col_name: value or None for col_name, value in zip(columns, row)})
-                batch.append(dict(zip(columns, row)))
+                batch.append({col_name: DB.clean(col_name, value) for col_name, value in zip(columns, row)})
 
         table.create(db.engine)
         db.execute(table.insert(), batch)
