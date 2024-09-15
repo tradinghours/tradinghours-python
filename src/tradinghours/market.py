@@ -87,10 +87,10 @@ class Market(BaseModel):
                 end_date = SeasonDefinition.get(current.season_end, some_date.year).date
 
                 if end_date < start_date:
-                    if some_date_str <= end_date or some_date_str >= start_date:
+                    if some_date <= end_date or some_date >= start_date:
                         yield current
 
-                if some_date_str >= start_date and some_date_str <= end_date:
+                if some_date >= start_date and some_date <= end_date:
                     yield current
 
     def _filter_weekdays(
@@ -120,7 +120,6 @@ class Market(BaseModel):
         # Iterate through all dates generating phases
         current_date = offset_start
         while current_date <= end:
-            current_date_str = current_date.isoformat()
             current_weekday = current_date.weekday()
             # Starts with all schedules
             schedules = all_schedules
