@@ -88,7 +88,7 @@ class BaseModel:
 
     @classmethod
     def get_string_format(cls):
-        return cls._string_format
+        return cls._string_format or cls._original_string_format
 
     @classmethod
     def set_string_format(cls, string_format: str, prefix_class: bool = False):
@@ -101,23 +101,12 @@ class BaseModel:
         cls._string_format = cls._original_string_format
 
     def __str__(self):
-        if not self._string_format:
-            class_name = self.__class__.__name__
-            all_str = []
-            for current_field in self.fields:
-                current_value = getattr(self, current_field)
-                if current_value:
-                    all_str.append(str(current_value))
-            fields_str = " ".join(all_str)
-            return f"{class_name} {fields_str}"
-
-        all_data = {f: getattr(self, f) for f in self.fields}
-        return self._string_format.format(**all_data)
+        return self.get_string_format().format(**self.to_dict())
 
 
 class MarketHoliday(BaseModel):
     _table = "holidays"
-    _string_format = "{fin_id} {date} {holiday_name}"
+    _original_string_format = "MarketHoliday: {fin_id} {date} {holiday_name}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -141,7 +130,7 @@ class MarketHoliday(BaseModel):
 
 class MicMapping(BaseModel):
     _table = "mic_mapping"
-    _string_format = "{mic} {fin_id}"
+    _original_string_format = "MicMapping: {mic} {fin_id}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -151,7 +140,7 @@ class MicMapping(BaseModel):
 
 class CurrencyHoliday(BaseModel):
     _table = "currency_holidays"
-    _string_format = "{currency_code} {date} {holiday_name}"
+    _original_string_format = "CurrencyHoliday: {currency_code} {date} {holiday_name}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -188,7 +177,7 @@ class PhaseType(BaseModel):
 
 class Schedule(BaseModel):
     _table = "schedules"
-    _string_format = "{fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type}"
+    _original_string_format = "Schedule: {fin_id} ({schedule_group}) {start} - {end_with_offset} {days} {phase_type}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -243,7 +232,7 @@ class Schedule(BaseModel):
 
 class SeasonDefinition(BaseModel):
     _table = "season_definitions"
-    _string_format = "{date} {season}"
+    _original_string_format = "SeasonDefinition: {date} {season}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -269,7 +258,7 @@ class SeasonDefinition(BaseModel):
 
 class Phase(BaseModel):
     _table = None
-    _string_format = "{start} - {end} {phase_type}"
+    _original_string_format = "Phase: {start} - {end} {phase_type}"
 
     def __init__(self, data):
         super().__init__(data)

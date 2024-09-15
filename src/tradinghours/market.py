@@ -21,7 +21,7 @@ MAX_OFFSET_DAYS = 2
 
 class Market(BaseModel):
     _table = "markets"
-    _string_format = "Market: {fin_id} {exchange_name} {timezone}"
+    _original_string_format = "Market: {fin_id} {exchange_name} {timezone}"
 
     def __init__(self, data):
         super().__init__(data)
@@ -107,7 +107,7 @@ class Market(BaseModel):
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
-        print(f"generating phases between {start} and {end}")
+        # print(f"generating phases between {start} and {end}")
 
         phase_types_dict = PhaseType.as_dict()
         # pprint(phase_types_dict)

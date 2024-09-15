@@ -7,7 +7,7 @@ from .store import db
 
 class Currency(BaseModel):
     _table = "currencies"
-    _string_format = "{currency_code} {currency_name}"
+    _original_string_format = "Currency: {currency_code} {currency_name}"
 
     def __init__(self, data):
         super().__init__(data)
