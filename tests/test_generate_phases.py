@@ -1,10 +1,16 @@
 import os
+import datetime as dt
+from zoneinfo import ZoneInfo
 import pytest
 from tradinghours.market import Market
 from tradinghours.exceptions import NoAccess
 from pprint import pprint
 
 LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
+
+def fromiso(iso, tz):
+    d = dt.datetime.fromisoformat('2023-11-15 04:00:00')
+    return d.replace(tzinfo=ZoneInfo("America/New_York"))
 
 @pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
 @pytest.mark.parametrize("fin_id, start, end, expected", [
@@ -803,8 +809,11 @@ def test_generate_phases(level, fin_id, start, end, expected):
     assert len(calculated) == len(expected)
     for calced, exp in zip(calculated, expected):
         calced = calced.to_dict()
-        calced["start"] = str(calced["start"]), calced["start"].tzname()
-        calced["end"] = str(calced["end"]), calced["end"].tzname()
+        assert calced["start"] == expected["start"]
+        assert calced["end"] == expected["end"]
+
+        assert (calced["timezone"] == market.timezone and
+                calced["timezone"] == str(calced["start"].tzinfo) == str(calced["end"].tzinfo))
 
         assert ((calced["has_settlement"] is False and calced["settlement"] == 'No') or
                 (calced["has_settlement"] is True and calced["settlement"] == 'Yes'))

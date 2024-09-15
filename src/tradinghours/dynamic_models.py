@@ -280,6 +280,11 @@ class Phase(BaseModel):
         self.settlement = self._data["settlement"]
         self.start = self._data["start"]
         self.end = self._data["end"]
+        self._timezone = str(self.start.tzinfo)
+
+    @property
+    def timezone(self):
+        return self._timezone
 
     @property
     def has_settlement(self):
