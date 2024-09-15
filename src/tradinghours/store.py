@@ -67,7 +67,6 @@ class DB:
         return cls._instance
 
     def table(self, table_name):
-
         return self.metadata.tables[tname(table_name)]
 
     def ready(self):
@@ -110,8 +109,20 @@ class DB:
             if result:
                 return result[0].replace(tzinfo=dt.UTC)
 
-    def get_access_level(self):
-        return self.query(self.table("admin").c["access_level"]).first()
+    @property
+    def access_level(self):
+        if hasattr(self, "_access_level"):
+            return self._access_level
+
+        table = self.table("admin")
+        level = self.execute(
+            table.select()
+            .with_only_columns(table.c["access_level"])
+            .order_by(table.c['id'].desc())
+        ).first()
+
+        self._access_level = level[0]
+        return level
 
     def needs_download(self):
         if local := self.get_local_timestamp():
@@ -252,10 +263,10 @@ class Writer:
 """
 full = all
 
-only_holidays = no schedules 
+only_holidays = no schedules
+ 
 
 no_currencies = schedules but no currencies
-
  
 
 """

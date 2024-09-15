@@ -23,6 +23,11 @@ class BaseModel:
     _original_string_format: str = ""
     _fields: list = [] # columns in database
     _extra_fields: list = []  # properties of python class
+    _access_levels: set = set()
+
+    @classmethod
+    def check_access(cls):
+        return db.access_level in cls._access_levels
 
     @classmethod
     @property

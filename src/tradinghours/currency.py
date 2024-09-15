@@ -8,6 +8,7 @@ from .store import db
 class Currency(BaseModel):
     _table = "currencies"
     _original_string_format = "Currency: {currency_code} {currency_name}"
+    _access_levels = {"full"}
 
     def __init__(self, data):
         super().__init__(data)
@@ -36,6 +37,8 @@ class Currency(BaseModel):
 
     @classmethod
     def list_all(cls) -> List["Currency"]:
+        if not cls.check_access():
+            return []
         return [cls(r) for r in db.query(cls.table)]
 
 
