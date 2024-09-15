@@ -158,7 +158,7 @@ def test_phase_type_instance_fields(level):
                                phase.has_settlement,
                                phase.is_open)
 
-@pytest.mark.skip
+
 def test_string_format(level):
     market = Market.get('US.NYSE')
     assert str(market) == 'Market: US.NYSE New York Stock Exchange America/New_York'
@@ -203,7 +203,7 @@ def test_string_format(level):
         season = SeasonDefinition.get("First day of March", 2022)
         assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
 
-@pytest.mark.skip
+
 def test_set_string_format(level):
     market = Market.get('ZA.JSE.SAFEX')
 
