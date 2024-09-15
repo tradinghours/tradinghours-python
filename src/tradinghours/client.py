@@ -63,19 +63,21 @@ def download():
         with zipfile.ZipFile(temp_file, "r") as zip_ref:
             zip_ref.extractall(ROOT)
 
-    # TODO: Check how this would be handled differently
-    #  for table creation and setting of access_level
-    for file in ("currencies.csv",
-                 "currency-holidays.csv",
-                 "holidays.csv",
-                 "markets.csv",
-                 "mic-mapping.csv",
-                 "phases.csv",
-                 "regional-holidays.csv",
-                 "schedules.csv",
-                 "season-definitions.csv"):
 
-        if not (ROOT / "csv" / file).exists():
-            open(ROOT / "csv" / file, "w").close()
+
+    # # TODO: Check how this would be handled differently
+    # #  for table creation and setting of access_level
+    # for file in ("currencies.csv",
+    #              "currency-holidays.csv",
+    #              "holidays.csv",
+    #              "markets.csv",
+    #              "mic-mapping.csv",
+    #              "phases.csv",
+    #              "regional-holidays.csv",
+    #              "schedules.csv",
+    #              "season-definitions.csv"):
+    #
+    #     if not (ROOT / "csv" / file).exists():
+    #         open(ROOT / "csv" / file, "w").close()
 
 

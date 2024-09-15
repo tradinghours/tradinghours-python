@@ -80,9 +80,10 @@ def run_status(args):
     if args.extended:
         if local_timestamp:
             with timed_action("Reading local data"):
+                access_level = db.get_access_level()
                 all_currencies = list(Currency.list_all())
                 all_markets = list(Market.list_all())
-            print("Extended Information:")
+            print(f"Extended Information (Access Level: {access_level}):")
             print("  Currencies count:  ", len(all_currencies))
             print("  Markets count:     ", len(all_markets))
         else:

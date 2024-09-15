@@ -67,6 +67,7 @@ class DB:
         return cls._instance
 
     def table(self, table_name):
+
         return self.metadata.tables[tname(table_name)]
 
     def ready(self):
@@ -96,6 +97,8 @@ class DB:
 
 
     def get_local_timestamp(self):
+        # admin table is not present when `tradinghours import`
+        # is run for the first time on a given database
         if tname("admin") not in self.metadata.tables:
             return
 
@@ -106,6 +109,9 @@ class DB:
                     table.c["id"].desc()).first()
             if result:
                 return result[0].replace(tzinfo=dt.UTC)
+
+    def get_access_level(self):
+        return self.query(self.table("admin").c["access_level"]).first()
 
     def needs_download(self):
         if local := self.get_local_timestamp():
@@ -224,18 +230,33 @@ class Writer:
         csv_dir = self.remote / "csv"
 
         # Iterate over all CSV files in the directory
-        for csv_file in os.listdir(csv_dir):
+        downloaded_csvs = os.listdir(csv_dir)
+        for csv_file in downloaded_csvs:
             if csv_file.endswith('.csv'):
                 file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
+                self.create_table_from_csv(file_path, table_name)
 
-                table = self.create_table_from_csv(file_path, table_name)
+        if "schedules.csv" not in downloaded_csvs:
+            access_level = "only_holidays"
+        elif "currencies.csv" not in downloaded_csvs:
+            access_level = "no_currencies"
+        else:
+            access_level = "full"
 
         db.update_metadata()
-        self.update_admin("full")
-
-        print("Ingested all CSV files and created tables.")
+        self.update_admin(access_level)
 
 
+"""
+full = all
+
+only_holidays = no schedules 
+
+no_currencies = schedules but no currencies
+
+ 
+
+"""
 
