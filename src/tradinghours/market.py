@@ -94,7 +94,7 @@ class Market(BaseModel):
                     yield current
 
     def _filter_weekdays(
-        self, weekday: str, schedules: Iterable[Schedule]
+        self, weekday: int, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
         for current in schedules:
             if weekdays_match(current.days, weekday):
@@ -130,7 +130,7 @@ class Market(BaseModel):
             schedules = self._filter_schedule_group(schedule_group, schedules)
 
             # Filters what is in force or for expected season
-            schedules = self._filter_inforce(current_date_str, schedules)
+            schedules = self._filter_inforce(current_date, schedules)
             schedules = self._filter_season(current_date, schedules)
 
             # Save for fallback and filter weekdays
@@ -162,17 +162,13 @@ class Market(BaseModel):
             # Generate phases for current date
             for current_schedule in found_schedules:
                 start_date = current_date
-                end_date = current_date + dt.timedelta(days=int(current_schedule.offset_days))
+                end_date = current_date + dt.timedelta(days=current_schedule.offset_days)
 
                 # Filter out phases not finishing after start because we
                 # began looking a few days ago to cover offset days
                 if end_date >= start:
-                    start_datetime = dt.datetime.combine(
-                        start_date, dt.time.fromisoformat(current_schedule.start)
-                    )
-                    end_datetime = dt.datetime.combine(
-                        end_date, dt.time.fromisoformat(current_schedule.end)
-                    )
+                    start_datetime = dt.datetime.combine(start_date, current_schedule.start)
+                    end_datetime = dt.datetime.combine(end_date, current_schedule.end)
                     # start_datetime = current_schedule.timezone_obj.localize(start_datetime)
                     # end_datetime = current_schedule.timezone_obj.localize(end_datetime)
                     zoneinfo_obj = ZoneInfo(current_schedule.timezone)
@@ -216,7 +212,7 @@ class Market(BaseModel):
         if as_dict:
             dateix = list(table.c.keys()).index("date")
             return {
-                dt.date.fromisoformat(r[dateix]): MarketHoliday(r) for r in result
+                r[dateix]: MarketHoliday(r) for r in result
             }
 
         return [MarketHoliday(r) for r in result]
