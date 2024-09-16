@@ -1,4 +1,4 @@
-import os, csv, re, codecs
+import os, csv, json, codecs
 import datetime as dt
 from pathlib import Path
 from pprint import pprint
@@ -215,7 +215,6 @@ class Writer:
         db.update_metadata()
         # print(f"Dropped all tables starting with {tprefix}.")
 
-
     def create_table_from_csv(self, file_path, table_name):
         """Creates a SQL table dynamically from a CSV file."""
 
@@ -238,7 +237,44 @@ class Writer:
 
         table.create(db.engine)
         db.execute(table.insert(), batch)
-        return table
+
+    def create_table_from_json(self, file_path, table_name):
+        """
+        This method takes a filepath to a json file that should hold a list of dictionaries.
+         It is probably redundant, but it makes sure that the table created is flexible in regard to
+         the content of the dictionaries by following these steps:
+
+        # find all keys that exist
+        # filter out keys that don't exist in every dictionary
+        # clean these keys using clean_name
+        # create a table with the cleaned keys
+        # insert a batch of fields that exist in every dictionary
+        """
+        with open(file_path, "r") as data:
+            data = json.load(data)
+
+        keys = {}
+        len_data = 0
+        for dct in data:
+            len_data += 1
+            for k in dct:
+                keys[k] = keys.setdefault(k, 0) + 1
+
+        columns = [(k, clean_name(k)) for k, n in keys.items() if n == len_data]
+        table = Table(
+            table_name,
+            db.metadata,
+            Column('id', Integer, primary_key=True),
+            *(Column(col_name, DB.get_type(col_name)) for k, col_name in columns)
+        )
+        batch = []
+        for dct in data:
+            batch.append({clean_k: dct.get(k, "") for k, clean_k in columns})
+
+        table.create(db.engine)
+        db.execute(table.insert(), batch)
+
+
 
     def update_admin(self, access_level):
         version_file = self.remote / "VERSION.txt"
@@ -269,6 +305,11 @@ class Writer:
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
                 self.create_table_from_csv(file_path, table_name)
+
+        self.create_table_from_json(
+            self.remote / "covered_markets.json",
+            tname("covered_markets")
+        )
 
         if "schedules.csv" not in downloaded_csvs:
             access_level = "only_holidays"
