@@ -101,6 +101,9 @@ class MissingSqlAlchemyError(TradingHoursError):
 class NoAccess(TradingHoursError):
     pass
 
+class NotCovered(TradingHoursError):
+    pass
+
 class MissingTzdata(TradingHoursError):
     pass
 

@@ -1,5 +1,6 @@
 import os
 import pytest
+from tradinghours.store import db
 
 @pytest.fixture
 def level():
@@ -9,6 +10,5 @@ def level():
         no_currencies = full except for currencies
         only_holidays = only holidays
     """
-
-    return os.environ.get("API_KEY_LEVEL", "full").strip()
+    return db.access_level
 

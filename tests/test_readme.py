@@ -4,10 +4,9 @@ from tradinghours import Market
 from tradinghours.currency import Currency, CurrencyHoliday
 from tradinghours.dynamic_models import Phase, MarketHoliday
 from tradinghours.exceptions import NoAccess
-
+import tradinghours.store as st
 from pathlib import Path
 
-LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 def test_market_list_all(level):
 
@@ -39,7 +38,10 @@ def test_market_list_holidays(level):
         assert str(obj) == MarketHoliday.get_string_format().format(**obj.to_dict())
 
 
-@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
+@pytest.mark.xfail(
+    st.db.access_level == st.AccessLevel.only_holidays,
+    reason="No access", strict=True, raises=NoAccess
+)
 def test_generate_phases(level):
     market = Market.get('XNYS')
     schedules = market.generate_phases("2023-09-01", "2023-09-30")
@@ -48,13 +50,19 @@ def test_generate_phases(level):
         assert str(obj) == Phase.get_string_format().format(**obj.to_dict())
 
 
-@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
+@pytest.mark.xfail(
+    st.db.access_level != st.AccessLevel.full,
+    reason="No access", strict=True, raises=NoAccess
+)
 def test_currencies_list_all(level):
     for obj in Currency.list_all():
         assert str(obj) == Currency.get_string_format().format(**obj.to_dict())
 
 
-@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
+@pytest.mark.xfail(
+    st.db.access_level != st.AccessLevel.full,
+    reason="No access", strict=True, raises=NoAccess
+)
 def test_currency_list_holidays(level):
     currency = Currency.get('AUD')
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
@@ -66,7 +74,10 @@ def strip(line, sub):
     except ValueError:
         return line
 
-@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
+@pytest.mark.xfail(
+    st.db.access_level != st.AccessLevel.full,
+    reason="No access", strict=True, raises=NoAccess
+)
 def test_code_blocks():
     with open(Path("README.md"), "r", encoding="utf-8") as readme:
         readme = readme.readlines()

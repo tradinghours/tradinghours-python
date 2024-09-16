@@ -7,11 +7,17 @@ from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from typing import Union
 import functools
+from enum import Enum
 
 from .config import main_config
 from .client import get_json as client_get_json, get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name
 from .exceptions import DBError, NoAccess
+
+class AccessLevel(Enum):
+    full = "full"
+    no_currencies = "no_currencies"
+    only_holidays = "only_holidays"
 
 class DB:
     _instance = None
@@ -32,10 +38,10 @@ class DB:
         # Everything else is String
     }
     _access = {
-        "Currency.list_all" : {"full"},
-        "Currency.get": {"full"},
-        "Market.list_schedules": {"full", "no_currencies"},
-        "Market.generate_phases": {"full", "no_currencies"}
+        "Currency.list_all" : {AccessLevel.full},
+        "Currency.get": {AccessLevel.full},
+        "Market.list_schedules": {AccessLevel.full, AccessLevel.no_currencies},
+        "Market.generate_phases": {AccessLevel.full, AccessLevel.no_currencies}
     }
 
     @classmethod
@@ -122,7 +128,7 @@ class DB:
                 table.c['id'].desc()
             ).first()
 
-            self._access_level = level[0]
+            self._access_level = AccessLevel(level[0])
 
         return self._access_level
 
@@ -286,7 +292,7 @@ class Writer:
         db.execute(
             db.table("admin").insert().values(
                 data_timestamp=data_timestamp,
-                access_level=access_level,
+                access_level=access_level.value,
                 download_timestamp=dt.datetime.now(dt.UTC).replace(tzinfo=None)
             )
         )
@@ -312,11 +318,11 @@ class Writer:
         )
 
         if "schedules.csv" not in downloaded_csvs:
-            access_level = "only_holidays"
+            access_level = AccessLevel.only_holidays
         elif "currencies.csv" not in downloaded_csvs:
-            access_level = "no_currencies"
+            access_level = AccessLevel.no_currencies
         else:
-            access_level = "full"
+            access_level = AccessLevel.full
 
         db.update_metadata()
         self.update_admin(access_level)

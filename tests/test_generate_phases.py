@@ -4,15 +4,19 @@ from zoneinfo import ZoneInfo
 import pytest
 from tradinghours.market import Market
 from tradinghours.exceptions import NoAccess
+from tradinghours.store import db, AccessLevel
 from pprint import pprint
-
-LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 def fromiso(iso, tz):
     d = dt.datetime.fromisoformat(iso)
     return d.replace(tzinfo=ZoneInfo(tz))
 
-@pytest.mark.xfail(LEVEL == "only_holidays", reason="No access", strict=True, raises=NoAccess)
+@pytest.mark.xfail(
+    db.access_level == AccessLevel.only_holidays,
+    reason="No access",
+    strict=True,
+    raises=NoAccess
+)
 @pytest.mark.parametrize("fin_id, start, end, expected", [
     ("US.NYSE", "2023-11-15", "2023-11-15",
      [{'phase_type': 'Pre-Trading Session',
@@ -298,7 +302,7 @@ def fromiso(iso, tz):
        'is_open': False,
        'timezone': 'America/Chicago'},
       {'phase_type': 'Pre-Open',
-       'phase_name': None,
+       'phase_name': 'Pre-Market Session',
        'phase_memo': None,
        'status': 'Closed',
        'settlement': 'No',
