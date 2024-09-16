@@ -10,7 +10,7 @@ import functools
 from enum import Enum
 
 from .config import main_config
-from .client import get_json as client_get_json, get_remote_timestamp as client_get_remote_timestamp
+from .client import get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name
 from .exceptions import DBError, NoAccess
 

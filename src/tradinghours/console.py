@@ -7,7 +7,11 @@ from threading import Thread
 
 from . import __version__
 from .store import Writer, db
-from .client import download as client_download, get_remote_timestamp as client_get_remote_timestamp
+from .client import (
+    download as client_download,
+    get_remote_timestamp as client_get_remote_timestamp,
+    timed_action
+)
 from .currency import Currency
 from .market import Market
 from .exceptions import TradingHoursError, NoAccess
@@ -22,29 +26,6 @@ def print_help(text):
     print("\n".join(lines))
     print()
 
-
-@contextmanager
-def timed_action(message: str):
-    start = time.time()
-    print(f"{message}...", end="", flush=True)
-
-    done = False
-
-    def print_dots():
-        while not done:
-            print(".", end="", flush=True)
-            time.sleep(0.5)
-
-    thread = Thread(target=print_dots)
-    thread.daemon = True
-    thread.start()
-
-    yield start
-
-    elapsed = time.time() - start
-    done = True
-    thread.join()
-    print(f" ({elapsed:.3f}s)")
 
 
 def create_parser():
@@ -70,21 +51,19 @@ def create_parser():
 
 def run_status(args):
     db.ready()
-    with timed_action("Collecting timestamps"):
-        remote_timestamp = client_get_remote_timestamp()
-        local_timestamp = db.get_local_timestamp()
+    remote_timestamp = client_get_remote_timestamp()
+    local_timestamp = db.get_local_timestamp()
     print("TradingHours Data Status:")
     print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
     print()
     if args.extended:
         if local_timestamp:
-            with timed_action("Reading local data"):
-                try:
-                    all_currencies = list(Currency.list_all())
-                except NoAccess:
-                    all_currencies = []
-                all_markets = list(Market.list_all())
+            try:
+                all_currencies = list(Currency.list_all())
+            except NoAccess:
+                all_currencies = []
+            all_markets = list(Market.list_all())
             print("  Currencies count:  ", len(all_currencies))
             print("  Markets count:     ", len(all_markets))
         else:
@@ -98,8 +77,7 @@ def run_import(args):
         return
 
     if args.force or db.needs_download():
-        with timed_action("Downloading"):
-            client_download()
+        client_download()
         with timed_action("Ingesting"):
             Writer().ingest_all()
     else:
