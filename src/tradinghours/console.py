@@ -10,7 +10,7 @@ from .store import Writer, db
 from .client import download as client_download, get_remote_timestamp as client_get_remote_timestamp
 from .currency import Currency
 from .market import Market
-from .exceptions import TradingHoursError
+from .exceptions import TradingHoursError, NoAccess
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
@@ -80,9 +80,11 @@ def run_status(args):
     if args.extended:
         if local_timestamp:
             with timed_action("Reading local data"):
-                all_currencies = list(Currency.list_all())
+                try:
+                    all_currencies = list(Currency.list_all())
+                except NoAccess:
+                    all_currencies = []
                 all_markets = list(Market.list_all())
-            print(f"Extended Information (Access Level: {db.access_level}):")
             print("  Currencies count:  ", len(all_currencies))
             print("  Markets count:     ", len(all_markets))
         else:
