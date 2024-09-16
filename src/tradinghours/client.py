@@ -70,8 +70,8 @@ def get_response(path):
     return response
 
 
-def download_zip_file():
-    response = get_response("download")
+def download_zip_file(path="download"):
+    response = get_response(path)
     if response.status == 200:
         with tempfile.NamedTemporaryFile() as temp_file:
             shutil.copyfileobj(response, temp_file)

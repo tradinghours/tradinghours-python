@@ -27,7 +27,7 @@ def test_raises_no_access(level):
     # These should never raise NoAccess
     Market.list_all()
     nyse = Market.get("US.NYSE")
-    nyse.list_holidays("2024", "2025")
+    nyse.list_holidays("2024-01-01", "2025-01-01")
     if level == st.AccessLevel.full:
         nyse.list_schedules()
         list(nyse.generate_phases("2024-09-12", "2024-09-13"))
