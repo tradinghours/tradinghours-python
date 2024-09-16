@@ -6,11 +6,12 @@ from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, 
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from typing import Union
+import functools
 
 from .config import main_config
 from .client import get_json as client_get_json, get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name
-from .exceptions import DBError
+from .exceptions import DBError, NoAccess
 
 class DB:
     _instance = None
@@ -29,6 +30,12 @@ class DB:
         "in_force_end_date": (Date, dt.date.fromisoformat),
         "year": (Integer, int),
         # Everything else is String
+    }
+    _access = {
+        "Currency.list_all" : {"full"},
+        "Currency.get": {"full"},
+        "Market.list_schedules": {"full", "no_currencies"},
+        "Market.generate_phases": {"full", "no_currencies"}
     }
 
     @classmethod
@@ -49,7 +56,6 @@ class DB:
             case _:
                 return converter(value) if value else None
 
-
     def __new__(cls):
         if cls._instance is None:
             cls._instance = self = super().__new__(cls)
@@ -62,7 +68,7 @@ class DB:
                 self._failed_to_access = True
 
             self.Session = sessionmaker(bind=self.engine)
-            # self.session = self.Session()
+            self._access_level = None
 
         return cls._instance
 
@@ -94,7 +100,6 @@ class DB:
         with self.session() as s:
             return s.query(*query)
 
-
     def get_local_timestamp(self):
         # admin table is not present when `tradinghours import`
         # is run for the first time on a given database
@@ -111,18 +116,34 @@ class DB:
 
     @property
     def access_level(self):
-        if hasattr(self, "_access_level"):
-            return self._access_level
+        if self._access_level is None:
+            table = self.table("admin")
+            level = self.query(table.c["access_level"]).order_by(
+                table.c['id'].desc()
+            ).first()
 
-        table = self.table("admin")
-        level = self.execute(
-            table.select()
-            .with_only_columns(table.c["access_level"])
-            .order_by(table.c['id'].desc())
-        ).first()
+            self._access_level = level[0]
 
-        self._access_level = level[0]
-        return level
+        return self._access_level
+
+    @classmethod
+    def check_access(cls, method):
+        """
+        Used as a decorator of Currency and Market methods,
+         to check whether the user has access to the data requested.
+        """
+        method_name = method.__qualname__
+        not_has_access = db.access_level not in cls._access[method_name]
+
+        @functools.wraps(method)
+        def new_method(*args, **kwargs):
+            if not_has_access:
+                raise NoAccess(f"\n\nYou're access level ({db.access_level}) does not provide access to {method_name}."
+                               f"\nConsider upgrading on https://www.tradinghours.com/data#products")
+            return method(*args, **kwargs)
+
+        return new_method
+
 
     def needs_download(self):
         if local := self.get_local_timestamp():
@@ -265,9 +286,6 @@ full = all
 
 only_holidays = no schedules
  
-
 no_currencies = schedules but no currencies
- 
-
 """
 

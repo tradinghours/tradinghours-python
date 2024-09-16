@@ -26,10 +26,6 @@ class BaseModel:
     _access_levels: set = set()
 
     @classmethod
-    def check_access(cls):
-        return db.access_level in cls._access_levels
-
-    @classmethod
     @property
     def table(cls) -> "Table":
         return db.table(cls._table)

@@ -100,6 +100,7 @@ class Market(BaseModel):
             if weekdays_match(current.days, weekday):
                 yield current
 
+    @db.check_access
     def generate_phases(
         self, start: StrOrDate, end: StrOrDate
     ) -> Generator[Phase, None, None]:
@@ -216,6 +217,7 @@ class Market(BaseModel):
 
         return [MarketHoliday(r) for r in result]
 
+    @db.check_access
     def list_schedules(self) -> list["Schedule"]:
         schedules = db.query(Schedule.table).filter(
             Schedule.table.c["fin_id"] == self.fin_id
