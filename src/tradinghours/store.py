@@ -116,9 +116,10 @@ class DB:
         with self.session() as s:
             result = s.query(
                 table.c["data_timestamp"]).order_by(
-                    table.c["id"].desc()).first()
+                    table.c["id"].desc()
+            ).limit(1).scalar()
             if result:
-                return result[0].replace(tzinfo=dt.UTC)
+                return result.replace(tzinfo=dt.UTC)
 
     @property
     def access_level(self):
@@ -126,9 +127,9 @@ class DB:
             table = self.table("admin")
             level = self.query(table.c["access_level"]).order_by(
                 table.c['id'].desc()
-            ).first()
+            ).limit(1).scalar()
 
-            self._access_level = AccessLevel(level[0])
+            self._access_level = AccessLevel(level)
 
         return self._access_level
 

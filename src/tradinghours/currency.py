@@ -4,6 +4,7 @@ from .typing import StrOrDate
 from .validate import validate_range_args, validate_date_arg
 from .dynamic_models import BaseModel, CurrencyHoliday
 from .store import db
+from .exceptions import NotCovered
 
 class Currency(BaseModel):
     _table = "currencies"
@@ -45,5 +46,11 @@ class Currency(BaseModel):
     def get(cls, code: str) -> "Currency":
         result = db.query(cls.table).filter(
             cls.table.c["currency_code"] == code
-        ).one()
-        return cls(result)
+        ).one_or_none()
+        if result:
+            return cls(result)
+
+        # if no result found, raise NotCovered
+        raise NotCovered(
+            f"The currency '{code}' is currently not available."
+        )

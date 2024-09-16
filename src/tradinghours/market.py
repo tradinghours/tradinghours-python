@@ -15,6 +15,7 @@ from .dynamic_models import (
 from .validate import validate_range_args, validate_date_arg, validate_finid_arg, validate_str_arg
 from .store import db
 from .util import weekdays_match
+from .exceptions import NoAccess, NotCovered
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -245,6 +246,16 @@ class Market(BaseModel):
 
         if found:
             return cls(found)
+
+        # if not found, check if it is covered at all and raise appropriate Exception
+        if db.is_covered(finid):
+            raise NoAccess(
+                f"The market '{finid}' is supported but not available on your current plan."
+                f" Please learn more or contact sales at https://www.tradinghours.com/data"
+            )
+        raise NotCovered(
+            f"The market '{finid}' is currently not available."
+        )
 
     @classmethod
     def get_by_mic(cls, mic: str, follow=True) -> Union[None, "Market"]:
