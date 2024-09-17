@@ -21,7 +21,7 @@ jobs:
 
       - name: get current version
         id: current_version
-        run: |
+        run: | # checks if __init__.__version__ is incremented, and then creates a DEV_VERSION for test.pypi
           PYPI_VERSION=$(pip index versions tradinghours | cut -d'(' -f2 | cut -d')' -f1 | sed 1q)
           NEW_VERSION=$(grep '__version__' src/tradinghours/__init__.py | cut -d '"' -f 2)
           echo "comparing $NEW_VERSION with $PYPI_VERSION"
