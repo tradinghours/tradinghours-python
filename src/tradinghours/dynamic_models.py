@@ -43,11 +43,12 @@ class BaseModel:
                 )
             }
 
-        self._data = data
+        self._data = {}
         _fields = []
         for key, value in data.items():
             if key != "id":
                 setattr(self, key, value)
+                self._data[key] = value
                 _fields.append(key)
 
         if not self.__class__._fields:

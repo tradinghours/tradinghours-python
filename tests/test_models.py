@@ -130,7 +130,6 @@ def test_phase_type_instance_fields(level):
     if level == st.AccessLevel.only_holidays:
         with pytest.raises(NoAccess) as exception:
             PhaseType.as_dict()
-        assert str(exception.value) == "You didn't run `tradinghours import` or you dont have access to phases."
         return
     else:
         phase_types = PhaseType.as_dict()
@@ -168,7 +167,7 @@ def test_string_format(level):
     assert str(market_holiday) == 'MarketHoliday: US.NYSE 2007-11-22 Thanksgiving Day'
 
     if level != st.AccessLevel.full:
-        with pytest.raises(NoAccess) as exception:
+        with pytest.raises(NoAccess):
             Currency.get('AUD')
         # assert str(exception.value) == "You didn't run `tradinghours import` or you dont have access to currencies."
     else:

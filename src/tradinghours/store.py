@@ -18,6 +18,7 @@ class AccessLevel(Enum):
     full = "full"
     no_currencies = "no_currencies"
     only_holidays = "only_holidays"
+    no_access = None
 
 class DB:
     _instance = None
@@ -43,6 +44,12 @@ class DB:
         "Market.list_schedules": {AccessLevel.full, AccessLevel.no_currencies},
         "Market.generate_phases": {AccessLevel.full, AccessLevel.no_currencies}
     }
+    _no_model_access = {
+        AccessLevel.full: set(),
+        AccessLevel.no_currencies: {"currencies", "currency_holidays"},
+        AccessLevel.only_holidays: {"currencies", "currency_holidays", "phases", "schedules", "season_definitions"}
+    }
+
 
     @classmethod
     def get_type(cls, col_name):
@@ -78,10 +85,25 @@ class DB:
 
         return cls._instance
 
-    def table(self, table_name):
-        return self.metadata.tables[tname(table_name)]
+    def table(self, table_name: str) -> Table:
+        try:
+            return self.metadata.tables[tname(table_name)]
+        except KeyError:
+            # using self._access_level instead of property to avoid an infinite recursion
+            # when running on a new database without an access_level. If ._access_level is None,
+            # it would check if table_name is in an empty set, which would make it raise a KeyError,
+            # which is handled properly in .access_level property.
+            if self._access_level == AccessLevel.no_access:
+                raise DBError(f"{table_name} could not be found. Are you sure you ran `tradinghours import`?")
 
-    def ready(self):
+            if table_name in self._no_model_access.get(self._access_level, set()):
+                raise NoAccess(
+                    f"\nIf you are sure you ran `tradinghours import`, {table_name} is not available on your current plan."
+                    f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
+                )
+            raise
+
+    def ready(self) -> None:
         if getattr(self, "_failed_to_access", True):
             raise DBError("Could not access database")
 
@@ -122,14 +144,20 @@ class DB:
                 return result.replace(tzinfo=dt.UTC)
 
     @property
-    def access_level(self):
+    def access_level(self) -> AccessLevel:
         if self._access_level is None:
-            table = self.table("admin")
-            level = self.query(table.c.access_level).order_by(
-                table.c.id.desc()
-            ).limit(1).scalar()
-            if not level:
-                raise DBError("Could not load internal data. Did you run `tradinghours import`?")
+            try:
+                table = self.table("admin")
+            except KeyError:
+                # This should only be the case when ingesting into a completely new
+                # database, that doesn't have an admin table yet.
+                level = None
+            else:
+                level = self.query(table.c.access_level).order_by(
+                    table.c.id.desc()
+                ).limit(1).scalar()
+                if not level:
+                    raise DBError("Could not load internal data. Did you run `tradinghours import`?")
 
             self._access_level = AccessLevel(level)
 
