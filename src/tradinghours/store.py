@@ -147,8 +147,8 @@ class DB:
         @functools.wraps(method)
         def new_method(*args, **kwargs):
             if not_has_access:
-                raise NoAccess(f"\n\nYou're access level ({db.access_level}) does not provide access to {method_name}."
-                               f"\nConsider upgrading on https://www.tradinghours.com/data#products")
+                raise NoAccess(f"\n\n{method_name} is supported but not available on your current plan."
+                               f"\nPlease learn more or contact sales at https://www.tradinghours.com/data")
             return method(*args, **kwargs)
 
         return new_method

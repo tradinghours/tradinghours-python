@@ -206,9 +206,9 @@ class Market(BaseModel):
         )
         table = MarketHoliday.table
         result = db.query(table).filter(
-            table.c["fin_id"] == self.fin_id,
-            table.c["date"] >= start.isoformat(),
-            table.c["date"] <= end.isoformat()
+            table.c.fin_id == self.fin_id,
+            table.c.date >= start.isoformat(),
+            table.c.date <= end.isoformat()
         )
         if as_dict:
             dateix = list(table.c.keys()).index("date")
@@ -221,13 +221,13 @@ class Market(BaseModel):
     @db.check_access
     def list_schedules(self) -> list["Schedule"]:
         schedules = db.query(Schedule.table).filter(
-            Schedule.table.c["fin_id"] == self.fin_id
+            Schedule.table.c.fin_id == self.fin_id
         ).order_by(
-            Schedule.table.c["schedule_group"].asc().nullsfirst(),
-            Schedule.table.c["in_force_start_date"].asc().nullsfirst(),
-            Schedule.table.c["season_start"].asc().nullsfirst(),
-            Schedule.table.c["start"].asc(),
-            Schedule.table.c["end"].asc()
+            Schedule.table.c.schedule_group.asc().nullsfirst(),
+            Schedule.table.c.in_force_start_date.asc().nullsfirst(),
+            Schedule.table.c.season_start.asc().nullsfirst(),
+            Schedule.table.c.start.asc(),
+            Schedule.table.c.end.asc()
         )
         return [Schedule(r) for r in schedules]
 
@@ -240,7 +240,7 @@ class Market(BaseModel):
         return found is not None
 
     @classmethod
-    def _get_by_finid(cls, finid:str) -> Union[None, tuple]:
+    def _get_by_finid(cls, finid:str, following=None) -> Union[None, tuple]:
         found = db.query(cls.table).filter(
             cls.table.c.fin_id == finid
         ).one_or_none()
@@ -248,13 +248,14 @@ class Market(BaseModel):
             return found
 
         # if not found, check if it is covered at all and raise appropriate Exception
+        following = f" (following: '{following}')" if following else ""
         if cls._is_covered(finid):
             raise NoAccess(
-                f"The market '{finid}' is supported but not available on your current plan."
-                f" Please learn more or contact sales at https://www.tradinghours.com/data"
+                f"\n\nThe market '{finid}'{following} is supported but not available on your current plan."
+                f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
             )
         raise NotCovered(
-            f"The market '{finid}' is currently not available."
+            f"The market '{finid}'{following} is currently not available."
         )
 
     @classmethod
@@ -263,8 +264,8 @@ class Market(BaseModel):
         finid = validate_finid_arg("finid", finid)
         found = cls._get_by_finid(finid)
 
-        while found and found.replaced_by and follow:
-            found = cls._get_by_finid(found.replaced_by)
+        while found and (temp_found := cls(found)).replaced_by and follow:
+            found = cls._get_by_finid(temp_found.replaced_by)
 
         if found:
             return cls(found)

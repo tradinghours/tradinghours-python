@@ -108,7 +108,7 @@ def download():
                 if (time.time() - start_time) > 90:
                     raise ClientError("Failed downloading data, please try again.")
 
-                change_message("Generating")
+                change_message("Generating (~ 1min)")
                 time.sleep(5 if waited else 30)
                 waited = True
 
