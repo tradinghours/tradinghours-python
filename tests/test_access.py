@@ -51,6 +51,35 @@ def test_raises_no_access(level):
             list(nyse.generate_phases("2024-09-12", "2024-09-13"))
 
 
+def test_raise_not_covered(covered_record):
+    """
+    NotCovered should be raised when
+     Market.get(fin_id)
+        not in csvs and not in covered
+
+     (it should raise NoAccess when
+       Market.get(fin_id) not in csvs but in covered)
+
+    I need to add a test value
+
+     Currency.get(code) should raise NotCovered when it is not found
+    """
+    with pytest.raises(ex.NotCovered):
+        Market.get("XX.NOTCOVERED")
+
+    with pytest.raises(ex.NoAccess):
+        Market.get("XX.TEST")
+
+    # should raise nothing
+    Market.get("US.NYSE")
+
+    with pytest.raises(ex.NotCovered):
+        Currency.get("NOTCOVERED")
+
+    # should raise nothing
+    Currency.get("EUR")
+
+
 
 
 

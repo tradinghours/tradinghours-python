@@ -125,9 +125,11 @@ class DB:
     def access_level(self):
         if self._access_level is None:
             table = self.table("admin")
-            level = self.query(table.c["access_level"]).order_by(
-                table.c['id'].desc()
+            level = self.query(table.c.access_level).order_by(
+                table.c.id.desc()
             ).limit(1).scalar()
+            if not level:
+                raise DBError("Could not load internal data. Did you run `tradinghours import`?")
 
             self._access_level = AccessLevel(level)
 

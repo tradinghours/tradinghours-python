@@ -232,23 +232,23 @@ class Market(BaseModel):
         return [Schedule(r) for r in schedules]
 
     @classmethod
-    def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
-        finid = finid.upper()
-        finid = validate_finid_arg("finid", finid)
-        found = db.query(cls.table).filter(
-            cls.table.c["fin_id"] == finid
+    def _is_covered(cls, finid: str):
+        table = db.table("covered_markets")
+        found = db.query(table).filter(
+            table.c.fin_id == finid
         ).one_or_none()
+        return found is not None
 
-        if found and found.replaced_by and follow:
-            found = db.query(cls.table).filter(
-                cls.table.c["fin_id"] == found.replaced_by
-            ).one_or_none()
-
-        if found:
-            return cls(found)
+    @classmethod
+    def _get_by_finid(cls, finid:str) -> Union[None, tuple]:
+        found = db.query(cls.table).filter(
+            cls.table.c.fin_id == finid
+        ).one_or_none()
+        if found is not None:
+            return found
 
         # if not found, check if it is covered at all and raise appropriate Exception
-        if db.is_covered(finid):
+        if cls._is_covered(finid):
             raise NoAccess(
                 f"The market '{finid}' is supported but not available on your current plan."
                 f" Please learn more or contact sales at https://www.tradinghours.com/data"
@@ -258,11 +258,24 @@ class Market(BaseModel):
         )
 
     @classmethod
+    def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
+        finid = finid.upper()
+        finid = validate_finid_arg("finid", finid)
+        found = cls._get_by_finid(finid)
+
+        while found and found.replaced_by and follow:
+            found = cls._get_by_finid(found.replaced_by)
+
+        if found:
+            return cls(found)
+
+
+    @classmethod
     def get_by_mic(cls, mic: str, follow=True) -> Union[None, "Market"]:
         mic = mic.upper()
         mic = validate_str_arg("mic", mic)
         mapping = db.query(MicMapping.table).filter(
-            MicMapping.table.c["mic"] == mic
+            MicMapping.table.c.mic == mic
         ).one_or_none()
         if mapping:
             return cls.get_by_finid(mapping.fin_id, follow=follow)

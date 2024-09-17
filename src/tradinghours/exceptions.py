@@ -99,9 +99,18 @@ class MissingSqlAlchemyError(TradingHoursError):
         )
 
 class NoAccess(TradingHoursError):
+    """
+    Raised when a user attempts accessing a type of data
+    that is not available under their current plan.
+    """
     pass
 
 class NotCovered(TradingHoursError):
+    """
+    Raised when a user attempts to access a specific data item
+     that is not covered by Tradinghours but the type of data
+     (e.g.: Currencies) are available under their current plan.
+    """
     pass
 
 class MissingTzdata(TradingHoursError):
