@@ -76,7 +76,6 @@ class Market(BaseModel):
     def _filter_season(
         self, some_date: dt.date, schedules: Iterable[Schedule]
     ) -> Iterable[Schedule]:
-        some_date_str = some_date.isoformat()
         for current in schedules:
             # If there is no season, it means there is no restriction in terms
             # of the season when this schedule is valid, and as such it is valid,
@@ -207,8 +206,8 @@ class Market(BaseModel):
         table = MarketHoliday.table
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id,
-            table.c.date >= start.isoformat(),
-            table.c.date <= end.isoformat()
+            table.c.date >= start,
+            table.c.date <= end
         )
         if as_dict:
             dateix = list(table.c.keys()).index("date")
@@ -223,9 +222,9 @@ class Market(BaseModel):
         schedules = db.query(Schedule.table).filter(
             Schedule.table.c.fin_id == self.fin_id
         ).order_by(
-            Schedule.table.c.schedule_group.asc().nullsfirst(),
-            Schedule.table.c.in_force_start_date.asc().nullsfirst(),
-            Schedule.table.c.season_start.asc().nullsfirst(),
+            Schedule.table.c.schedule_group.asc(),
+            Schedule.table.c.in_force_start_date.asc(),
+            Schedule.table.c.season_start.asc(),
             Schedule.table.c.start.asc(),
             Schedule.table.c.end.asc()
         )

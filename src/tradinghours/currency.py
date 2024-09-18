@@ -29,9 +29,9 @@ class Currency(BaseModel):
         )
         table = CurrencyHoliday.table
         result = db.query(table).filter(
-            table.c["currency_code"] == self.currency_code,
-            table.c["date"] >= start.isoformat(),
-            table.c["date"] <= end.isoformat()
+            table.c.currency_code == self.currency_code,
+            table.c.date >= start,
+            table.c.date <= end
         )
         return [CurrencyHoliday(r) for r in result]
 

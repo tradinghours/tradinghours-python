@@ -173,7 +173,7 @@ class DB:
 
     @property
     def access_level(self) -> AccessLevel:
-        if self._access_level is None:
+        if self._access_level is AccessLevel.no_access:
             try:
                 table = self.table("admin")
             except KeyError:
@@ -391,7 +391,7 @@ class Writer:
 
         self.create_admin(access_level, last_9_admin_records)
 
-    def ingest_all(self):
+    def ingest_all(self) -> bool:
         try:
             self._ingest_all()
             return True
