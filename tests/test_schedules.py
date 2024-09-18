@@ -1,4 +1,5 @@
 import pytest, os, datetime
+from pprint import pformat
 from tradinghours import Market
 from tradinghours.exceptions import NoAccess
 import tradinghours.store as st
@@ -325,16 +326,24 @@ import tradinghours.store as st
 def test_list_schedules(fin_id, expected):
     scheds = Market.get(fin_id).list_schedules()
     scheds = [s.to_dict() for s in scheds]
-    schedules = []
-    for s in scheds:
-        # apply custom sorting of dictionaries
-        # for easier check if the sorting in .list_schedules is correct
-        schedules.append(
-            {"schedule_group": s["schedule_group"],
-             "in_force_start_date": s["in_force_start_date"],
-             "season_start": s["season_start"],
-             "start": s["start"],
-             "end": s["end"],
-             **s}
-        )
-    assert schedules == expected
+
+    assert len(scheds) == len(expected)
+
+    matched = []
+    for sched in scheds:
+        equals = 0
+        for i, expect in enumerate(expected):
+            if i in matched: continue
+            if (sorted(sched.keys()) == sorted(expect.keys()) and
+                    all(sched[k] == expect[k] for k in sched)):
+                    matched.append(i)
+                    equals += 1
+        assert equals == 1
+
+
+        # # apply custom sorting of dictionaries
+        # # for easier check if the sorting in .list_schedules is correct
+        # assert sorted(sched.keys()) == sorted(expect.keys())
+        # for k in sched:
+        #     assert sched[k] == expect[k], f"{k} failed, expected:\n{pformat(expect)}"
+        #

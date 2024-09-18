@@ -102,7 +102,7 @@ class DB:
                 self._failed_to_access = True
 
             self.Session = sessionmaker(bind=self.engine)
-            self._access_level = AccessLevel.no_access
+            self._access_level = None
 
         return cls._instance
 
@@ -173,7 +173,7 @@ class DB:
 
     @property
     def access_level(self) -> AccessLevel:
-        if self._access_level is AccessLevel.no_access:
+        if self._access_level is None:
             try:
                 table = self.table("admin")
             except KeyError:
