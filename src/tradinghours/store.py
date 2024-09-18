@@ -2,7 +2,7 @@ import os, csv, json, codecs
 import datetime as dt
 from pathlib import Path
 from pprint import pprint
-from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, Time, Date, Boolean
+from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, Time, Date, Boolean, Text
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from typing import Union
@@ -36,8 +36,9 @@ class DB:
         "in_force_start_date": (Date, dt.date.fromisoformat),
         "in_force_end_date": (Date, dt.date.fromisoformat),
         "year": (Integer, int),
-        # Everything else is String
+        # Everything else is Text
     }
+    _default_type = (Text, str)
     _access = {
         "Currency.list_all" : {AccessLevel.full},
         "Currency.get": {AccessLevel.full},
@@ -51,10 +52,21 @@ class DB:
         AccessLevel.only_holidays: {"currencies", "currency_holidays", "phases", "schedules", "season_definitions"}
     }
 
+    @classmethod
+    def set_no_unicode(cls):
+        """
+        MySQL databases can't handle the full unicode set by default. So if a
+        mysql db is used and the ingestion fails, it is attempted again with the following
+        conversion, which replaces unicode characters with '?'.
+        """
+        cls._default_type = (
+            Text,
+            lambda s: str(s).encode("ascii", "replace").decode("ascii")
+        )
 
     @classmethod
     def get_type(cls, col_name):
-        return cls._types.get(col_name, (String, None))[0]
+        return cls._types.get(col_name, cls._default_type)[0]
 
     @classmethod
     def clean(cls, col_name: str, value: Union[bool, str, None]) -> Union[bool, str, None]:
@@ -63,7 +75,7 @@ class DB:
          For observed columns 'OBS' is True, anything else is False
          For other columns, empty strings should be converted to None
         """
-        converter = cls._types.get(col_name, (None, str))[1]
+        converter = cls._types.get(col_name, cls._default_type)[1]
         match col_name:
             case "observed":
                 return converter(value)
@@ -90,7 +102,7 @@ class DB:
                 self._failed_to_access = True
 
             self.Session = sessionmaker(bind=self.engine)
-            self._access_level = None
+            self._access_level = AccessLevel.no_access
 
         return cls._instance
 
@@ -118,6 +130,13 @@ class DB:
 
         if tname("admin") not in self.metadata.tables:
             raise DBError("Database not prepared. Did you run `tradinghours import`?")
+
+    def reset_session(self):
+        if hasattr(self, "_session"):
+           self._session.rollback()
+           self._session.close()
+
+        self._session = self.Session()
 
     @contextmanager
     def session(self):
@@ -165,9 +184,6 @@ class DB:
                 level = self.query(table.c.access_level).order_by(
                     table.c.id.desc()
                 ).limit(1).scalar()
-                if not level:
-                    raise DBError("Could not load internal data. Did you run `tradinghours import`?")
-
             self._access_level = AccessLevel(level)
 
         return self._access_level
@@ -215,51 +231,39 @@ class Writer:
     def __init__(self):
         self.remote = Path(main_config.get("data", "remote_dir"))
 
-    def prepare_th_admin(self):
+    def prepare_ingestion(self):
         """Preserves the last 9 records from the thstore_admin table,
         drops the table, recreates it, and re-inserts the 9 records."""
         table_name = tname("admin")
-        table_exists = table_name in db.metadata.tables
         last_9_records = []
+        if table_name not in db.metadata.tables:
+            return last_9_records
 
-        if table_exists:
-            table = db.metadata.tables[table_name]
-            columns_to_select = [col for col in table.c.values() if col.name != 'id']
-            result = db.execute(
-                table.select()
-                .with_only_columns(*columns_to_select)
-                .order_by(table.c['id'].desc())
-                .limit(9)
-            )
-
-            # Fetch all results
-            last_9_records = result.fetchall()
-            last_9_records = [
-                {col.name: value for col, value in zip(columns_to_select, row)}
-                for row in last_9_records[::-1]
-            ]
-            table.drop(db.engine)
-            db.metadata.clear()
-
-        table = Table(
-            table_name,
-            db.metadata,
-            Column('id', Integer, primary_key=True),
-            Column('data_timestamp', DateTime, nullable=False),
-            Column('access_level', String, nullable=False),
-            Column('download_timestamp', DateTime, nullable=False),
+        table = db.metadata.tables[table_name]
+        columns_to_select = [col for col in table.c.values() if col.name != 'id']
+        result = db.execute(
+            table.select()
+            .with_only_columns(*columns_to_select)
+            .order_by(table.c['id'].desc())
+            .limit(9)
         )
-        table.create(db.engine)
-        if last_9_records:
-            db.execute(table.insert(), last_9_records)
 
+        # Fetch all results
+        last_9_records = result.fetchall()
+        last_9_records = [
+            {col.name: value for col, value in zip(columns_to_select, row)}
+            for row in last_9_records[::-1]
+        ]
+        table.drop(db.engine)
         db.update_metadata()
+
+        return last_9_records
 
     def drop_th_tables(self):
         """Drops all tables from the database that start with 'thstore_'."""
         # Iterate over all tables in the metadata
         for table_name in db.metadata.tables:
-            if table_name.startswith(tprefix) and "admin" not in table_name:
+            if table_name.startswith(tprefix):
                 table = db.metadata.tables[table_name]
                 table.drop(db.engine)
 
@@ -284,8 +288,9 @@ class Writer:
                 *(Column(col_name, DB.get_type(col_name)) for col_name in columns)
             )
             batch = []
-            for row in reader:
-                batch.append({col_name: DB.clean(col_name, value) for col_name, value in zip(columns, row)})
+            for i, row in enumerate(reader):
+                values = {col_name: DB.clean(col_name, value) for col_name, value in zip(columns, row)}
+                batch.append(values)
 
         table.create(db.engine)
         db.execute(table.insert(), batch)
@@ -321,45 +326,63 @@ class Writer:
         )
         batch = []
         for dct in data:
-            batch.append({clean_k: dct.get(k, "") for k, clean_k in columns})
+            batch.append({clean_k: DB.clean(clean_k, dct.get(k, "")) for k, clean_k in columns})
 
         table.create(db.engine)
         db.execute(table.insert(), batch)
 
-    def update_admin(self, access_level):
+    def create_admin(self, access_level, last_9_records):
         version_file = self.remote / "VERSION.txt"
         timestamp_format = "Generated at %a, %d %b %Y %H:%M:%S %z"
         content = version_file.read_text()
         line = content.splitlines()[0]
         data_timestamp = dt.datetime.strptime(line, timestamp_format)
 
+        print("creating table")
+        table = Table(
+            tname("admin"),
+            db.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('data_timestamp', DateTime, nullable=False),
+            Column('access_level', String(255), nullable=False),
+            Column('download_timestamp', DateTime, nullable=False),
+        )
+        table.create(db.engine)
+        if last_9_records:
+            db.execute(table.insert(), last_9_records)
+
+        print("inserting admin record")
         db.execute(
-            db.table("admin").insert().values(
+            table.insert().values(
                 data_timestamp=data_timestamp,
                 access_level=access_level.value,
                 download_timestamp=dt.datetime.now(dt.UTC).replace(tzinfo=None)
             )
         )
+        db.update_metadata()
 
-    def ingest_all(self):
+    def _ingest_all(self):
         """Iterates over CSV files in the remote directory and ingests them."""
-        self.prepare_th_admin()
+        db.reset_session()
+        last_9_admin_records = self.prepare_ingestion()
+        print("dropping tables")
         self.drop_th_tables()
         csv_dir = self.remote / "csv"
-
         # Iterate over all CSV files in the directory
         downloaded_csvs = os.listdir(csv_dir)
+        print("creating csv tables")
         for csv_file in downloaded_csvs:
             if csv_file.endswith('.csv'):
                 file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
                 self.create_table_from_csv(file_path, table_name)
-
+        print("creating covered")
         self.create_table_from_json(
             self.remote / "covered_markets.json",
             tname("covered_markets")
         )
+        db.update_metadata()
 
         if "schedules.csv" not in downloaded_csvs:
             access_level = AccessLevel.only_holidays
@@ -367,9 +390,22 @@ class Writer:
             access_level = AccessLevel.no_currencies
         else:
             access_level = AccessLevel.full
+        print("calling create_admin")
+        self.create_admin(access_level, last_9_admin_records)
 
-        db.update_metadata()
-        self.update_admin(access_level)
+    def ingest_all(self):
+        try:
+            print("ingesting")
+            self._ingest_all()
+        except Exception:
+            print(db.engine.dialect.name)
+            if db.engine.dialect.name != "mysql":
+                raise
+
+            db.set_no_unicode()
+            print("ingesting again")
+            self._ingest_all()
+
 
 
 """
