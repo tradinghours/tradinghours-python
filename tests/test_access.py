@@ -66,23 +66,41 @@ def test_raise_not_covered(covered_record):
     """
     with pytest.raises(ex.NotCovered):
         Market.get("XX.NOTCOVERED")
+    assert Market.is_available("XX.NOTCOVERED") is False
+    assert Market.is_covered("XX.NOTCOVERED") is False
 
     with pytest.raises(ex.NoAccess):
         Market.get("XX.TEST")
+    assert Market.is_available("XX.TEST") is False
+    assert Market.is_covered("XX.TEST") is True
 
     # should raise nothing
     Market.get("US.NYSE")
+    assert Market.is_available("US.NYSE") is True
+    assert Market.is_covered("US.NYSE") is True
 
     if st.db.access_level == st.AccessLevel.full:
         with pytest.raises(ex.NotCovered):
             Currency.get("NOTCOVERED")
+        assert Currency.is_available("NOTCOVERED") is False
+        assert Currency.is_covered("NOTCOVERED") is False
+
         # should raise nothing
         Currency.get("EUR")
+        assert Currency.is_available("EUR") is True
+        assert Currency.is_covered("EUR") is True
+
     else:
         with pytest.raises(ex.NoAccess):
             Currency.get("NOTCOVERED")
+        assert Currency.is_available("NOTCOVERED") is False
+
         with pytest.raises(ex.NoAccess):
             Currency.get("EUR")
+        assert Currency.is_available("EUR") is False
+
+        with pytest.raises(ex.NoAccess):
+            Currency.is_covered("EUR")
 
 
 

@@ -244,7 +244,7 @@ class Market(BaseModel):
             return False
 
     @classmethod
-    def is_covered(cls, finid: str):
+    def is_covered(cls, finid: str) -> bool:
         """
         Returns True or False showing if tradinghours provides data for the Market.
         This differs from is_available because is_covered does not mean that the user
@@ -265,7 +265,7 @@ class Market(BaseModel):
             return found
 
         # if not found, check if it is covered at all and raise appropriate Exception
-        following = f" (following: '{following}')" if following else ""
+        following = f" (replaced: '{following}')" if following else ""
         if cls.is_covered(finid):
             raise NoAccess(
                 f"\n\nThe market '{finid}'{following} is supported but not available on your current plan."

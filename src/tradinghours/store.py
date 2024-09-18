@@ -41,6 +41,7 @@ class DB:
     _access = {
         "Currency.list_all" : {AccessLevel.full},
         "Currency.get": {AccessLevel.full},
+        "Currency.is_covered": {AccessLevel.full},
         "Market.list_schedules": {AccessLevel.full, AccessLevel.no_currencies},
         "Market.generate_phases": {AccessLevel.full, AccessLevel.no_currencies}
     }
