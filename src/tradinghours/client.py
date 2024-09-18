@@ -105,7 +105,7 @@ def download():
                 downloaded = download_zip_file()
                 if downloaded:
                     break
-                if (time.time() - start_time) > 90:
+                if (time.time() - start_time) > 120:
                     raise ClientError("Failed downloading data, please try again.")
 
                 change_message("Generating (~ 1min)")
