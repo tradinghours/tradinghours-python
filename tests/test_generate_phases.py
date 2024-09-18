@@ -887,7 +887,7 @@ def fromiso(iso, tz):
        'timezone': 'America/Argentina/Buenos_Aires'}]
      ),
 ])
-def test_generate_phases(level, fin_id, start, end, expected):
+def test_generate_phases(fin_id, start, end, expected):
     market = Market.get(fin_id)
     calculated = list(market.generate_phases(start, end))
 

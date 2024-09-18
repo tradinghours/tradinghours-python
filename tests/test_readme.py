@@ -8,13 +8,13 @@ import tradinghours.store as st
 from pathlib import Path
 
 
-def test_market_list_all(level):
+def test_market_list_all():
 
     for obj in Market.list_all():
         assert str(obj) == Market.get_string_format().format(**obj.to_dict())
 
 
-def test_get_by_finid_or_mic(level):
+def test_get_by_finid_or_mic():
     # Get by either FinID or MIC
     market = Market.get('US.NYSE')
     assert str(market) == "Market: US.NYSE New York Stock Exchange America/New_York"
@@ -22,7 +22,7 @@ def test_get_by_finid_or_mic(level):
     assert str(market) == "Market: US.NYSE New York Stock Exchange America/New_York"
 
 
-def test_follow_market(level):
+def test_follow_market():
     # AR.BCBA is permanently closed and replaced by AR.BYMA
     market = Market.get('AR.BCBA')
     original = Market.get('AR.BCBA', follow=False)
@@ -31,7 +31,7 @@ def test_follow_market(level):
     assert original.fin_id == "AR.BCBA"
 
 
-def test_market_list_holidays(level):
+def test_market_list_holidays():
     holidays = Market.get('US.NYSE').list_holidays("2024-01-01", "2024-12-31")
 
     for obj in holidays[:3]:
@@ -42,7 +42,7 @@ def test_market_list_holidays(level):
     st.db.access_level == st.AccessLevel.only_holidays,
     reason="No access", strict=True, raises=NoAccess
 )
-def test_generate_phases(level):
+def test_generate_phases():
     market = Market.get('XNYS')
     schedules = market.generate_phases("2023-09-01", "2023-09-30")
 
@@ -54,7 +54,7 @@ def test_generate_phases(level):
     st.db.access_level != st.AccessLevel.full,
     reason="No access", strict=True, raises=NoAccess
 )
-def test_currencies_list_all(level):
+def test_currencies_list_all():
     for obj in Currency.list_all():
         assert str(obj) == Currency.get_string_format().format(**obj.to_dict())
 
@@ -63,7 +63,7 @@ def test_currencies_list_all(level):
     st.db.access_level != st.AccessLevel.full,
     reason="No access", strict=True, raises=NoAccess
 )
-def test_currency_list_holidays(level):
+def test_currency_list_holidays():
     currency = Currency.get('AUD')
     for obj in currency.list_holidays("2023-06-01", "2023-12-31"):
         assert str(obj) == CurrencyHoliday.get_string_format().format(**obj.to_dict())

@@ -79,13 +79,13 @@ import tradinghours.store as st
 #                  "Settlement"]
 #      )
 # ])
-# def test_model_fields(level, model, columns):
+# def test_model_fields(model, columns):
 #     column_snakes = sorted([snake_case(c) for c in columns])
 #     field_names = sorted(model._fields)
 #     assert field_names == column_snakes
 
 
-def test_market_instance_fields(level):
+def test_market_instance_fields():
     nyse = Market.get("US.NYSE")
     assert nyse.fin_id == "US.NYSE"
     # assert nyse.fin_id_obj.country == "US"
@@ -96,7 +96,7 @@ def test_market_instance_fields(level):
     assert nyse.weekend_definition == "Sat-Sun"
     # assert str(nyse.weekend_definition_obj) == "Sat-Sun"
 
-def test_market_holiday_instance_fields(level):
+def test_market_holiday_instance_fields():
     nyse = Market.get("XNYS")
     holidays = nyse.list_holidays("2007-11-20", "2007-11-23")
     assert len(holidays) == 2
@@ -121,13 +121,13 @@ def test_market_holiday_instance_fields(level):
     st.db.access_level != st.AccessLevel.full,
     reason="No access", strict=True, raises=NoAccess
 )
-def test_currency_instance_fields(level):
+def test_currency_instance_fields():
     aud = Currency.get("AUD")
     assert aud.weekend_definition == "Sat-Sun"
 
 
-def test_phase_type_instance_fields(level):
-    if level == st.AccessLevel.only_holidays:
+def test_phase_type_instance_fields():
+    if st.db.access_level == st.AccessLevel.only_holidays:
         with pytest.raises(NoAccess) as exception:
             PhaseType.as_dict()
         return
@@ -158,7 +158,7 @@ def test_phase_type_instance_fields(level):
                                phase.is_open)
 
 
-def test_string_format(level):
+def test_string_format():
     # TODO: go over the error messages that are supposed to be shown
     market = Market.get('US.NYSE')
     assert str(market) == 'Market: US.NYSE New York Stock Exchange America/New_York'
@@ -166,7 +166,7 @@ def test_string_format(level):
     market_holiday = market.list_holidays("2007-11-20", "2007-11-23")[0]
     assert str(market_holiday) == 'MarketHoliday: US.NYSE 2007-11-22 Thanksgiving Day'
 
-    if level != st.AccessLevel.full:
+    if st.db.access_level != st.AccessLevel.full:
         with pytest.raises(NoAccess):
             Currency.get('AUD')
         # assert str(exception.value) == "You didn't run `tradinghours import` or you dont have access to currencies."
@@ -177,7 +177,7 @@ def test_string_format(level):
         currency_holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
         assert str(currency_holiday) == 'CurrencyHoliday: AUD 2020-01-27 Australia Day'
 
-    if level == st.AccessLevel.only_holidays:
+    if st.db.access_level == st.AccessLevel.only_holidays:
         with pytest.raises(NoAccess) as exception:
             Market.get("US.NYSE").list_schedules()
         # assert str(exception.value) == r"You didn't run `tradinghours import` or you dont have access to schedules/us-nyse."
@@ -204,7 +204,7 @@ def test_string_format(level):
         assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
 
 
-def test_set_string_format(level):
+def test_set_string_format():
     market = Market.get('ZA.JSE.SAFEX')
 
     # change format
@@ -226,7 +226,7 @@ def test_set_string_format(level):
 
     MarketHoliday.reset_string_format()
 
-def test_market_raw_data(level):
+def test_market_raw_data():
 
     nyse = Market.get("XNYS")
     holiday = nyse.list_holidays("2007-11-20", "2007-11-23")[0]
@@ -239,7 +239,7 @@ def test_market_raw_data(level):
     st.db.access_level != st.AccessLevel.full,
     reason="No access", strict=True, raises=NoAccess
 )
-def test_currency_raw_data(level):
+def test_currency_raw_data():
     currency = Currency.get('AUD')
     holiday = currency.list_holidays("2020-01-27", "2020-01-27")[0]
     assert holiday.data["settlement"] == "No"

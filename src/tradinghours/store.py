@@ -202,8 +202,14 @@ class DB:
         self.metadata.reflect(bind=self.engine)
         self._failed_to_access = False
 
+
+########################################################
+# Singleton db instance used across the entire project #
+########################################################
 db = DB()
 
+
+# noinspection PyMethodMayBeStatic
 class Writer:
 
     def __init__(self):
@@ -319,8 +325,6 @@ class Writer:
 
         table.create(db.engine)
         db.execute(table.insert(), batch)
-
-
 
     def update_admin(self, access_level):
         version_file = self.remote / "VERSION.txt"

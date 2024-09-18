@@ -5,7 +5,7 @@ from tradinghours import Currency, Market
 
 
 # test that the access_level in db is set correctly
-def test_access_level(level):
+def test_access_level():
     tables = st.db.metadata.tables
 
     if st.tname("schedules") not in tables:
@@ -18,7 +18,7 @@ def test_access_level(level):
     assert st.db.access_level == should_be
 
 
-def test_raises_no_access(level):
+def test_raises_no_access():
     """
     The level doesn't need to be changed in this test.
      Github Actions will run the test suite with data loaded using
@@ -28,7 +28,7 @@ def test_raises_no_access(level):
     Market.list_all()
     nyse = Market.get("US.NYSE")
     nyse.list_holidays("2024-01-01", "2025-01-01")
-    if level == st.AccessLevel.full:
+    if st.db.access_level == st.AccessLevel.full:
         nyse.list_schedules()
         list(nyse.generate_phases("2024-09-12", "2024-09-13"))
         return
@@ -39,12 +39,12 @@ def test_raises_no_access(level):
     with pytest.raises(ex.NoAccess):
         Currency.list_all()
 
-    if level == st.AccessLevel.no_currencies:
+    if st.db.access_level == st.AccessLevel.no_currencies:
         # these should work with full and no_currencies
         nyse.list_schedules()
         list(nyse.generate_phases("2024-09-12", "2024-09-13"))
 
-    elif level == st.AccessLevel.only_holidays:
+    elif st.db.access_level == st.AccessLevel.only_holidays:
         with pytest.raises(ex.NoAccess):
             nyse.list_schedules()
         with pytest.raises(ex.NoAccess):

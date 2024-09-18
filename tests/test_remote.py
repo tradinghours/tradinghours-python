@@ -97,7 +97,7 @@ def test_remote_timestamp(patch_response):
 ##
 # TODO: This was for the weird bug when rows were appended to csv files
 #   see if it's worth keeping
-# def test_no_duplicates(level):
+# def test_no_duplicates():
 #     collection = default_catalog.find_model_collection(Market)
 #     cluster = collection.clusters.get("us")
 #
