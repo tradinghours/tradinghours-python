@@ -34,6 +34,12 @@ dev = [
     'pytest',
     'pytest-mock',
 ]
+mysql = [
+    'pymysql'
+]
+postgres = [
+    'psycopg2-binary'
+]
 
 [project.scripts]
 tradinghours = "tradinghours.console:main"

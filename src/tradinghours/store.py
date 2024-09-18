@@ -74,7 +74,15 @@ class DB:
         if cls._instance is None:
             cls._instance = self = super().__new__(cls)
             self.db_url = main_config.get("data", "db_url")
-            self.engine = create_engine(self.db_url)
+            try:
+                self.engine = create_engine(self.db_url)
+            except ModuleNotFoundError as e:
+                raise ModuleNotFoundError(
+                    "You seem to be missing the required dependencies to interact with your chosen database. "
+                    "Please run `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` if "
+                    "you are trying to access mysql or postgres, respectively. Consult the docs for more information."
+                ) from e
+
             self.metadata = MetaData()
             try:
                 self.update_metadata()
