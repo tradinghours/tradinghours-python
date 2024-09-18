@@ -1,9 +1,6 @@
-import argparse
-import time
+import argparse, warnings
 import traceback
-from contextlib import contextmanager
 from textwrap import wrap
-from threading import Thread
 
 from . import __version__
 from .store import Writer, db
@@ -71,18 +68,24 @@ def run_status(args):
 
 
 def run_import(args):
+    show_warning = False
     if args.reset:
         with timed_action("Ingesting"):
-            Writer().ingest_all()
-        return
+            show_warning = not Writer().ingest_all()
 
-    if args.force or db.needs_download():
+    elif args.force or db.needs_download():
         client_download()
         with timed_action("Ingesting"):
-            Writer().ingest_all()
+            show_warning = not Writer().ingest_all()
     else:
         print("Local data is up-to-date.")
 
+    if show_warning:
+        warnings.warn(
+            "\n\nWarning:\nYou seem to be using a MySQL database that is not configured "
+            "to handle the full unicode set. Unicode characters have been replaced with "
+            "'?'. Consult the MySQL documentation for your version to enable this feature."
+        )
 
 def main():
     try:

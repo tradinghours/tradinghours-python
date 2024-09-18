@@ -338,7 +338,6 @@ class Writer:
         line = content.splitlines()[0]
         data_timestamp = dt.datetime.strptime(line, timestamp_format)
 
-        print("creating table")
         table = Table(
             tname("admin"),
             db.metadata,
@@ -351,7 +350,6 @@ class Writer:
         if last_9_records:
             db.execute(table.insert(), last_9_records)
 
-        print("inserting admin record")
         db.execute(
             table.insert().values(
                 data_timestamp=data_timestamp,
@@ -365,19 +363,19 @@ class Writer:
         """Iterates over CSV files in the remote directory and ingests them."""
         db.reset_session()
         last_9_admin_records = self.prepare_ingestion()
-        print("dropping tables")
         self.drop_th_tables()
+
         csv_dir = self.remote / "csv"
         # Iterate over all CSV files in the directory
         downloaded_csvs = os.listdir(csv_dir)
-        print("creating csv tables")
+
         for csv_file in downloaded_csvs:
             if csv_file.endswith('.csv'):
                 file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
                 self.create_table_from_csv(file_path, table_name)
-        print("creating covered")
+
         self.create_table_from_json(
             self.remote / "covered_markets.json",
             tname("covered_markets")
@@ -390,21 +388,25 @@ class Writer:
             access_level = AccessLevel.no_currencies
         else:
             access_level = AccessLevel.full
-        print("calling create_admin")
+
         self.create_admin(access_level, last_9_admin_records)
 
     def ingest_all(self):
         try:
-            print("ingesting")
             self._ingest_all()
+            return True
         except Exception:
-            print(db.engine.dialect.name)
             if db.engine.dialect.name != "mysql":
                 raise
 
-            db.set_no_unicode()
-            print("ingesting again")
-            self._ingest_all()
+        # Deal with the problem that MySQL is not able to
+        # handle the full unicode set by default and then try again
+        db.set_no_unicode()
+        self._ingest_all()
+        return False
+
+
+
 
 
 
