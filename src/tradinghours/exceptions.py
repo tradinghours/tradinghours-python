@@ -113,6 +113,13 @@ class NotCovered(TradingHoursError):
     """
     pass
 
+class MICDoesNotExist(TradingHoursError):
+    """
+    Raised when a user tries to get a Market with a mic that can not
+     be matched with a finid.
+    """
+    pass
+
 class MissingTzdata(TradingHoursError):
     pass
 

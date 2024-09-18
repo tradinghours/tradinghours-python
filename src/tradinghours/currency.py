@@ -4,7 +4,7 @@ from .typing import StrOrDate
 from .validate import validate_range_args, validate_date_arg
 from .dynamic_models import BaseModel, CurrencyHoliday
 from .store import db
-from .exceptions import NotCovered
+from .exceptions import NotCovered, NoAccess
 
 class Currency(BaseModel):
     _table = "currencies"
@@ -40,6 +40,22 @@ class Currency(BaseModel):
     def list_all(cls) -> List["Currency"]:
         return [cls(r) for r in db.query(cls.table)]
 
+    @classmethod
+    def is_available(cls, code:str) -> bool:
+        try:
+            cls.get(code)
+            return True
+        except (NoAccess, NotCovered):
+            return False
+
+    @classmethod
+    @db.check_access
+    def is_covered(cls, code:str) -> bool:
+        try:
+            cls.get(code)
+            return True
+        except NotCovered:
+            return False
 
     @classmethod
     @db.check_access

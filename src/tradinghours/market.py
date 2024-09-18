@@ -15,7 +15,7 @@ from .dynamic_models import (
 from .validate import validate_range_args, validate_date_arg, validate_finid_arg, validate_str_arg
 from .store import db
 from .util import weekdays_match
-from .exceptions import NoAccess, NotCovered
+from .exceptions import NoAccess, NotCovered, MICDoesNotExist
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -232,7 +232,24 @@ class Market(BaseModel):
         return [Schedule(r) for r in schedules]
 
     @classmethod
-    def _is_covered(cls, finid: str):
+    def is_available(cls, identifier: str) -> bool:
+        """
+        Return True or False to show if a mic or finid can be accessed
+        under the current plan.
+        """
+        try:
+            cls.get(identifier)
+            return True
+        except (NoAccess, NotCovered, MICDoesNotExist):
+            return False
+
+    @classmethod
+    def is_covered(cls, finid: str):
+        """
+        Returns True or False showing if tradinghours provides data for the Market.
+        This differs from is_available because is_covered does not mean that the user
+        has access to it under their current plan.
+        """
         table = db.table("covered_markets")
         found = db.query(table).filter(
             table.c.fin_id == finid
@@ -249,7 +266,7 @@ class Market(BaseModel):
 
         # if not found, check if it is covered at all and raise appropriate Exception
         following = f" (following: '{following}')" if following else ""
-        if cls._is_covered(finid):
+        if cls.is_covered(finid):
             raise NoAccess(
                 f"\n\nThe market '{finid}'{following} is supported but not available on your current plan."
                 f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
@@ -264,15 +281,14 @@ class Market(BaseModel):
         finid = validate_finid_arg("finid", finid)
         found = cls._get_by_finid(finid)
 
-        while found and (temp_found := cls(found)).replaced_by and follow:
-            found = cls._get_by_finid(temp_found.replaced_by)
+        while found and (found_obj := cls(found)).replaced_by and follow:
+            found = cls._get_by_finid(found_obj.replaced_by, following=finid)
 
-        if found:
-            return cls(found)
+        return found_obj
 
 
     @classmethod
-    def get_by_mic(cls, mic: str, follow=True) -> Union[None, "Market"]:
+    def get_by_mic(cls, mic: str, follow=True) -> "Market":
         mic = mic.upper()
         mic = validate_str_arg("mic", mic)
         mapping = db.query(MicMapping.table).filter(
@@ -280,10 +296,10 @@ class Market(BaseModel):
         ).one_or_none()
         if mapping:
             return cls.get_by_finid(mapping.fin_id, follow=follow)
-        return None
+        raise MICDoesNotExist(f"The MIC {mic} could not be matched with a FinID")
 
     @classmethod
-    def get(cls, identifier: str, follow=True) -> Union[None, "Market"]:
+    def get(cls, identifier: str, follow=True) -> "Market":
         identifier = validate_str_arg("identifier", identifier)
         if "." in identifier:
             found = cls.get_by_finid(identifier, follow=follow)
