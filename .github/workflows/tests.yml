@@ -101,6 +101,11 @@ jobs:
       - name: Set up test data
         run: |
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
+          if [ "${{ matrix.db }}" == "mysql" ]; then
+            export TH_DB_URL=mysql+pymysql://root:root@127.0.0.1:3306/test_db
+          elif [ "${{ matrix.db }}" == "postgres" ]; then
+            export TH_DB_URL=postgresql://postgres:password@127.0.0.1:5432/test_db
+          fi
           tradinghours import 
 
       - name: Run Tests (MySQL or PostgreSQL)
