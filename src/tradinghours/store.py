@@ -76,11 +76,10 @@ class DB:
          For other columns, empty strings should be converted to None
         """
         converter = cls._types.get(col_name, cls._default_type)[1]
-        match col_name:
-            case "observed":
-                return converter(value)
-            case _:
-                return converter(value) if value else None
+        if col_name == "observed":
+            return converter(value)
+
+        return converter(value) if value else None
 
     def __new__(cls):
         if cls._instance is None:
@@ -169,7 +168,7 @@ class DB:
                     table.c["id"].desc()
             ).limit(1).scalar()
             if result:
-                return result.replace(tzinfo=dt.UTC)
+                return result.replace(tzinfo=dt.timezone.utc)
 
     @property
     def access_level(self) -> AccessLevel:
@@ -354,7 +353,7 @@ class Writer:
             table.insert().values(
                 data_timestamp=data_timestamp,
                 access_level=access_level.value,
-                download_timestamp=dt.datetime.now(dt.UTC).replace(tzinfo=None)
+                download_timestamp=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
             )
         )
         db.update_metadata()
