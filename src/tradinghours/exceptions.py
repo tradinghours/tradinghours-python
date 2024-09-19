@@ -93,13 +93,39 @@ class MissingSqlAlchemyError(TradingHoursError):
 
     def build_help_message(self):
         return (
-            "You need to install SQLAlchemy in order to usee database "
+            "You need to install SQLAlchemy in order to use database "
             "ready store. You should be able to do that by running "
             "`pip install tradinghours[sql]` from the command line."
         )
 
 class NoAccess(TradingHoursError):
+    """
+    Raised when a user attempts accessing a type of data
+    that is not available under their current plan.
+    """
+    pass
+
+class NotCovered(TradingHoursError):
+    """
+    Raised when a user attempts to access a specific data item
+     that is not covered by Tradinghours but the type of data
+     (e.g.: Currencies) are available under their current plan.
+    """
+    pass
+
+class MICDoesNotExist(TradingHoursError):
+    """
+    Raised when a user tries to get a Market with a mic that can not
+     be matched with a finid.
+    """
     pass
 
 class MissingTzdata(TradingHoursError):
     pass
+
+class DBError(TradingHoursError):
+    """
+    Raise when the database could not be accessed
+    """
+    pass
+

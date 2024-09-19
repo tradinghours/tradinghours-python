@@ -52,26 +52,6 @@ class BaseObject:
     _string_format = "" # set in each
     _original_string_format = ""
 
-    @classmethod
-    def get_string_format(cls):
-        return cls._string_format
-
-    @classmethod
-    def set_string_format(cls, string_format: str, prefix_class: bool = False):
-        try:
-            string_format.format(**{f: "test" for f in cls.fields})
-        except Exception as e:
-            print(string_format)
-            raise ValueError("Invalid formatting string") from e
-
-        if prefix_class:
-            string_format = f"{cls.__name__}: " + string_format
-
-        cls._string_format = string_format
-
-    @classmethod
-    def reset_string_format(cls):
-        cls._string_format = cls._original_string_format
 
     @classmethod
     def from_tuple(cls, data: Tuple):

@@ -1,5 +1,5 @@
 import pytest
-from tradinghours.models import Market
+from tradinghours import Market
 
 # Test whether you can follow or not a permanently closed market
 @pytest.mark.parametrize("method, args, expected", [
@@ -12,7 +12,7 @@ from tradinghours.models import Market
     (Market.get_by_finid, ("AR.BCBA",), "AR.BYMA"),
     (Market.get_by_finid, ("AR.BCBA", False), "AR.BCBA"),
 ])
-def test_market_follow(level, method, args, expected):
+def test_market_follow(method, args, expected):
 
     market = method(*args)
     result = str(market.fin_id)
@@ -27,7 +27,7 @@ def test_market_follow(level, method, args, expected):
     (Market.get_by_mic, "xbue", "AR.BYMA"),
     (Market.get_by_mic, "xBuE", "AR.BYMA"),
 ])
-def test_market_case_insensitivity(level, method, identifier, expected):
+def test_market_case_insensitivity(method, identifier, expected):
     market = method(identifier)
     result = str(market.fin_id)
     assert result == expected

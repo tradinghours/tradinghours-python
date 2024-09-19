@@ -45,16 +45,15 @@ def validate_int_arg(name: str, value: Any, default: Optional[int] = None) -> in
     return value
 
 
-def validate_finid_arg(name: str, value: Any) -> "FinId":
-    from tradinghours.structure import FinId
+def validate_finid_arg(name: str, value: Any) -> str:
 
     if value is None:
         raise ValueError(f"Missing {name}")
     if isinstance(value, str):
-        value = FinId.from_string(value)
-    if not isinstance(value, FinId):
-        raise TypeError(f"Invalid {name} type")
-    return value
+        segments = value.split(".")
+        if len(segments) < 2:
+            raise ValueError("Invalid FinID string")
+    return value.upper()
 
 
 def validate_weekday_arg(name: str, value: Any) -> "Weekday":

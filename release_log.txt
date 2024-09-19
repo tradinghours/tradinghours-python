@@ -1,4 +1,7 @@
 ## new_release
+
+
+## 0.3.0 (2024-02-16)
 Breaking Changes:
   * renamed Market.generate_schedules to Market.generate_phases
   * moved Schedule.list_all to Market.list_schedules

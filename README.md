@@ -114,17 +114,17 @@ market = Market.get('XNYS')
 # Easily see what attributes an object has
 # (You can call this on any object)
 market.pprint() # same as pprint(market.to_dict())
->>> {'fin_id': 'US.NYSE',
-     'exchange_name': 'New York Stock Exchange',
+>>> {'exchange_name': 'New York Stock Exchange',
      'market_name': 'Canonical',
      'security_group': None,
+     'timezone': 'America/New_York',
+     'weekend_definition': 'Sat-Sun',
+     'fin_id': 'US.NYSE',
      'mic': 'XNYS',
      'acronym': 'NYSE',
      'asset_type': 'Securities',
      'memo': 'Canonical',
      'permanently_closed': None,
-     'timezone': 'America/New_York',
-     'weekend_definition': 'Sat-Sun',
      'replaced_by': None,
      'country_code': 'US'}
 ```
@@ -234,7 +234,7 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'start': datetime.time(16, 45), # start time of the phase
      'end': datetime.time(8, 30), # end time of the phase
      'offset_days': 2, # number of days that need to be added to the end time
-     'duration': '143100', # total length of this phase in seconds
+     'duration': 143100, # total length of this phase in seconds
      'min_start': None, # earliest possible start when random start/stop times apply
      'max_start': None, # latest possible start when random start/stop times apply
      'min_end': None, # earliest possible end when random start/stop times apply

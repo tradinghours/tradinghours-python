@@ -2,4 +2,6 @@
 
 __version__ = "0.3.0"
 
-from .models import Market, Currency
+from .currency import Currency
+from .market import Market
+

@@ -22,7 +22,7 @@ import importlib.metadata as metadata
     ("Hello!@#$%^World", "hello-world"),
     ("Hello    World", "hello-world"),
 ])
-def test_slugify(level, name, expected):
+def test_slugify(name, expected):
     assert slugify(name) == expected
 
 
@@ -30,7 +30,7 @@ def test_slugify(level, name, expected):
     (None, ValueError),
     (123, TypeError),
 ])
-def test_slugify_with_errors(level, name, exception):
+def test_slugify_with_errors(name, exception):
     with pytest.raises(exception):
         slugify(name)
 
@@ -40,7 +40,7 @@ def test_slugify_with_errors(level, name, exception):
     ("helloWorld", "hello_world"),
     ("HELLO_WORLD", "hello_world"),
 ])
-def test_snake_case(level, text, expected):
+def test_snake_case(text, expected):
     assert snake_case(text) == expected
 
 
@@ -48,26 +48,26 @@ def test_snake_case(level, text, expected):
     (None, ValueError),
     (123, TypeError),
 ])
-def test_snake_case_with_errors(level, text, exception):
+def test_snake_case_with_errors(text, exception):
     with pytest.raises(exception):
         snake_case(text)
 
 
-def test_snake_dict(level):
+def test_snake_dict():
     data = {"First Name": "John", "Last Name": "Doe", "Age": 30}
     expected = {"first_name": "John", "last_name": "Doe", "age": 30}
     assert snake_dict(data) == expected
 
-def test_snake_dict_with_errors(level):
+def test_snake_dict_with_errors():
     with pytest.raises(TypeError):
         snake_dict("This is not a dictionary")
 
-def test_str_encoder(level):
+def test_str_encoder():
     data = {"name": "John", "age": 30}
     expected = '{"name": "John", "age": 30}'
     assert json.dumps(data, cls=StrEncoder) == expected
 
-def test_str_encoder_non_serializable(level):
+def test_str_encoder_non_serializable():
     data = {"name": "John", "age": 30, "non_serializable": set()}
     expected = '{"name": "John", "age": 30, "non_serializable": "set()"}'
     assert json.dumps(data, cls=StrEncoder) == expected
