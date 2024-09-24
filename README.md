@@ -60,8 +60,8 @@ The web-based API is programming language agnostic.
   - [Currency Holidays](#currency-holidays)
 - [Advanced](#advanced)
   - [Optional Advanced Configuration](#optional-advanced-configuration)
-  - [Database Schema](#database-schema)
-  - [Time Zone Database](#time-zone-database)
+  - [Database](#database)
+  - [Time Zones](#time-zones)
   - [Model Configuration](#model-configuration)
     - [Change String Format](#change-string-format)
 
@@ -323,7 +323,7 @@ check_tzdata = False
 * To allow the package to be flexible with updates to the raw data, where columns might be added in the future, the tables are created dynamically, based on the content of the CSV files.
 * Columns of the tables are named after the columns of the CSV files, although in lower case and with underscores instead of spaces.
 
-### Time Zone Database 
+### Time Zones
 This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
 which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
 `tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 
