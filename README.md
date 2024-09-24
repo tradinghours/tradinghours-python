@@ -283,7 +283,7 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
 ## Advanced
 ### Optional Advanced Configuration
 
-Configuration can be changed by creating a `tradinghours.ini` file.
+Configuration can be changed by creating a `tradinghours.ini` file in the current directory.
 
 These are all possible and optional values, for which explanations will follow:
 
@@ -293,46 +293,46 @@ token = YOUR-TOKEN
 
 [data]
 db_url = postgresql://postgres:password@localhost:5432/your_database
-table_prefix = "thstore_"
+table_prefix = thstore_
 remote_dir = path/to/empty/folder
 
 [control]
 check_tzdata = False
 ```
 
-* `[api]`
-  * Lets you set your token.
-
+### Database
 * `[data]`
-  * These settings allow you to control where the data is saved. When using this configuration, please consider the [caveats](#database-caveats).
-  * If you want to download the data once and let every team member use it through a shared database, you can use the `db_url` setting.
-
   * `db_url`
-    * A connection string to a database.
-    * The default is a SQLite database.
+    * A connection string to a database. This allows you to download the data once, and let your team members use the same database.
   * `table_prefix`
-    * Every table created in the database that `db_url` points to will be prefixed with this. 'thstore_' is the default.
+    * Every table created in the database that `db_url` points to will be prefixed with this. `'thstore_'` is the default.
   * `remote_dir`
     * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
     * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
 
-* `[control]`
-  * This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. `tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning if an update is needed.
-  * To disable this check, set `check_tzdata = False`.
-  * To update `tzdata` run this command: `pip install tzdata --upgrade`.
-
-### Database Caveats
-
-* Tables used by this package are dropped and recreated every time the `tradinghours import` is run.
+#### Caveats
+* Tables used by this package are dropped and recreated every time `tradinghours import` is run.
 * Since the tables are dropped and recreated, the user in the `db_url` string needs to have the permissions to drop and create tables in the specified database.
-* To avoid any complications with existing data, we strongly recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
+* To avoid any complications with existing data, we recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
 
-#### Schema
-
+##### Schema
 * The tables are named after the CSV files, with `_` instead of `-` and prefixed with the `table_prefix` setting.
 * To allow the package to be flexible with updates to the raw data, where columns might be added in the future, the tables are created dynamically, based on the content of the CSV files.
 * Columns of the tables are named after the columns of the CSV files, although in lower case and with underscores instead of spaces.
 
+### Time Zone Database 
+This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
+which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
+`tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 
+if an update is needed.
+
+To update `tzdata` run this command: `pip install tzdata --upgrade`
+
+To disable this verification and prevent the request, add this section to your tradinghours.ini file:
+```ini
+[control]
+check_tzdata = False
+```
 
 ## Model Configuration
 ### Change String Format
