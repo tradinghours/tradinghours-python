@@ -72,6 +72,8 @@ The CI/CD process uses GitHub Actions to automate testing and releasing the proj
    - If all tests pass, merge with the `pre-release` branch.
 
 2. **PR against `main`:**
+   - Increment the version number in `src\tradinghours\__init__.py`.
+   - Describe the made changes in `release_log.txt` under the `## new_release` heading. (But don't change the heading)
    - Open a PR from the `pre-release` branch to `main`.
    - This will trigger the `test_release.yml` workflow.
    - If the tests pass, merge with the `main` branch.
