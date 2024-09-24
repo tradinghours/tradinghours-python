@@ -303,11 +303,11 @@ check_tzdata = False
 ### Database
 * `[data]`
   * `db_url`
-    * A connection string to a database. Please read the [caveats](#caveats).
+    * A connection string to a database. Please read the [caveats](#caveats) before using this setting.
     * This allows you to download the data once, and let your team members use the same database.
   * `table_prefix`
-    * Every table created in the database that `db_url` points to will be prefixed with this. `'thstore_'` is the default.
-    * This can be used to avoid conflicts with existing tables. Please read the [caveats](#caveats).
+    * Every table created in the database will be prefixed with this. `'thstore_'` is the default.
+    * This can be used to avoid conflicts with existing tables.
   * `remote_dir`
     * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
     * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
