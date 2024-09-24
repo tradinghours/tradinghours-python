@@ -303,15 +303,18 @@ check_tzdata = False
 ### Database
 * `[data]`
   * `db_url`
-    * A connection string to a database. This allows you to download the data once, and let your team members use the same database.
+    * A connection string to a database. Please read the [caveats](#caveats).
+    * This allows you to download the data once, and let your team members use the same database.
   * `table_prefix`
     * Every table created in the database that `db_url` points to will be prefixed with this. `'thstore_'` is the default.
+    * This can be used to avoid conflicts with existing tables. Please read the [caveats](#caveats).
   * `remote_dir`
     * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
     * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
+    * Unless you want to access the raw CSV files directly, there is no reason to change this.
 
 #### Caveats
-* Tables used by this package are dropped and recreated every time `tradinghours import` is run.
+* Tables used by this package (identified by the `table_prefix`) are dropped and recreated every time `tradinghours import` is run.
 * Since the tables are dropped and recreated, the user in the `db_url` string needs to have the permissions to drop and create tables in the specified database.
 * To avoid any complications with existing data, we recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
 
