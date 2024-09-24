@@ -73,7 +73,7 @@ The CI/CD process uses GitHub Actions to automate testing and releasing the proj
 
 2. **PR against `main`:**
    - Increment the version number in `src\tradinghours\__init__.py`.
-   - Describe the made changes in `release_log.txt` under the `## new_release` heading. (But don't change the heading)
+   - Describe the changes in `release_log.txt` under the `## new_release` heading. (But keep the heading as it is)
    - Open a PR from the `pre-release` branch to `main`.
    - This will trigger the `test_release.yml` workflow.
    - If the tests pass, merge with the `main` branch.
