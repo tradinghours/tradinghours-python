@@ -1,10 +1,15 @@
 <div align="center">
-<img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
-<h1>TradingHours.com Python Library</h1>
+  <img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
+  <h1>TradingHours.com Python Library</h1>
+
+  <!-- Badges centered -->
+  <p>
+    <a href="https://badge.fury.io/py/tradinghours">
+      <img src="https://badge.fury.io/py/tradinghours.svg" alt="PyPI version">
+    </a>
+    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-green" alt="Python versions">
+  </p>
 </div>
-
-[![PyPI version](https://badge.fury.io/py/tradinghours.svg)](https://badge.fury.io/py/tradinghours) ![Static Badge](https://img.shields.io/badge/python-3.9_%7C_3.10_%7C_3.11_%7C_3.12-green)
-
 
 [TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world.
 This library allows clients to easily integrate market holidays and trading hours data into existing applications.
