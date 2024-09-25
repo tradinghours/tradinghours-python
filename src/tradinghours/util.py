@@ -8,7 +8,6 @@ from zoneinfo import TZPATH
 import importlib.metadata as metadata
 import requests, warnings
 
-from .validate import validate_instance_arg, validate_str_arg
 from .exceptions import MissingTzdata
 from .config import main_config
 
