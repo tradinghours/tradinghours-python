@@ -1,5 +1,6 @@
 import pytest
 from tradinghours import Market
+import tradinghours.store as st
 
 # Test whether you can follow or not a permanently closed market
 @pytest.mark.parametrize("method, args, expected", [
@@ -31,3 +32,12 @@ def test_market_case_insensitivity(method, identifier, expected):
     market = method(identifier)
     result = str(market.fin_id)
     assert result == expected
+
+
+def test_market_list_all():
+    found = Market.list_all()
+    assert len(found) == len(list(st.db.query(Market.table)))
+
+    found = Market.list_all("US*")
+    assert all(f.fin_id.startswith("US") for f in found)
+

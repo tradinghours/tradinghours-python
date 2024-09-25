@@ -192,8 +192,11 @@ class Market(BaseModel):
             current_date += dt.timedelta(days=1)
 
     @classmethod
-    def list_all(cls) -> list["Market"]:
-        return [cls(r) for r in db.query(cls.table)]
+    def list_all(cls, sub_set="*") -> list["Market"]:
+        sub_set = sub_set.upper().replace("*", "%")
+        return [cls(r) for r in db.query(cls.table).filter(
+            cls.table.c.fin_id.like(sub_set)
+        )]
 
 
     def list_holidays(

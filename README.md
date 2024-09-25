@@ -104,6 +104,18 @@ for market in Market.list_all()[:3]:
     Market: AE.DFM Dubai Financial Market Asia/Dubai
     Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai
 ```
+You can also use an `*` to filter the list of Markets:
+```python
+from tradinghours import Market
+
+for market in Market.list_all("US.*")[:3]:
+  print(market)
+  
+>>> Market: US.BTEC.ACTIVES.ASIA BrokerTec America/New_York
+    Market: US.BTEC.ACTIVES.LDN BrokerTec America/New_York
+    Market: US.BTEC.ACTIVES.US BrokerTec America/New_York
+
+```
 
 ### Get A Specific Market   
 
