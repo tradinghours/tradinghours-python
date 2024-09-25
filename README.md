@@ -104,7 +104,7 @@ for market in Market.list_all()[:3]:
     Market: AE.DFM Dubai Financial Market Asia/Dubai
     Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai
 ```
-You can also use an `*` to filter the list of Markets:
+You can also use an `*` to filter the list of Markets based on their fin_id:
 ```python
 from tradinghours import Market
 

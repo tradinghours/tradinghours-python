@@ -2,9 +2,6 @@ import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Tuple, Type, TypeVar
 
-if TYPE_CHECKING:
-    from .structure import FinId, Weekday
-
 T = TypeVar("T")
 
 
@@ -70,31 +67,5 @@ def validate_weekday_arg(name: str, value: Any) -> "Weekday":
     if isinstance(value, datetime.datetime):
         value = Weekday(value.weekday())
     if not isinstance(value, Weekday):
-        raise TypeError(f"Invalid {name} type")
-    return value
-
-
-def validate_path_arg(name: str, value: Any) -> Path:
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if isinstance(value, str):
-        value = Path(value)
-    if not isinstance(value, Path):
-        raise TypeError(f"Invalid {name} type")
-    return value
-
-
-def validate_subclass_arg(name: str, value: Any, baseclass: Type[T]) -> Type[T]:
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if not issubclass(value, baseclass):
-        raise TypeError(f"Invalid {name} type")
-    return value
-
-
-def validate_instance_arg(name: str, value: Any, baseclass: Type[T]) -> T:
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if not isinstance(value, baseclass):
         raise TypeError(f"Invalid {name} type")
     return value

@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Union
+import datetime as dt
 
-from .typing import StrOrDate
 from .validate import validate_range_args, validate_date_arg
 from .dynamic_models import BaseModel, CurrencyHoliday
 from .store import db
@@ -21,7 +21,7 @@ class Currency(BaseModel):
         self.weekend_definition = self._data["weekend_definition"]
 
     def list_holidays(
-        self, start: StrOrDate, end: StrOrDate
+        self, start: Union[str, dt.date], end: Union[str, dt.date]
     ) -> List["CurrencyHoliday"]:
         start, end = validate_range_args(
             validate_date_arg("start", start),

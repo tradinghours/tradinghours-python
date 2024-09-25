@@ -2,7 +2,6 @@ import datetime as dt
 from typing import Iterable, Generator, Union
 from zoneinfo import ZoneInfo
 
-from .typing import StrOrDate
 from .dynamic_models import (
     BaseModel,
     Schedule,
@@ -102,7 +101,7 @@ class Market(BaseModel):
 
     @db.check_access
     def generate_phases(
-        self, start: StrOrDate, end: StrOrDate
+        self, start: Union[str, dt.date], end: Union[str, dt.date]
     ) -> Generator[Phase, None, None]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
@@ -200,7 +199,7 @@ class Market(BaseModel):
 
 
     def list_holidays(
-        self, start: StrOrDate, end: StrOrDate, as_dict: bool = False
+        self, start: Union[str, dt.date], end: Union[str, dt.date], as_dict: bool = False
     ) -> Union[list["MarketHoliday"], dict[dt.date, "MarketHoliday"]]:
         start, end = validate_range_args(
             validate_date_arg("start", start),

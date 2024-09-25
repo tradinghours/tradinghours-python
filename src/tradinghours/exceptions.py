@@ -1,9 +1,5 @@
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Optional
-
-if TYPE_CHECKING:
-    from .base import Field
-
+from typing import Any, Optional
 
 class TradingHoursError(Exception):
     """Baseclass for all errors from this library"""
