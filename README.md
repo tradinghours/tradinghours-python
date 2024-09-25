@@ -7,10 +7,9 @@
     <a href="https://badge.fury.io/py/tradinghours">
       <img src="https://badge.fury.io/py/tradinghours.svg" alt="PyPI version">
     </a>
-    <a href="https://badge.fury.io/py/tradinghours">
-      <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-green" alt="Python versions">
-    </a>
-</p>
+    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-green" alt="Python versions">
+    <img src="https://github.com/tradinghours/tradinghours-python/actions/workflows/release.yml/badge.svg?branch=main" alt="GitHub Actions">
+  </p>
 </div>
 
 [TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world.
