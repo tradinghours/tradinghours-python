@@ -1,16 +1,15 @@
-import datetime
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Type, TypeVar
+import datetime as dt
+from typing import Any, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
 
-def validate_date_arg(name: str, value: Any) -> datetime.date:
+def validate_date_arg(name: str, value: Any) -> dt.date:
     if value is None:
         raise ValueError(f"Missing {name}")
     if isinstance(value, str):
-        value = datetime.date.fromisoformat(value)
-    if not isinstance(value, datetime.date):
+        value = dt.date.fromisoformat(value)
+    if type(value) is not dt.date:
         raise TypeError(f"Invalid {name} type")
     return value
 
@@ -43,7 +42,6 @@ def validate_int_arg(name: str, value: Any, default: Optional[int] = None) -> in
 
 
 def validate_finid_arg(name: str, value: Any) -> str:
-
     if value is None:
         raise ValueError(f"Missing {name}")
     if isinstance(value, str):
@@ -52,20 +50,3 @@ def validate_finid_arg(name: str, value: Any) -> str:
             raise ValueError("Invalid FinID string")
     return value.upper()
 
-
-def validate_weekday_arg(name: str, value: Any) -> "Weekday":
-    from tradinghours.structure import Weekday
-
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if isinstance(value, str):
-        value = Weekday.from_string(value)
-    if isinstance(value, int):
-        value = Weekday(value)
-    if isinstance(value, datetime.date):
-        value = Weekday(value.weekday())
-    if isinstance(value, datetime.datetime):
-        value = Weekday(value.weekday())
-    if not isinstance(value, Weekday):
-        raise TypeError(f"Invalid {name} type")
-    return value
