@@ -123,6 +123,12 @@ class Market(BaseModel):
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
 
+        # When there is no more data on future holidays, it should stop
+        last_holiday_date = self._last_holiday().date
+        if end > last_holiday_date:
+            end = last_holiday_date
+
+
         # Iterate through all dates generating phases
         current_date = offset_start
         while current_date <= end:
@@ -204,6 +210,14 @@ class Market(BaseModel):
             cls.table.c.fin_id.like(sub_set)
         )]
 
+    def _last_holiday(self):
+        table = self.table
+        result = db.query(table).filter(
+            table.c.fin_id == self.fin_id
+        ).order_by(
+            table.c.date.desc()
+        ).first()
+        return MarketHoliday(result)
 
     def list_holidays(
         self, start: Union[str, dt.date], end: Union[str, dt.date], as_dict: bool = False

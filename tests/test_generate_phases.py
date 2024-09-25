@@ -962,3 +962,4 @@ def test_generate_phases(fin_id, start, end, expected):
 #     # TODO: Should following a replaced market get rid off the replaced data?
 #     ("AR.BCBA", "2017-04-10", "2017-04-19",
 # ]
+

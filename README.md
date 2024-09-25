@@ -3,7 +3,7 @@
 <h1>TradingHours.com Python Library</h1>
 </div>
 
-![Static Badge](https://img.shields.io/badge/python-3.9_%7C_3.10_%7C_3.11_%7C_3.12-green)
+[![PyPI version](https://badge.fury.io/py/tradinghours.svg)](https://badge.fury.io/py/tradinghours) ![Static Badge](https://img.shields.io/badge/python-3.9_%7C_3.10_%7C_3.11_%7C_3.12-green)
 
 
 [TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world.
