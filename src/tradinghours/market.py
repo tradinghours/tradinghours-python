@@ -11,7 +11,13 @@ from .dynamic_models import (
     MicMapping,
     SeasonDefinition
 )
-from .validate import validate_range_args, validate_date_arg, validate_finid_arg, validate_str_arg
+from .validate import (
+    validate_range_args,
+    validate_date_arg,
+    validate_finid_arg,
+    validate_str_arg,
+    validate_mic_arg
+)
 from .store import db
 from .util import weekdays_match
 from .exceptions import NoAccess, NotCovered, MICDoesNotExist
@@ -192,6 +198,7 @@ class Market(BaseModel):
 
     @classmethod
     def list_all(cls, sub_set="*") -> list["Market"]:
+        validate_str_arg("sub_set", sub_set)
         sub_set = sub_set.upper().replace("*", "%")
         return [cls(r) for r in db.query(cls.table).filter(
             cls.table.c.fin_id.like(sub_set)
@@ -278,8 +285,7 @@ class Market(BaseModel):
 
     @classmethod
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
-        finid = finid.upper()
-        finid = validate_finid_arg("finid", finid)
+        finid = validate_finid_arg(finid)
         found = cls._get_by_finid(finid)
 
         while found and (found_obj := cls(found)).replaced_by and follow:
@@ -290,8 +296,7 @@ class Market(BaseModel):
 
     @classmethod
     def get_by_mic(cls, mic: str, follow=True) -> "Market":
-        mic = mic.upper()
-        mic = validate_str_arg("mic", mic)
+        mic = validate_mic_arg(mic)
         mapping = db.query(MicMapping.table).filter(
             MicMapping.table.c.mic == mic
         ).one_or_none()

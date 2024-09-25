@@ -15,7 +15,9 @@ def test_validate_date_arg():
     with pytest.raises(ValueError):
         val.validate_date_arg("test", "sdgssdg")
 
-    assert dt.date.fromisoformat("2024-01-01") == val.validate_date_arg("test", "2024-01-01")
+    date = dt.date.fromisoformat("2024-01-01")
+    assert date == val.validate_date_arg("test", date)
+    assert date == val.validate_date_arg("test", "2024-01-01")
 
 
 def test_validate_range_args():
@@ -26,5 +28,21 @@ def test_validate_range_args():
 
     assert val.validate_range_args(1, 2) == (1, 2)
 
+
+def test_validate_mic_arg():
+    with pytest.raises(ValueError):
+        val.validate_mic_arg(None)
+
+    with pytest.raises(TypeError):
+        val.validate_mic_arg(123)
+
+    with pytest.raises(ValueError):
+        val.validate_mic_arg("12345")
+
+    with pytest.raises(ValueError):
+        val.validate_mic_arg("US.YE")
+
+    assert val.validate_mic_arg("nyse") == "NYSE"
+    assert val.validate_mic_arg("12Me") == "12ME"
 
 

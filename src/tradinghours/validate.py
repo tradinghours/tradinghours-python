@@ -41,12 +41,20 @@ def validate_int_arg(name: str, value: Any, default: Optional[int] = None) -> in
     return value
 
 
-def validate_finid_arg(name: str, value: Any) -> str:
+def validate_finid_arg(value: Any) -> str:
     if value is None:
-        raise ValueError(f"Missing {name}")
+        raise ValueError(f"Missing FinID")
     if isinstance(value, str):
         segments = value.split(".")
         if len(segments) < 2:
             raise ValueError("Invalid FinID string")
     return value.upper()
 
+def validate_mic_arg(value: Any) -> str:
+    if value is None:
+        raise ValueError(f"Missing MIC")
+    if not isinstance(value, str):
+        raise TypeError(f"MIC needs to be a str")
+    if not value.isalnum() or len(value) != 4:
+        raise ValueError(f"Invalid MIC string")
+    return value.upper()
