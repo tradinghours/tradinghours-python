@@ -67,11 +67,12 @@ def test_market_available_dates(fin_id):
     assert market.first_available_date == first_should_be
     assert market.last_available_date == last_should_be
 
-    with pytest.raises(DateNotAvailable):
-        list(market.generate_phases("1900-01-01", "2020-01-01"))
-    with pytest.raises(DateNotAvailable):
-        list(market.generate_phases("2020-01-01", "2099-01-01"))
-    with pytest.raises(DateNotAvailable):
-        list(market.generate_phases("1900-01-01", "2099-01-01"))
+    if st.db.access_level != st.AccessLevel.only_holidays:
+        with pytest.raises(DateNotAvailable):
+            list(market.generate_phases("1900-01-01", "2020-01-01"))
+        with pytest.raises(DateNotAvailable):
+            list(market.generate_phases("2020-01-01", "2099-01-01"))
+        with pytest.raises(DateNotAvailable):
+            list(market.generate_phases("1900-01-01", "2099-01-01"))
 
 
