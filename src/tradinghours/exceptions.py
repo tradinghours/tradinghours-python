@@ -109,6 +109,7 @@ class NotCovered(TradingHoursError):
     """
     pass
 
+
 class MICDoesNotExist(TradingHoursError):
     """
     Raised when a user tries to get a Market with a mic that can not
@@ -116,12 +117,22 @@ class MICDoesNotExist(TradingHoursError):
     """
     pass
 
+
 class MissingTzdata(TradingHoursError):
     pass
 
+
 class DBError(TradingHoursError):
     """
-    Raise when the database could not be accessed
+    Raised when the database could not be accessed
+    """
+    pass
+
+
+class DateNotAvailable(TradingHoursError):
+    """
+    Raised when the dates passed to generate_phases are outside
+    of the first_ and last_available dates.
     """
     pass
 

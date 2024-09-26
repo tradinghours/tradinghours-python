@@ -1,8 +1,8 @@
+import calendar
 import datetime as dt
 from typing import Iterable, Generator, Union
 from zoneinfo import ZoneInfo
 from functools import cached_property
-import calendar
 
 from .dynamic_models import (
     BaseModel,
@@ -22,7 +22,7 @@ from .validate import (
 )
 from .store import db
 from .util import weekdays_match
-from .exceptions import NoAccess, NotCovered, MICDoesNotExist
+from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -75,7 +75,6 @@ class Market(BaseModel):
         date = result.date
         _, num_days_in_month = calendar.monthrange(date.year, date.month)
         return date.replace(day=num_days_in_month)
-
 
     @property
     def country_code(self):
@@ -147,6 +146,10 @@ class Market(BaseModel):
             validate_date_arg("end", end),
         )
         # print(f"generating phases between {start} and {end}")
+        if start < self.first_available_date or end > self.last_available_date:
+            raise DateNotAvailable("start and/or end are outside of the available dates for this "
+                                   "Market. You can use the properties `first_available_date` and "
+                                   "`last_available_date` to make sure you don't go out of bounds.")
 
         phase_types_dict = PhaseType.as_dict()
         # pprint(phase_types_dict)
@@ -155,12 +158,6 @@ class Market(BaseModel):
         offset_start = start - dt.timedelta(days=MAX_OFFSET_DAYS)
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
-
-        # When there is no more data on future holidays, it should stop
-        last_holiday_date = self._last_holiday().date
-        if end > last_holiday_date:
-            end = last_holiday_date
-
 
         # Iterate through all dates generating phases
         current_date = offset_start
@@ -359,3 +356,26 @@ class Market(BaseModel):
         else:
             found = cls.get_by_mic(identifier, follow=follow)
         return found
+
+    def status(self, datetime=None):
+        """
+        Will return the status of the market.
+
+        If `time` is None, it will be the current status, otherwise the status
+        at the given `datetime`, which needs to be timezone aware.
+        """
+        if datetime is None:
+            datetime = dt.datetime.now(dt.UTC)
+        elif type(datetime) is not dt.datetime or datetime.tzinfo is None:
+            raise ValueError("You need to pass a timezone aware datetime.")
+
+        start = datetime.date() - dt.timedelta(days=5)
+        end = datetime.date() + dt.timedelta(days=5)
+        phases = list(self.generate_phases(start=start, end=end))
+
+        current_phases = []
+
+
+
+
+
