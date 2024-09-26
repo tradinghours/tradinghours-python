@@ -1,6 +1,8 @@
 import datetime as dt
 from typing import Iterable, Generator, Union
 from zoneinfo import ZoneInfo
+from functools import cached_property
+import calendar
 
 from .dynamic_models import (
     BaseModel,
@@ -43,6 +45,37 @@ class Market(BaseModel):
         self.memo = self._data["memo"]
         self.permanently_closed = self._data["permanently_closed"]
         self.replaced_by = self._data["replaced_by"]
+
+    @cached_property
+    def first_available_date(self):
+        """
+        The first available date is the 1st day of
+        the month of the first holiday of the given market.
+        """
+        table = MarketHoliday.table
+        result = db.query(table).filter(
+            table.c.fin_id == self.fin_id
+        ).order_by(
+            table.c.date
+        ).first()
+        return result.date.replace(day=1)
+
+    @cached_property
+    def last_available_date(self):
+        """
+        The last available date is the last day of the month
+        of the last available holiday of the given market.
+        """
+        table = MarketHoliday.table
+        result = db.query(table).filter(
+            table.c.fin_id == self.fin_id
+        ).order_by(
+            table.c.date.desc()
+        ).first()
+        date = result.date
+        _, num_days_in_month = calendar.monthrange(date.year, date.month)
+        return date.replace(day=num_days_in_month)
+
 
     @property
     def country_code(self):
