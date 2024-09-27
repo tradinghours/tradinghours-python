@@ -59,6 +59,7 @@ The web-based API is programming language agnostic.
 - [Markets](#markets)
   - [View Available Markets](#view-available-markets)
   - [Get A Specific Market](#get-a-specific-market)
+  - [Market Status](#market-status)
   - [Market Holidays](#market-holidays)
   - [Trading Hours](#trading-hours)
 - [Currencies](#currencies)
