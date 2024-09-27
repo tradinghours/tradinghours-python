@@ -368,6 +368,7 @@ class Market(BaseModel):
             found = cls.get_by_mic(identifier, follow=follow)
         return found
 
+    @db.check_access
     def status(self, datetime: Union[dt.datetime, None] = None) -> dict:
         """
         Will return the status of the market.

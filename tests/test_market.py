@@ -2,7 +2,9 @@ import pytest, calendar
 from tradinghours import Market
 from tradinghours.dynamic_models import MarketHoliday
 from tradinghours.exceptions import DateNotAvailable
+from tradinghours.exceptions import NoAccess
 import tradinghours.store as st
+
 from .utils import fromiso
 
 # Test whether you can follow or not a permanently closed market
@@ -76,16 +78,12 @@ def test_market_available_dates(fin_id):
         with pytest.raises(DateNotAvailable):
             list(market.generate_phases("1900-01-01", "2099-01-01"))
 
-"""
-{
-         "status":"Open",
-         "reason":"Market Holiday - Primary Trading Session (Partial)",
-         "until":"2020-11-27T12:45:00-05:00",
-         "next_bell":"2020-11-27T13:00:00-05:00",
-         "timezone":"America/New_York",
-      }
-"""
-
+@pytest.mark.xfail(
+    st.db.access_level == st.AccessLevel.only_holidays,
+    reason="No access",
+    strict=True,
+    raises=NoAccess
+)
 @pytest.mark.parametrize("fin_id, datetime, expected", [
     ("US.NYSE", fromiso("2023-11-15 12:00", "America/New_York"),
      {

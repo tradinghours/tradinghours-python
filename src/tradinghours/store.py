@@ -44,7 +44,8 @@ class DB:
         "Currency.get": {AccessLevel.full},
         "Currency.is_covered": {AccessLevel.full},
         "Market.list_schedules": {AccessLevel.full, AccessLevel.no_currencies},
-        "Market.generate_phases": {AccessLevel.full, AccessLevel.no_currencies}
+        "Market.generate_phases": {AccessLevel.full, AccessLevel.no_currencies},
+        "Market.status": {AccessLevel.full, AccessLevel.no_currencies}
     }
     _no_model_access = {
         AccessLevel.full: set(),
