@@ -11,7 +11,8 @@ from .dynamic_models import (
     PhaseType,
     MarketHoliday,
     MicMapping,
-    SeasonDefinition
+    SeasonDefinition,
+    MarketStatus
 )
 from .validate import (
     validate_range_args,
@@ -440,17 +441,15 @@ class Market(BaseModel):
 
         reason = reason.strip(" -") if reason else None
 
-        return {
+        return MarketStatus({
+            "market": self,
+            "phase": current,
             "status": current.status if current else "Closed",
             "reason": reason,
             "until": until,
             "next_bell": next_bell,
-            "timezone": self.timezone
-        }
-
-
-
-
+            # "timezone": self.timezone
+        })
 
         """
         until

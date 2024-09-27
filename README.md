@@ -168,6 +168,20 @@ print(f'{original.fin_id} replaced by {original.replaced_by} on {original.perman
     AR.BCBA replaced by AR.BYMA on 2017-04-17
 ```
 
+### Market Status
+The Market.status method will show you the status of the market at a specific datetime.
+
+```python
+from tradinghours import Market
+from zoneinfo import ZoneInfo
+import datetime as dt
+
+market = Market.get("US.NYSE")
+default = market.status()
+print(default)
+```
+
+
 ### Market Holidays
 
 ```python

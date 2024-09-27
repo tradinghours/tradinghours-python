@@ -93,7 +93,7 @@ def test_market_available_dates(fin_id):
          "reason": "Primary Trading Session",
          "until": fromiso("2023-11-15 15:50", "America/New_York"),
          "next_bell": fromiso("2023-11-15 16:00", "America/New_York"),
-         "timezone": "America/New_York",
+         # "timezone": "America/New_York",
      }),
     ("US.NYSE", fromiso("2023-11-15 18:00", "America/New_York"),
      {
@@ -101,7 +101,7 @@ def test_market_available_dates(fin_id):
          "reason": "Post-Trading Session",
          "until": fromiso("2023-11-15 20:00", "America/New_York"),
          "next_bell": fromiso("2023-11-16 09:30", "America/New_York"),
-         "timezone": "America/New_York",
+#          "timezone": "America/New_York",
      }),
     ("US.NYSE", fromiso("2023-11-11 18:00", "America/New_York"),
      {
@@ -109,7 +109,7 @@ def test_market_available_dates(fin_id):
          "reason": None,
          "until": fromiso("2023-11-13 04:00", "America/New_York"),
          "next_bell": fromiso("2023-11-13 09:30", "America/New_York"),
-         "timezone": "America/New_York",
+#          "timezone": "America/New_York",
      }),
     ("US.NYSE", fromiso("2023-11-24 10:00", "America/New_York"),
      {
@@ -117,7 +117,7 @@ def test_market_available_dates(fin_id):
          "reason": "Thanksgiving Day - Primary Trading Session (Partial)",
          "until": fromiso("2023-11-24 13:00", "America/New_York"),
          "next_bell": fromiso("2023-11-24 13:00", "America/New_York"),
-         "timezone": "America/New_York",
+#          "timezone": "America/New_York",
      }),
     ("US.NYSE", fromiso("2024-12-25 10:00", "America/New_York"),
      {
@@ -125,12 +125,30 @@ def test_market_available_dates(fin_id):
          "reason": "Christmas",
          "until": fromiso("2024-12-26 04:00", "America/New_York"),
          "next_bell": fromiso("2024-12-26 09:30", "America/New_York"),
-         "timezone": "America/New_York",
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-15 16:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": "Post-Trading Session",
+         "until": fromiso("2023-11-15 20:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-16 09:30", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-15 15:59", "America/New_York"),
+     {
+         "status": "Open",
+         "reason": "Primary Trading Session",
+         "until": fromiso("2023-11-15 16:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-15 16:00", "America/New_York"),
+#          "timezone": "America/New_York",
      })
 ])
 def test_market_status(fin_id, datetime, expected):
     market = Market.get(fin_id)
     status = market.status(datetime=datetime)
+    status = status.to_dict()
+    status = {k: status.get(k) for k in expected}
     assert status == expected
 
 
