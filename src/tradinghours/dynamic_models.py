@@ -86,7 +86,13 @@ class BaseModel:
         return {f: getattr(self, f) for f in self.fields}
 
     def pprint(self) -> None:
-        pprint(self.to_dict(), sort_dicts=False)
+        dct = {}
+        for f in self.fields:
+            val = getattr(self, f)
+            if not isinstance(val, int) and not isinstance(val, float) and val is not None:
+                val = str(val)
+            dct[f] = val
+        pprint(dct, sort_dicts=False)
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -288,3 +294,16 @@ class Phase(BaseModel):
     @property
     def is_open(self):
         return self.status == 'Open'
+
+class MarketStatus(BaseModel):
+    _table = None
+    _original_string_format = "MarketStatus: {status}"
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.status = self._data["status"]
+        self.reason = self._data["reason"]
+        self.until = self._data["until"]
+        self.next_bell = self._data["next_bell"]
+        self.phase = self._data["phase"]
+        self.market = self._data["market"]
