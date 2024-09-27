@@ -178,7 +178,7 @@ import datetime as dt
 market = Market.get("US.NYSE")
 status = market.status()
 # The default datetime is the current time.
-now = dt.datetime.now(dt.UTC)
+now = dt.datetime.now(dt.timezone.utc)
 print(
   status.status == market.status(now).status
 )

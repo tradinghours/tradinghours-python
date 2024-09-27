@@ -377,7 +377,7 @@ class Market(BaseModel):
         at the given `datetime`, which needs to be timezone aware.
         """
         if datetime is None:
-            datetime = dt.datetime.now(dt.UTC)
+            datetime = dt.datetime.now(dt.timezone.utc)
         elif type(datetime) is not dt.datetime or datetime.tzinfo is None:
             raise ValueError("You need to pass a timezone aware datetime.")
 
