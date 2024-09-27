@@ -140,7 +140,7 @@ class Market(BaseModel):
     def _generate_phases(
         self, start: Union[str, dt.date], end: Union[str, dt.date],
         include_holidays: bool = False
-    ) -> Generator[Phase, None, None]:
+    ) -> Generator[Union[Phase, dict], None, None]:
 
         start, end = validate_range_args(
             validate_date_arg("start", start),
@@ -159,6 +159,8 @@ class Market(BaseModel):
         offset_start = start - dt.timedelta(days=MAX_OFFSET_DAYS)
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
+        if include_holidays:
+            yield holidays
 
         # Iterate through all dates generating phases
         current_date = offset_start
@@ -218,7 +220,7 @@ class Market(BaseModel):
                     end_datetime = end_datetime.replace(tzinfo=zoneinfo_obj)
 
                     phase_type = phase_types_dict[current_schedule.phase_type]
-                    phase = Phase(
+                    yield Phase(
                         dict(
                             phase_type=current_schedule.phase_type,
                             phase_name=current_schedule.phase_name,
@@ -229,14 +231,6 @@ class Market(BaseModel):
                             end=end_datetime,
                         )
                     )
-                    # include_holidays is not exposed to the user
-                    # it is just used so that Market.status does not
-                    # need to make an additional query for holidays
-                    if include_holidays:
-                        yield phase, holidays.get(current_date)
-                    else:
-                        yield phase
-
 
             # Next date, please
             current_date += dt.timedelta(days=1)
@@ -385,62 +379,64 @@ class Market(BaseModel):
         elif type(datetime) is not dt.datetime or datetime.tzinfo is None:
             raise ValueError("You need to pass a timezone aware datetime.")
 
-        start = datetime.date()
+        date = datetime.date()
         # arbitrarily extending end so that there are definitely following phases
-        end = start + dt.timedelta(days=5)
+        end = date + dt.timedelta(days=5)
         current, nxt = [], []
         is_primary = False
-        for phase, holiday in self._generate_phases(start=start, end=end, include_holidays=True):
+        phase_generator = self._generate_phases(start=date, end=end, include_holidays=True)
+        holidays = next(phase_generator)
+        for phase in phase_generator:
             if not is_primary and phase.start <= datetime < phase.end:
                 # is_open means that it's a primary phase
                 # and we just take that one
                 if phase.is_open:
                     is_primary = True
-                    current = (phase, holiday)
+                    current = phase
                 else:
-                    current.append((phase, holiday))
+                    current.append(phase)
             elif datetime < phase.start:
-                nxt.append((phase, holiday))
+                nxt.append(phase)
 
         # if there is no primary session we need to take the one starting first
         # if there are no sessions at all, we set current to None
         if not is_primary:
             if current:
-                current, holiday = sorted(current, key=lambda ph: ph[0].start)[0]
+                current = sorted(current, key=lambda p: p.start)[0]
             else:
-                current, holiday = None, None
-        else:
-            current, holiday = current
+                current = None
 
         # set until
         if current:
             # check if there are any overlapping phases
-            overlapping = [(phase, holiday) for phase, holiday in nxt if phase.start < current.end]
+            overlapping = [phase for phase in nxt if phase.start < current.end]
             if overlapping:
                 # take the first one that overlaps
-                until = sorted(overlapping, key= lambda ph: ph[0].start)[0][0].start
+                until = sorted(overlapping, key= lambda p: p.start)[0].start
             else:
                 until = current.end
         else:
-            until = sorted(nxt, key= lambda ph: ph[0].start)[0][0].start
+            until = sorted(nxt, key= lambda p: p.start)[0].start
 
         # set next_bell
         if is_primary:
             next_bell = current.end
         else:
-            for phase, holiday in nxt:
+            next_bell = None
+            for phase in nxt:
                 if phase.is_open:
                     next_bell = phase.start
                     break
 
         # set reason
         reason = ""
+        holiday = holidays.get(date)
         if holiday:
             reason += holiday.holiday_name
         if current:
             reason += f" - {current.phase_type}"
-        if holiday and holiday.schedule.lower() != "regular":
-            reason += f" ({holiday.schedule})"
+            if holiday and holiday.schedule.lower() != "regular":
+                reason += f" ({holiday.schedule})"
 
         reason = reason.strip(" -") if reason else None
 
