@@ -1,15 +1,10 @@
 import os
-import datetime as dt
-from zoneinfo import ZoneInfo
 import pytest
 from tradinghours.market import Market
 from tradinghours.exceptions import NoAccess
 from tradinghours.store import db, AccessLevel
-from pprint import pprint
 
-def fromiso(iso, tz):
-    d = dt.datetime.fromisoformat(iso)
-    return d.replace(tzinfo=ZoneInfo(tz))
+from .utils import fromiso
 
 @pytest.mark.xfail(
     db.access_level == AccessLevel.only_holidays,

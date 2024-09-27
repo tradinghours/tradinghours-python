@@ -3,6 +3,7 @@ from tradinghours import Market
 from tradinghours.dynamic_models import MarketHoliday
 from tradinghours.exceptions import DateNotAvailable
 import tradinghours.store as st
+from .utils import fromiso
 
 # Test whether you can follow or not a permanently closed market
 @pytest.mark.parametrize("method, args, expected", [
@@ -74,5 +75,64 @@ def test_market_available_dates(fin_id):
             list(market.generate_phases("2020-01-01", "2099-01-01"))
         with pytest.raises(DateNotAvailable):
             list(market.generate_phases("1900-01-01", "2099-01-01"))
+
+"""
+{
+         "status":"Open",
+         "reason":"Market Holiday - Primary Trading Session (Partial)",
+         "until":"2020-11-27T12:45:00-05:00",
+         "next_bell":"2020-11-27T13:00:00-05:00",
+         "timezone":"America/New_York",
+      }
+"""
+
+@pytest.mark.parametrize("fin_id, datetime, expected", [
+    ("US.NYSE", fromiso("2023-11-15 12:00", "America/New_York"),
+     {
+         "status": "Open",
+         "reason": "Primary Trading Session",
+         "until": fromiso("2023-11-15 15:50", "America/New_York"),
+         "next_bell": fromiso("2023-11-15 16:00", "America/New_York"),
+         "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-15 18:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": "Post-Trading Session",
+         "until": fromiso("2023-11-15 20:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-16 09:30", "America/New_York"),
+         "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-11 18:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": None,
+         "until": fromiso("2023-11-13 04:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-13 09:30", "America/New_York"),
+         "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-24 10:00", "America/New_York"),
+     {
+         "status": "Open",
+         "reason": "Thanksgiving Day - Primary Trading Session (Partial)",
+         "until": fromiso("2023-11-24 13:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-24 13:00", "America/New_York"),
+         "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2024-12-25 10:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": "Christmas",
+         "until": fromiso("2024-12-26 04:00", "America/New_York"),
+         "next_bell": fromiso("2024-12-26 09:30", "America/New_York"),
+         "timezone": "America/New_York",
+     })
+])
+def test_market_status(fin_id, datetime, expected):
+    market = Market.get(fin_id)
+    status = market.status(datetime=datetime)
+    assert status == expected
+
+
 
 
