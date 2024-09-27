@@ -2,7 +2,6 @@ version: '3.8'
 
 services:
   mysql:
-#    image: mysql:5.7
     image: mysql:8.4
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -11,8 +10,6 @@ services:
       MYSQL_PASSWORD: test_password
     ports:
       - "3306:3306"
-#    volumes:
-#      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "--silent"]
       interval: 10s
@@ -27,14 +24,8 @@ services:
       POSTGRES_DB: test_db
     ports:
       - "5432:5432"
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       retries: 5
       timeout: 5s
-
-volumes:
-  mysql_data:
-  postgres_data:

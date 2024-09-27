@@ -1,8 +1,9 @@
+import calendar
 import datetime as dt
 from typing import Iterable, Generator, Union
 from zoneinfo import ZoneInfo
+from functools import cached_property
 
-from .typing import StrOrDate
 from .dynamic_models import (
     BaseModel,
     Schedule,
@@ -12,10 +13,16 @@ from .dynamic_models import (
     MicMapping,
     SeasonDefinition
 )
-from .validate import validate_range_args, validate_date_arg, validate_finid_arg, validate_str_arg
+from .validate import (
+    validate_range_args,
+    validate_date_arg,
+    validate_finid_arg,
+    validate_str_arg,
+    validate_mic_arg
+)
 from .store import db
 from .util import weekdays_match
-from .exceptions import NoAccess, NotCovered, MICDoesNotExist
+from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -38,6 +45,36 @@ class Market(BaseModel):
         self.memo = self._data["memo"]
         self.permanently_closed = self._data["permanently_closed"]
         self.replaced_by = self._data["replaced_by"]
+
+    @cached_property
+    def first_available_date(self):
+        """
+        The first available date is the 1st day of
+        the month of the first holiday of the given market.
+        """
+        table = MarketHoliday.table
+        result = db.query(table).filter(
+            table.c.fin_id == self.fin_id
+        ).order_by(
+            table.c.date
+        ).first()
+        return result.date.replace(day=1)
+
+    @cached_property
+    def last_available_date(self):
+        """
+        The last available date is the last day of the month
+        of the last available holiday of the given market.
+        """
+        table = MarketHoliday.table
+        result = db.query(table).filter(
+            table.c.fin_id == self.fin_id
+        ).order_by(
+            table.c.date.desc()
+        ).first()
+        date = result.date
+        _, num_days_in_month = calendar.monthrange(date.year, date.month)
+        return date.replace(day=num_days_in_month)
 
     @property
     def country_code(self):
@@ -102,13 +139,17 @@ class Market(BaseModel):
 
     @db.check_access
     def generate_phases(
-        self, start: StrOrDate, end: StrOrDate
+        self, start: Union[str, dt.date], end: Union[str, dt.date]
     ) -> Generator[Phase, None, None]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
         # print(f"generating phases between {start} and {end}")
+        if start < self.first_available_date or end > self.last_available_date:
+            raise DateNotAvailable("start and/or end are outside of the available dates for this "
+                                   "Market. You can use the properties `first_available_date` and "
+                                   "`last_available_date` to make sure you don't go out of bounds.")
 
         phase_types_dict = PhaseType.as_dict()
         # pprint(phase_types_dict)
@@ -192,12 +233,24 @@ class Market(BaseModel):
             current_date += dt.timedelta(days=1)
 
     @classmethod
-    def list_all(cls) -> list["Market"]:
-        return [cls(r) for r in db.query(cls.table)]
+    def list_all(cls, sub_set="*") -> list["Market"]:
+        validate_str_arg("sub_set", sub_set)
+        sub_set = sub_set.upper().replace("*", "%")
+        return [cls(r) for r in db.query(cls.table).filter(
+            cls.table.c.fin_id.like(sub_set)
+        )]
 
+    def _last_holiday(self):
+        table = self.table
+        result = db.query(table).filter(
+            table.c.fin_id == self.fin_id
+        ).order_by(
+            table.c.date.desc()
+        ).first()
+        return MarketHoliday(result)
 
     def list_holidays(
-        self, start: StrOrDate, end: StrOrDate, as_dict: bool = False
+        self, start: Union[str, dt.date], end: Union[str, dt.date], as_dict: bool = False
     ) -> Union[list["MarketHoliday"], dict[dt.date, "MarketHoliday"]]:
         start, end = validate_range_args(
             validate_date_arg("start", start),
@@ -276,8 +329,7 @@ class Market(BaseModel):
 
     @classmethod
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
-        finid = finid.upper()
-        finid = validate_finid_arg("finid", finid)
+        finid = validate_finid_arg(finid)
         found = cls._get_by_finid(finid)
 
         while found and (found_obj := cls(found)).replaced_by and follow:
@@ -288,8 +340,7 @@ class Market(BaseModel):
 
     @classmethod
     def get_by_mic(cls, mic: str, follow=True) -> "Market":
-        mic = mic.upper()
-        mic = validate_str_arg("mic", mic)
+        mic = validate_mic_arg(mic)
         mapping = db.query(MicMapping.table).filter(
             MicMapping.table.c.mic == mic
         ).one_or_none()
@@ -305,3 +356,26 @@ class Market(BaseModel):
         else:
             found = cls.get_by_mic(identifier, follow=follow)
         return found
+
+    def status(self, datetime=None):
+        """
+        Will return the status of the market.
+
+        If `time` is None, it will be the current status, otherwise the status
+        at the given `datetime`, which needs to be timezone aware.
+        """
+        if datetime is None:
+            datetime = dt.datetime.now(dt.UTC)
+        elif type(datetime) is not dt.datetime or datetime.tzinfo is None:
+            raise ValueError("You need to pass a timezone aware datetime.")
+
+        start = datetime.date() - dt.timedelta(days=5)
+        end = datetime.date() + dt.timedelta(days=5)
+        phases = list(self.generate_phases(start=start, end=end))
+
+        current_phases = []
+
+
+
+
+

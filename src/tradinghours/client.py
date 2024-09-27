@@ -9,8 +9,6 @@ from http.client import HTTPResponse
 
 from .config import main_config
 from .exceptions import ClientError, TokenError
-from .typing import StrOrPath
-from .validate import validate_instance_arg, validate_path_arg
 
 TOKEN = main_config.get("api", "token")
 BASE_URL = main_config.get("api", "base_url")

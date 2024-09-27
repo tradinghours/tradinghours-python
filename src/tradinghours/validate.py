@@ -1,19 +1,15 @@
-import datetime
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Type, TypeVar
-
-if TYPE_CHECKING:
-    from .structure import FinId, Weekday
+import datetime as dt
+from typing import Any, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
 
-def validate_date_arg(name: str, value: Any) -> datetime.date:
+def validate_date_arg(name: str, value: Any) -> dt.date:
     if value is None:
         raise ValueError(f"Missing {name}")
     if isinstance(value, str):
-        value = datetime.date.fromisoformat(value)
-    if not isinstance(value, datetime.date):
+        value = dt.date.fromisoformat(value)
+    if type(value) is not dt.date:
         raise TypeError(f"Invalid {name} type")
     return value
 
@@ -45,56 +41,20 @@ def validate_int_arg(name: str, value: Any, default: Optional[int] = None) -> in
     return value
 
 
-def validate_finid_arg(name: str, value: Any) -> str:
-
+def validate_finid_arg(value: Any) -> str:
     if value is None:
-        raise ValueError(f"Missing {name}")
+        raise ValueError(f"Missing FinID")
     if isinstance(value, str):
         segments = value.split(".")
         if len(segments) < 2:
             raise ValueError("Invalid FinID string")
     return value.upper()
 
-
-def validate_weekday_arg(name: str, value: Any) -> "Weekday":
-    from tradinghours.structure import Weekday
-
+def validate_mic_arg(value: Any) -> str:
     if value is None:
-        raise ValueError(f"Missing {name}")
-    if isinstance(value, str):
-        value = Weekday.from_string(value)
-    if isinstance(value, int):
-        value = Weekday(value)
-    if isinstance(value, datetime.date):
-        value = Weekday(value.weekday())
-    if isinstance(value, datetime.datetime):
-        value = Weekday(value.weekday())
-    if not isinstance(value, Weekday):
-        raise TypeError(f"Invalid {name} type")
-    return value
-
-
-def validate_path_arg(name: str, value: Any) -> Path:
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if isinstance(value, str):
-        value = Path(value)
-    if not isinstance(value, Path):
-        raise TypeError(f"Invalid {name} type")
-    return value
-
-
-def validate_subclass_arg(name: str, value: Any, baseclass: Type[T]) -> Type[T]:
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if not issubclass(value, baseclass):
-        raise TypeError(f"Invalid {name} type")
-    return value
-
-
-def validate_instance_arg(name: str, value: Any, baseclass: Type[T]) -> T:
-    if value is None:
-        raise ValueError(f"Missing {name}")
-    if not isinstance(value, baseclass):
-        raise TypeError(f"Invalid {name} type")
-    return value
+        raise ValueError(f"Missing MIC")
+    if not isinstance(value, str):
+        raise TypeError(f"MIC needs to be a str")
+    if not value.isalnum() or len(value) != 4:
+        raise ValueError(f"Invalid MIC string")
+    return value.upper()

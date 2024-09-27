@@ -3,7 +3,6 @@ from pprint import pprint
 from sqlalchemy import func
 import datetime as dt
 
-from .typing import StrOrDate
 from .store import db
 from .validate import validate_str_arg, validate_int_arg, validate_range_args, validate_date_arg
 from .exceptions import MissingDefinitionError
@@ -226,7 +225,7 @@ class Schedule(BaseModel):
         season_end = (self.season_end or "").strip()
         return bool(season_start and season_end)
 
-    def is_in_force(self, start: dt.date, end: StrOrDate) -> bool:
+    def is_in_force(self, start: dt.date, end: dt.date) -> bool:
         if not self.in_force_start_date and not self.in_force_end_date:
             return True
         elif self.in_force_start_date is None:

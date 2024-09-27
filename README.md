@@ -1,6 +1,15 @@
 <div align="center">
-<img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
-<h1>TradingHours.com Python Library</h1>
+  <img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
+  <h1>TradingHours.com Python Library</h1>
+
+  <!-- Badges centered -->
+  <p>
+    <a href="https://badge.fury.io/py/tradinghours">
+      <img src="https://badge.fury.io/py/tradinghours.svg" alt="PyPI version">
+    </a>
+    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-green" alt="Python versions">
+    <img src="https://github.com/tradinghours/tradinghours-python/actions/workflows/release.yml/badge.svg?branch=main" alt="GitHub Actions">
+  </p>
 </div>
 
 [TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world.
@@ -57,8 +66,8 @@ The web-based API is programming language agnostic.
   - [Currency Holidays](#currency-holidays)
 - [Advanced](#advanced)
   - [Optional Advanced Configuration](#optional-advanced-configuration)
-  - [Database Schema](#database-schema)
-  - [Time Zone Database](#time-zone-database)
+  - [Database](#database)
+  - [Time Zones](#time-zones)
   - [Model Configuration](#model-configuration)
     - [Change String Format](#change-string-format)
 
@@ -100,6 +109,18 @@ for market in Market.list_all()[:3]:
 >>> Market: AE.ADX Abu Dhabi Securities Exchange Asia/Dubai
     Market: AE.DFM Dubai Financial Market Asia/Dubai
     Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai
+```
+You can also use an `*` to filter the list of Markets based on their fin_id:
+```python
+from tradinghours import Market
+
+for market in Market.list_all("US.*")[:3]:
+  print(market)
+  
+>>> Market: US.BTEC.ACTIVES.ASIA BrokerTec America/New_York
+    Market: US.BTEC.ACTIVES.LDN BrokerTec America/New_York
+    Market: US.BTEC.ACTIVES.US BrokerTec America/New_York
+
 ```
 
 ### Get A Specific Market   
@@ -280,54 +301,47 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
 ## Advanced
 ### Optional Advanced Configuration
 
-By default, the library uses local file storage. Optionally you can 
-configure the library to use an SQL store. You can adjust settings
-using a **tradinghours.ini** file on the current working directory.
+Configuration can be changed by creating a `tradinghours.ini` file in the current directory.
 
-Here is a sample configuration file using file system storage:
+These are all possible and optional values, for which explanations will follow:
 
 ```ini
 [api]
-token = YOUR-TOKEN-HERE
+token = YOUR-TOKEN
 
 [data]
-use_db = False
-local_dir = /srv/tradinghours/local
-remote_dir = /srv/tradinghours/remote
+db_url = postgresql://postgres:password@localhost:5432/your_database
+table_prefix = thstore_
+remote_dir = path/to/empty/folder
+
+[control]
+check_tzdata = False
 ```
 
-And here you can see one using a local SQL Alchemy database. Note that
-you can use any valid [Database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls):
+### Database
+* `[data]`
+  * `db_url`
+    * A connection string to a database. Please read the [caveats](#caveats) before using this setting.
+    * This allows you to download the data once, and let your team members use the same database.
+  * `table_prefix`
+    * Every table created in the database will be prefixed with this. `'thstore_'` is the default.
+    * This can be used to avoid conflicts with existing tables.
+  * `remote_dir`
+    * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
+    * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
+    * Unless you want to access the raw CSV files directly, there is no reason to change this.
 
-```ini
-[api]
-token = YOUR-TOKEN-HERE
+#### Caveats
+* Tables used by this package (identified by the `table_prefix`) are dropped and recreated every time `tradinghours import` is run.
+* Since the tables are dropped and recreated, the user in the `db_url` string needs to have the permissions to drop and create tables in the specified database.
+* To avoid any complications with existing data, we recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
 
-[data]
-use_db = True
-db_url = sqlite:///tradinghours.db
-```
+##### Schema
+* The tables are named after the CSV files, with `_` instead of `-` and prefixed with the `table_prefix` setting.
+* To allow the package to be flexible with updates to the raw data, where columns might be added in the future, the tables are created dynamically, based on the content of the CSV files.
+* Columns of the tables are named after the columns of the CSV files, although in lower case and with underscores instead of spaces.
 
-### Database Schema
-
-In case you would like to directly access the tables for the SQL mode, you
-can see that they all follow a very simple structure with keys for stored data
-and the data with actual JSON. The library uses this simple structure that
-should be compatible with nearly all database engines around.
-
-Here is the DDL for the tables currently in use:
-
-```sql
-CREATE TABLE thstore_currencies (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_currency_holidays (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_holidays (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_markets (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_mic_mapping (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_schedules (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_season_definitions (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-```
-
-### Time Zone Database 
+### Time Zones
 This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
 which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
 `tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 
