@@ -86,7 +86,13 @@ class BaseModel:
         return {f: getattr(self, f) for f in self.fields}
 
     def pprint(self) -> None:
-        pprint({f: str(getattr(self, f)) for f in self.fields}, sort_dicts=False)
+        dct = {}
+        for f in self.fields:
+            val = getattr(self, f)
+            if not isinstance(val, int) and not isinstance(val, float) and val is not None:
+                val = str(val)
+            dct[f] = val
+        pprint(dct, sort_dicts=False)
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__

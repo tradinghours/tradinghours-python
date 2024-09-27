@@ -169,18 +169,38 @@ print(f'{original.fin_id} replaced by {original.replaced_by} on {original.perman
 ```
 
 ### Market Status
-The Market.status method will show you the status of the market at a specific datetime.
+The `Market.status` method will return a `MarketStatus` representing the status of the market at a specific datetime.
 
+```python
+from tradinghours import Market
+import datetime as dt
+
+market = Market.get("US.NYSE")
+status = market.status()
+# The default datetime is the current time.
+now = dt.datetime.now(dt.UTC)
+print(
+  status.status == market.status(now).status
+)
+>>> True
+```
+To use a different datetime, you need to create a timezone aware datetime object.
 ```python
 from tradinghours import Market
 from zoneinfo import ZoneInfo
 import datetime as dt
 
-market = Market.get("US.NYSE")
-default = market.status()
-print(default)
-```
+christmas_noon = dt.datetime(2024,12,25,12,tzinfo=ZoneInfo("America/New_York"))
+status = Market.get("US.NYSE").status(christmas_noon)
 
+status.pprint() # same as pprint(status.to_dict())
+>>> {'market': 'Market: US.NYSE New York Stock Exchange America/New_York',
+     'phase': None,
+     'status': 'Closed',
+     'reason': 'Christmas',
+     'until': '2024-12-26 04:00:00-05:00',
+     'next_bell': '2024-12-26 09:30:00-05:00'}
+```
 
 ### Market Holidays
 
@@ -266,8 +286,8 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'phase_name': 'Pre-Open', # name for the phase as it is used by the market
      'phase_memo': None, # additional description for the phase_name
      'days': 'Wed', # days of the week that this schedule applies to
-     'start': datetime.time(16, 45), # start time of the phase
-     'end': datetime.time(8, 30), # end time of the phase
+     'start': '16:45:00', # start time of the phase
+     'end': '08:30:00', # end time of the phase
      'offset_days': 2, # number of days that need to be added to the end time
      'duration': 143100, # total length of this phase in seconds
      'min_start': None, # earliest possible start when random start/stop times apply
