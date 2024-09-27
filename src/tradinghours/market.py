@@ -440,16 +440,15 @@ class Market(BaseModel):
                 reason += f" ({holiday.schedule})"
 
         reason = reason.strip(" -") if reason else None
-
         return MarketStatus({
-            "market": self,
-            "phase": current,
             "status": current.status if current else "Closed",
             "reason": reason,
             "until": until,
             "next_bell": next_bell,
-            # "timezone": self.timezone
+            "phase": current,
+            "market": self
         })
+
 
         """
         until

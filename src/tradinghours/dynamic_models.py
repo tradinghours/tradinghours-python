@@ -301,9 +301,9 @@ class MarketStatus(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
-        self.market = self._data["market"]
-        self.phase = self._data["phase"]
         self.status = self._data["status"]
         self.reason = self._data["reason"]
         self.until = self._data["until"]
         self.next_bell = self._data["next_bell"]
+        self.phase = self._data["phase"]
+        self.market = self._data["market"]

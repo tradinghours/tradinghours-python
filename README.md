@@ -194,12 +194,12 @@ christmas_noon = dt.datetime(2024,12,25,12,tzinfo=ZoneInfo("America/New_York"))
 status = Market.get("US.NYSE").status(christmas_noon)
 
 status.pprint() # same as pprint(status.to_dict())
->>> {'market': 'Market: US.NYSE New York Stock Exchange America/New_York',
-     'phase': None,
-     'status': 'Closed',
+>>> {'status': 'Closed',
      'reason': 'Christmas',
      'until': '2024-12-26 04:00:00-05:00',
-     'next_bell': '2024-12-26 09:30:00-05:00'}
+     'next_bell': '2024-12-26 09:30:00-05:00',
+     'phase': None,
+     'market': 'Market: US.NYSE New York Stock Exchange America/New_York'}
 ```
 
 ### Market Holidays
