@@ -42,7 +42,12 @@ pip install tradinghours
 export TRADINGHOURS_TOKEN=<your-key-goes-here>
 ```
 
-See [advanced configuration options](#optional-advanced-configuration).
+You can also install with mysql or postgres dependencies, if you wish to use one of these. You can read more about this in [advanced configuration options](#optional-advanced-configuration).
+```sh
+pip install tradinghours[mysql] 
+# or 
+pip install tradinghours[postgres]
+```
 
 ### Alternatives
 

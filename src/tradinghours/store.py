@@ -238,6 +238,12 @@ class DB:
         num_currencies = self.query(func.count()).select_from(table).scalar()
         return num_markets, num_currencies
 
+    def get_num_permanently_closed(self) -> int:
+        table = db.table("markets")
+        num = self.query(func.count()).filter(
+            table.c.permanently_closed.isnot(None)
+        ).scalar()
+        return num
 
 ########################################################
 # Singleton db instance used across the entire project #

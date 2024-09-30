@@ -59,14 +59,23 @@ def run_status(args):
         if local_timestamp:
             with timed_action("Reading local data"):
                 num_markets, num_currencies = db.get_num_covered()
+                num_permanently_closed = db.get_num_permanently_closed()
                 try:
-                    all_currencies = list(Currency.list_all())
+                    num_all_currencies = len(list(Currency.list_all()))
                 except NoAccess:
-                    all_currencies = []
-                all_markets = list(Market.list_all())
+                    num_all_currencies = 0
+                num_all_markets = len(list(Market.list_all()))
+                # num_all_markets -= num_permanently_closed
 
-            print(f"  Currencies count:  {len(all_currencies):4} available of {num_currencies}")
-            print(f"  Markets count:     {len(all_markets):4} available of {num_markets}")
+            print(f"  Currencies count:  {num_all_currencies:4} available out of {num_currencies} total")
+            print(f"  Markets count:     {num_all_markets:4} available out of {num_markets} total")
+            if num_permanently_closed:
+                print()
+                print("Notes:")
+                print(
+                    f"  {num_permanently_closed} permanently closed markets are accessible but excluded from the totals above.\n"
+                    f"  For access to additional markets, please contact us at <sales@tradinghours.com>."
+                )
         else:
             print("No local data to show extended information")
 
