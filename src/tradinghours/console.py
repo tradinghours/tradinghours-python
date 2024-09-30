@@ -48,21 +48,34 @@ def create_parser():
 
 def run_status(args):
     db.ready()
-    remote_timestamp = client_get_remote_timestamp()
-    local_timestamp = db.get_local_timestamp()
+    with timed_action("Collecting timestamps"):
+        remote_timestamp = client_get_remote_timestamp()
+        local_timestamp = db.get_local_timestamp()
     print("TradingHours Data Status:")
     print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
     print()
     if args.extended:
         if local_timestamp:
-            try:
-                all_currencies = list(Currency.list_all())
-            except NoAccess:
-                all_currencies = []
-            all_markets = list(Market.list_all())
-            print("  Currencies count:  ", len(all_currencies))
-            print("  Markets count:     ", len(all_markets))
+            with timed_action("Reading local data"):
+                num_markets, num_currencies = db.get_num_covered()
+                num_permanently_closed = db.get_num_permanently_closed()
+                try:
+                    num_all_currencies = len(list(Currency.list_all()))
+                except NoAccess:
+                    num_all_currencies = 0
+                num_all_markets = len(list(Market.list_all()))
+                # num_all_markets -= num_permanently_closed
+
+            print(f"  Currencies count:  {num_all_currencies:4} available out of {num_currencies} total")
+            print(f"  Markets count:     {num_all_markets:4} available out of {num_markets} total")
+            if num_permanently_closed:
+                print()
+                print("Notes:")
+                print(
+                    f"  {num_permanently_closed} permanently closed markets are accessible but excluded from the totals above.\n"
+                    f"  For access to additional markets, please contact us at <sales@tradinghours.com>."
+                )
         else:
             print("No local data to show extended information")
 
@@ -70,13 +83,11 @@ def run_status(args):
 def run_import(args):
     show_warning = False
     if args.reset:
-        with timed_action("Ingesting"):
-            show_warning = not Writer().ingest_all()
+        show_warning = not Writer().ingest_all()
 
     elif args.force or db.needs_download():
         client_download()
-        with timed_action("Ingesting"):
-            show_warning = not Writer().ingest_all()
+        show_warning = not Writer().ingest_all()
     else:
         print("Local data is up-to-date.")
 

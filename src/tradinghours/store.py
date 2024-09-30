@@ -2,7 +2,20 @@ import os, csv, json, codecs
 import datetime as dt
 from pathlib import Path
 from pprint import pprint
-from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, Time, Date, Boolean, Text
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    func,
+    Table,
+    Column,
+    String,
+    Integer,
+    DateTime,
+    Time,
+    Date,
+    Boolean,
+    Text
+)
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from typing import Union
@@ -11,7 +24,7 @@ from enum import Enum
 
 from .config import main_config
 from .client import get_remote_timestamp as client_get_remote_timestamp
-from .util import tprefix, tname, clean_name
+from .util import tprefix, tname, clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
 class AccessLevel(Enum):
@@ -56,7 +69,7 @@ class DB:
     @classmethod
     def set_no_unicode(cls):
         """
-        MySQL databases can't handle the full unicode set by default. So if a
+        MySQL databases may not be able to handle the full unicode set by default. So if a
         mysql db is used and the ingestion fails, it is attempted again with the following
         conversion, which replaces unicode characters with '?'.
         """
@@ -218,6 +231,19 @@ class DB:
         self.metadata.reflect(bind=self.engine)
         self._failed_to_access = False
 
+    def get_num_covered(self) -> tuple[int, int]:
+        table = db.table("covered_markets")
+        num_markets = self.query(func.count()).select_from(table).scalar()
+        table = db.table("covered_currencies")
+        num_currencies = self.query(func.count()).select_from(table).scalar()
+        return num_markets, num_currencies
+
+    def get_num_permanently_closed(self) -> int:
+        table = db.table("markets")
+        num = self.query(func.count()).filter(
+            table.c.permanently_closed.isnot(None)
+        ).scalar()
+        return num
 
 ########################################################
 # Singleton db instance used across the entire project #
@@ -359,7 +385,7 @@ class Writer:
         )
         db.update_metadata()
 
-    def _ingest_all(self):
+    def _ingest_all(self, change_message):
         """Iterates over CSV files in the remote directory and ingests them."""
         db.reset_session()
         last_9_admin_records = self.prepare_ingestion()
@@ -374,12 +400,17 @@ class Writer:
                 file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
+                change_message(f"  {table_name}")
                 self.create_table_from_csv(file_path, table_name)
 
-        self.create_table_from_json(
-            self.remote / "covered_markets.json",
-            tname("covered_markets")
-        )
+        for json_file in ("covered_markets", "covered_currencies"):
+            table_name = tname(json_file)
+            change_message(f"  {table_name}")
+            self.create_table_from_json(
+                self.remote / f"{json_file}.json",
+                table_name
+            )
+
         db.update_metadata()
 
         if "schedules.csv" not in downloaded_csvs:
@@ -392,17 +423,20 @@ class Writer:
         self.create_admin(access_level, last_9_admin_records)
 
     def ingest_all(self) -> bool:
-        try:
-            self._ingest_all()
-            return True
-        except Exception:
-            if db.engine.dialect.name != "mysql":
-                raise
+        with timed_action("Ingesting") as (change_message, start_time):
+            try:
+                self._ingest_all(change_message)
+                return True
+            except Exception as e:
+                if db.engine.dialect.name != "mysql" or "Incorrect string value" not in str(e):
+                    raise
 
-        # Deal with the problem that MySQL is not able to
-        # handle the full unicode set by default and then try again
+        # Deal with the problem that MySQL may not be able to
+        # handle the full unicode set and then try again
+        print("\nHandling unicode problem, warning will follow")
         db.set_no_unicode()
-        self._ingest_all()
+        with timed_action("Ingesting") as (change_message, start_time):
+            self._ingest_all(change_message)
         return False
 
 

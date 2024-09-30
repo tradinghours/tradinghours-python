@@ -2,7 +2,7 @@ import pytest, io, sys, os
 
 from tradinghours import Market
 from tradinghours.currency import Currency, CurrencyHoliday
-from tradinghours.dynamic_models import Phase, MarketHoliday
+from tradinghours.models import Phase, MarketHoliday
 from tradinghours.exceptions import NoAccess
 import tradinghours.store as st
 from pathlib import Path
