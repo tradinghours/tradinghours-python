@@ -373,7 +373,7 @@ class Market(BaseModel):
         return found
 
     @db.check_access
-    def status(self, datetime: Union[dt.datetime, None] = None) -> dict:
+    def status(self, datetime: Union[dt.datetime, None] = None) -> "MarketStatus":
         """
         Will return the status of the market.
 

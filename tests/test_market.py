@@ -77,6 +77,12 @@ def test_market_available_dates(fin_id):
         with pytest.raises(DateNotAvailable):
             list(market.generate_phases("1900-01-01", "2099-01-01"))
 
+        with pytest.raises(DateNotAvailable):
+            market.status(fromiso("1900-01-01", "America/New_York"))
+        with pytest.raises(DateNotAvailable):
+            market.status(fromiso("2099-01-01", "America/New_York"))
+
+
 @pytest.mark.xfail(
     st.db.access_level == st.AccessLevel.only_holidays,
     reason="No access",
@@ -139,6 +145,38 @@ def test_market_available_dates(fin_id):
          "until": fromiso("2023-11-15 16:00", "America/New_York"),
          "next_bell": fromiso("2023-11-15 16:00", "America/New_York"),
 #          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-09-30 07:45", "America/Chicago"),
+     {
+         "status": "Closed",
+         "reason": None,
+         "until": fromiso("2024-09-30 08:00", "America/Chicago"),
+         "next_bell": fromiso("2024-09-30 08:30", "America/Chicago"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-09-30 08:00", "America/Chicago"),
+     {
+         "status": "Closed",
+         "reason": "Pre-Open",
+         "until": fromiso("2024-09-30 08:30", "America/Chicago"),
+         "next_bell": fromiso("2024-09-30 08:30", "America/Chicago"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-09-30 15:00", "America/Chicago"),
+     {
+         "status": "Closed",
+         "reason": "Post-Trading Session",
+         "until": fromiso("2024-09-30 16:00", "America/Chicago"),
+         "next_bell": fromiso("2024-09-30 19:00", "America/Chicago"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-10-04 00:00", "America/Chicago"),
+     {
+         "status": "Open",
+         "reason": "Primary Trading Session",
+         "until": fromiso("2024-10-04 07:45", "America/Chicago"),
+         "next_bell": fromiso("2024-10-04 07:45", "America/Chicago"),
+#          "timezone": "America/New_York",
      })
 ])
 def test_market_status(fin_id, datetime, expected):
@@ -147,7 +185,3 @@ def test_market_status(fin_id, datetime, expected):
     status = status.to_dict()
     status = {k: status.get(k) for k in expected}
     assert status == expected
-
-
-
-
