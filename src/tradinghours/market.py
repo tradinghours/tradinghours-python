@@ -77,6 +77,14 @@ class Market(BaseModel):
         _, num_days_in_month = calendar.monthrange(date.year, date.month)
         return date.replace(day=num_days_in_month)
 
+    def _in_range(self, *dates) -> None:
+        if not all(
+            self.first_available_date <= date <= self.last_available_date for date in dates
+        ):
+            raise DateNotAvailable("the requested data is outside of the available dates for this "
+                                   "Market. You can use the properties `first_available_date` and "
+                                   "`last_available_date` to stay within bounds.")
+
     @property
     def country_code(self):
         """Two-letter country code."""
@@ -140,27 +148,23 @@ class Market(BaseModel):
 
     def _generate_phases(
         self, start: Union[str, dt.date], end: Union[str, dt.date],
-        include_holidays: bool = False
+        _for_status: bool = False
     ) -> Generator[Union[Phase, dict], None, None]:
 
         start, end = validate_range_args(
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
-        # print(f"generating phases between {start} and {end}")
-        if start < self.first_available_date or end > self.last_available_date:
-            raise DateNotAvailable("start and/or end are outside of the available dates for this "
-                                   "Market. You can use the properties `first_available_date` and "
-                                   "`last_available_date` to make sure you don't go out of bounds.")
+        if not _for_status:
+            self._in_range(start, end)
 
         phase_types_dict = PhaseType.as_dict()
-        # pprint(phase_types_dict)
 
         # Get required global data
         offset_start = start - dt.timedelta(days=MAX_OFFSET_DAYS)
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
-        if include_holidays:
+        if _for_status:
             yield holidays
 
         # Iterate through all dates generating phases
@@ -241,7 +245,7 @@ class Market(BaseModel):
     def generate_phases(
         self, start: Union[str, dt.date], end: Union[str, dt.date]
     ) -> Generator[Phase, None, None]:
-        return self._generate_phases(start, end, include_holidays=False)
+        return self._generate_phases(start, end, _for_status=False)
 
     @classmethod
     def list_all(cls, sub_set="*") -> list["Market"]:
@@ -382,11 +386,13 @@ class Market(BaseModel):
             raise ValueError("You need to pass a timezone aware datetime.")
 
         date = datetime.date()
+        self._in_range(date)
         # arbitrarily extending end so that there are definitely following phases
-        end = date + dt.timedelta(days=5)
+        end = min(date + dt.timedelta(days=5), self.last_available_date)
+
         current, nxt = [], []
         is_primary = False
-        phase_generator = self._generate_phases(start=date, end=end, include_holidays=True)
+        phase_generator = self._generate_phases(start=date, end=end, _for_status=True)
         holidays = next(phase_generator)
         for phase in phase_generator:
             if not is_primary and phase.start <= datetime < phase.end:
@@ -449,27 +455,5 @@ class Market(BaseModel):
             "phase": current,
             "market": self
         })
-
-
-        """
-        until
-         if current phase
-          if overlapping phase next phase start 
-          else current phase end
-        else
-          next phase start
-          
-        next_bell
-         if current phase primary:
-           the end of current
-         else:
-           start of next primary
-           
-           
-        if current_phase:                    
-        
-        """
-
-
 
 
