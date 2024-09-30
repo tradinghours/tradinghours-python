@@ -19,11 +19,11 @@ def timed_action(message: str):
 
     done = False
     change_message_event = Event()
-    current_message = [message]  # Using a mutable object to allow modification inside the thread
+    current_message = [message]
     last_message = [message]
 
     def print_dots():
-        changed_already = False
+        last_check = time.time()
         while not done:
             if change_message_event.is_set() and current_message != last_message:
                 # Move to the next line and print the new message
@@ -31,8 +31,10 @@ def timed_action(message: str):
                 last_message[0] = current_message[0]
                 change_message_event.clear()
 
-            print(".", end="", flush=True)
-            time.sleep(0.5 if not changed_already else 2)
+            if time.time() - last_check > 1:
+                print(".", end="", flush=True)
+                last_check = time.time()
+            time.sleep(0.05)
 
     thread = Thread(target=print_dots)
     thread.daemon = True
