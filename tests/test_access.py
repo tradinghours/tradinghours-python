@@ -51,7 +51,7 @@ def test_raises_no_access():
             list(nyse.generate_phases("2024-09-12", "2024-09-13"))
 
 
-def test_raise_not_covered(covered_record):
+def test_raise_not_covered(covered_market, covered_currency):
     """
     NotCovered should be raised when
      Market.get(fin_id)
@@ -70,9 +70,9 @@ def test_raise_not_covered(covered_record):
     assert Market.is_covered("XX.NOTCOVERED") is False
 
     with pytest.raises(ex.NoAccess):
-        Market.get("XX.TEST")
-    assert Market.is_available("XX.TEST") is False
-    assert Market.is_covered("XX.TEST") is True
+        Market.get(covered_market.fin_id)
+    assert Market.is_available(covered_market.fin_id) is False
+    assert Market.is_covered(covered_market.fin_id) is True
 
     # should raise nothing
     Market.get("US.NYSE")
@@ -85,6 +85,13 @@ def test_raise_not_covered(covered_record):
         assert Currency.is_available("NOTCOVERED") is False
         assert Currency.is_covered("NOTCOVERED") is False
 
+        # should raise NoAccess with the covered_currency,
+        # which is not available under the current plan
+        with pytest.raises(ex.NoAccess):
+            Currency.get(covered_currency.currency_code)
+        assert Currency.is_available(covered_currency.currency_code) is False
+        assert Currency.is_covered(covered_currency.currency_code) is True
+
         # should raise nothing
         Currency.get("EUR")
         assert Currency.is_available("EUR") is True
@@ -93,6 +100,8 @@ def test_raise_not_covered(covered_record):
     else:
         with pytest.raises(ex.NoAccess):
             Currency.get("NOTCOVERED")
+
+        assert Currency.is_covered(covered_currency.currency_code) is True
         assert Currency.is_available("NOTCOVERED") is False
 
         with pytest.raises(ex.NoAccess):
