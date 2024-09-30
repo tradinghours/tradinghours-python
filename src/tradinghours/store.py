@@ -2,7 +2,20 @@ import os, csv, json, codecs
 import datetime as dt
 from pathlib import Path
 from pprint import pprint
-from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, DateTime, Time, Date, Boolean, Text
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    func,
+    Table,
+    Column,
+    String,
+    Integer,
+    DateTime,
+    Time,
+    Date,
+    Boolean,
+    Text
+)
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from typing import Union
@@ -217,6 +230,13 @@ class DB:
         self.metadata.clear()
         self.metadata.reflect(bind=self.engine)
         self._failed_to_access = False
+
+    def get_num_covered(self) -> tuple[int, int]:
+        table = db.table("covered_markets")
+        num_markets = self.query(func.count()).select_from(table).scalar()
+        table = db.table("covered_currencies")
+        num_currencies = self.query(func.count()).select_from(table).scalar()
+        return num_markets, num_currencies
 
 
 ########################################################

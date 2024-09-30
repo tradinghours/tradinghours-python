@@ -48,21 +48,25 @@ def create_parser():
 
 def run_status(args):
     db.ready()
-    remote_timestamp = client_get_remote_timestamp()
-    local_timestamp = db.get_local_timestamp()
+    with timed_action("Collecting timestamps"):
+        remote_timestamp = client_get_remote_timestamp()
+        local_timestamp = db.get_local_timestamp()
     print("TradingHours Data Status:")
     print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
     print()
     if args.extended:
         if local_timestamp:
-            try:
-                all_currencies = list(Currency.list_all())
-            except NoAccess:
-                all_currencies = []
-            all_markets = list(Market.list_all())
-            print("  Currencies count:  ", len(all_currencies))
-            print("  Markets count:     ", len(all_markets))
+            with timed_action("Reading local data"):
+                num_markets, num_currencies = db.get_num_covered()
+                try:
+                    all_currencies = list(Currency.list_all())
+                except NoAccess:
+                    all_currencies = []
+                all_markets = list(Market.list_all())
+
+            print(f"  Currencies count:  {len(all_currencies):4} available of {num_currencies}")
+            print(f"  Markets count:     {len(all_markets):4} available of {num_markets}")
         else:
             print("No local data to show extended information")
 
