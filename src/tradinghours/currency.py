@@ -2,7 +2,7 @@ from typing import List, Union
 import datetime as dt
 
 from .validate import validate_range_args, validate_date_arg, validate_str_arg
-from .dynamic_models import BaseModel, CurrencyHoliday
+from .models import BaseModel, CurrencyHoliday
 from .store import db
 from .exceptions import NotCovered, NoAccess
 

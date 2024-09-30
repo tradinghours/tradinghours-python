@@ -4,7 +4,7 @@ from typing import Iterable, Generator, Union
 from zoneinfo import ZoneInfo
 from functools import cached_property
 
-from .dynamic_models import (
+from .models import (
     BaseModel,
     Schedule,
     Phase,

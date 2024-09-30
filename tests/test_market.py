@@ -1,8 +1,7 @@
 import pytest, calendar
 from tradinghours import Market
-from tradinghours.dynamic_models import MarketHoliday
-from tradinghours.exceptions import DateNotAvailable
-from tradinghours.exceptions import NoAccess
+from tradinghours.models import MarketHoliday
+from tradinghours.exceptions import DateNotAvailable, NoAccess
 import tradinghours.store as st
 
 from .utils import fromiso

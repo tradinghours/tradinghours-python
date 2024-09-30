@@ -1,10 +1,9 @@
 import os
 import pytest
 
-from tradinghours.market import Market, MarketHoliday, MicMapping
-from tradinghours.currency import Currency, CurrencyHoliday
-from tradinghours.dynamic_models import Schedule, PhaseType
-from tradinghours.dynamic_models import SeasonDefinition
+from tradinghours.market import Market, MarketHoliday
+from tradinghours.currency import Currency
+from tradinghours.models import PhaseType, SeasonDefinition
 from tradinghours.exceptions import NoAccess
 import tradinghours.store as st
 
