@@ -1,8 +1,6 @@
-import csv
-import json
-import re
-from io import StringIO
-from typing import Dict
+import re, time
+from contextlib import contextmanager
+from threading import Thread, Event
 
 from zoneinfo import TZPATH
 import importlib.metadata as metadata
@@ -12,6 +10,45 @@ from .exceptions import MissingTzdata
 from .config import main_config
 
 tprefix = main_config.get("data", "table_prefix")
+
+
+@contextmanager
+def timed_action(message: str):
+    start = time.time()
+    print(f"{message}...", end="", flush=True)
+
+    done = False
+    change_message_event = Event()
+    current_message = [message]  # Using a mutable object to allow modification inside the thread
+    last_message = [message]
+
+    def print_dots():
+        changed_already = False
+        while not done:
+            if change_message_event.is_set() and current_message != last_message:
+                # Move to the next line and print the new message
+                print(f"\n{current_message[0]}...", end="", flush=True)
+                last_message[0] = current_message[0]
+                change_message_event.clear()
+
+            print(".", end="", flush=True)
+            time.sleep(0.5 if not changed_already else 2)
+
+    thread = Thread(target=print_dots)
+    thread.daemon = True
+    thread.start()
+
+    # Function to change the message from within the main block
+    def change_message(new_message):
+        current_message[0] = new_message
+        change_message_event.set()
+
+    yield change_message, start
+
+    elapsed = time.time() - start
+    done = True
+    thread.join()
+    print(f" ({elapsed:.3f}s)", flush=True)
 
 
 def tname(table_name):

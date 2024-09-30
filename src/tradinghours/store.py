@@ -24,7 +24,7 @@ from enum import Enum
 
 from .config import main_config
 from .client import get_remote_timestamp as client_get_remote_timestamp
-from .util import tprefix, tname, clean_name
+from .util import tprefix, tname, clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
 class AccessLevel(Enum):
@@ -385,7 +385,7 @@ class Writer:
         )
         db.update_metadata()
 
-    def _ingest_all(self):
+    def _ingest_all(self, change_message):
         """Iterates over CSV files in the remote directory and ingests them."""
         db.reset_session()
         last_9_admin_records = self.prepare_ingestion()
@@ -400,12 +400,15 @@ class Writer:
                 file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
                 table_name = tname(clean_name(table_name))
+                change_message(f"  {table_name}")
                 self.create_table_from_csv(file_path, table_name)
 
         for json_file in ("covered_markets", "covered_currencies"):
+            table_name = tname(json_file)
+            change_message(f"  {table_name}")
             self.create_table_from_json(
                 self.remote / f"{json_file}.json",
-                tname(json_file)
+                table_name
             )
 
         db.update_metadata()
@@ -420,17 +423,20 @@ class Writer:
         self.create_admin(access_level, last_9_admin_records)
 
     def ingest_all(self) -> bool:
-        try:
-            self._ingest_all()
-            return True
-        except Exception:
-            if db.engine.dialect.name != "mysql":
-                raise
+        with timed_action("Ingesting") as (change_message, start_time):
+            try:
+                self._ingest_all(change_message)
+                return True
+            except Exception as e:
+                if db.engine.dialect.name != "mysql" or "Incorrect string value" not in str(e):
+                    raise
 
         # Deal with the problem that MySQL may not be able to
         # handle the full unicode set and then try again
+        print("\nHandling unicode problem, warning will follow")
         db.set_no_unicode()
-        self._ingest_all()
+        with timed_action("Ingesting") as (change_message, start_time):
+            self._ingest_all(change_message)
         return False
 
 

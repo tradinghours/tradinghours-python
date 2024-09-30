@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  mysql5:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "--silent" ]
+      interval: 10s
+      retries: 3
+      timeout: 5s
+
   mysql:
     image: mysql:8.4
     environment:

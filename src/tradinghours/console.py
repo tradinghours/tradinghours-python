@@ -83,13 +83,11 @@ def run_status(args):
 def run_import(args):
     show_warning = False
     if args.reset:
-        with timed_action("Ingesting"):
-            show_warning = not Writer().ingest_all()
+        show_warning = not Writer().ingest_all()
 
     elif args.force or db.needs_download():
         client_download()
-        with timed_action("Ingesting"):
-            show_warning = not Writer().ingest_all()
+        show_warning = not Writer().ingest_all()
     else:
         print("Local data is up-to-date.")
 
