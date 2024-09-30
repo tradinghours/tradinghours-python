@@ -91,6 +91,13 @@ def download_covered_markets():
         json.dump(markets, covered_markets)
 
 
+def download_covered_currencies():
+    response = get_response("currencies")
+    markets = json.load(response).get("data", [])
+    with open(ROOT / "covered_currencies.json", "w") as covered_currencies:
+        json.dump(markets, covered_currencies)
+
+
 def download():
     """
     Downloads zip file from tradinghours and unzips it into the
@@ -111,13 +118,13 @@ def download():
                 waited = True
 
         download_covered_markets()
+        download_covered_currencies()
 
     except TokenError:
         raise
     # TODO: think about cleaner error handling (e.g: not a zipfile)
     except Exception as e:
         raise
-
 
 
 def get_remote_timestamp() -> datetime.datetime:

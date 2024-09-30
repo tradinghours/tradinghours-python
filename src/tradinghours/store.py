@@ -56,7 +56,7 @@ class DB:
     @classmethod
     def set_no_unicode(cls):
         """
-        MySQL databases can't handle the full unicode set by default. So if a
+        MySQL databases may not be able to handle the full unicode set by default. So if a
         mysql db is used and the ingestion fails, it is attempted again with the following
         conversion, which replaces unicode characters with '?'.
         """
@@ -376,10 +376,12 @@ class Writer:
                 table_name = tname(clean_name(table_name))
                 self.create_table_from_csv(file_path, table_name)
 
-        self.create_table_from_json(
-            self.remote / "covered_markets.json",
-            tname("covered_markets")
-        )
+        for json_file in ("covered_markets", "covered_currencies"):
+            self.create_table_from_json(
+                self.remote / f"{json_file}.json",
+                tname(json_file)
+            )
+
         db.update_metadata()
 
         if "schedules.csv" not in downloaded_csvs:
@@ -399,8 +401,8 @@ class Writer:
             if db.engine.dialect.name != "mysql":
                 raise
 
-        # Deal with the problem that MySQL is not able to
-        # handle the full unicode set by default and then try again
+        # Deal with the problem that MySQL may not be able to
+        # handle the full unicode set and then try again
         db.set_no_unicode()
         self._ingest_all()
         return False

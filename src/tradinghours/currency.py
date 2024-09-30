@@ -51,11 +51,16 @@ class Currency(BaseModel):
     @classmethod
     @db.check_access
     def is_covered(cls, code:str) -> bool:
-        try:
-            cls.get(code)
-            return True
-        except NotCovered:
-            return False
+        """
+        Returns True or False showing if tradinghours provides data for the Currency.
+        This differs from is_available because is_covered does not mean that the user
+        has access to it under their current plan.
+        """
+        table = db.table("covered_currencies")
+        found = db.query(table).filter(
+            table.c.currency_code == code
+        ).one_or_none()
+        return found is not None
 
     @classmethod
     @db.check_access
@@ -67,6 +72,11 @@ class Currency(BaseModel):
         if result:
             return cls(result)
 
+        if cls.is_covered(code):
+            raise NoAccess(
+                f"\n\nThe currency '{code}' is supported but not available on your current plan."
+                f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
+            )
         # if no result found, raise NotCovered
         raise NotCovered(
             f"The currency '{code}' is currently not available."
