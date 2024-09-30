@@ -1,4 +1,4 @@
-import datetime, json, shutil, tempfile, zipfile, time
+import datetime, json, shutil, tempfile, zipfile, time, os
 from contextlib import contextmanager
 from threading import Thread, Event
 from pathlib import Path
@@ -75,6 +75,16 @@ def download_zip_file(path="download"):
             shutil.copyfileobj(response, temp_file)
             temp_file.flush()
             temp_file.seek(0)
+
+            # clear out the directory to make sure no old csv files
+            # are present if the access level is reduced
+            for path in os.listdir(ROOT):
+                path = ROOT / path
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+
             with zipfile.ZipFile(temp_file, "r") as zip_ref:
                 zip_ref.extractall(ROOT)
         return True
