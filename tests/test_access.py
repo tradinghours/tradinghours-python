@@ -101,7 +101,8 @@ def test_raise_not_covered(covered_market, covered_currency):
         with pytest.raises(ex.NoAccess):
             Currency.get("NOTCOVERED")
 
-        assert Currency.is_covered(covered_currency.currency_code) is True
+        with pytest.raises(ex.NoAccess):
+            assert Currency.is_covered(covered_currency.currency_code) is True
         assert Currency.is_available("NOTCOVERED") is False
 
         with pytest.raises(ex.NoAccess):
