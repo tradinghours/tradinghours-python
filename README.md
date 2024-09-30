@@ -368,13 +368,16 @@ check_tzdata = False
     * Unless you want to access the raw CSV files directly, there is no reason to change this.
 
 #### Caveats
-* Tables used by this package (identified by the `table_prefix`) are dropped and recreated every time `tradinghours import` is run.
-* Since the tables are dropped and recreated, the user in the `db_url` string needs to have permissions to drop and create tables in the specified database.
-* To avoid any complications with existing data, we recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
+* Dependencies:
+  * Running `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` installs `pymysql` or `psycopg2-binary`, respectively.
+  * You can install any other package (e.g. `mysqlclient`), as long as it allows `sqlalchemy` to communicate with the chosen database.
+* Data ingestion:
+  * Tables used by this package (identified by the `table_prefix`) are dropped and recreated every time `tradinghours import` is run. 
+  * To avoid any complications with existing data, we recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
 
 ##### Schema
 * The tables are named after the CSV files, with `_` instead of `-` and prefixed with the `table_prefix` setting.
-* To allow the package to be flexible with updates to the raw data, where columns might be added in the future, the tables are created dynamically, based on the content of the CSV files.
+* To allow flexibility with updates to the raw data, where columns might be added in the future, tables are created dynamically, based on the content of the CSV files.
 * Columns of the tables are named after the columns of the CSV files, although in lower case and with underscores instead of spaces.
 
 ### Time Zones
