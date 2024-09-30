@@ -69,7 +69,7 @@ class BaseModel:
             self.__class__._extra_fields = _extra_fields
 
     @property
-    def data(self):
+    def data(self) -> dict:
         """
         Returns a dictionary with the values exactly as they were in the
          database, excluding properties like .is_open. Keys are exact matches to the
