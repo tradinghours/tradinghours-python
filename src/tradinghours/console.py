@@ -65,7 +65,7 @@ def run_status(args):
                 except NoAccess:
                     num_all_currencies = 0
                 num_all_markets = len(list(Market.list_all()))
-                # num_all_markets -= num_permanently_closed
+                num_all_markets -= num_permanently_closed
 
             print(f"  Currencies count:  {num_all_currencies:4} available out of {num_currencies} total")
             print(f"  Markets count:     {num_all_markets:4} available out of {num_markets} total")
@@ -73,7 +73,7 @@ def run_status(args):
                 print()
                 print("Notes:")
                 print(
-                    f"  {num_permanently_closed} permanently closed markets are accessible but excluded from the totals above.\n"
+                    f"  {num_permanently_closed} permanently closed markets are available but excluded from the totals above.\n"
                     f"  For access to additional markets, please contact us at <sales@tradinghours.com>."
                 )
         else:
