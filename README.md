@@ -368,6 +368,7 @@ check_tzdata = False
     * Unless you want to access the raw CSV files directly, there is no reason to change this.
 
 #### Caveats
+* This package has been tested with MySQL 8.4 and PostgreSQL 15.8
 * Dependencies:
   * Running `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` installs `pymysql` or `psycopg2-binary`, respectively.
   * You can install any other package (e.g. `mysqlclient`), as long as it allows `sqlalchemy` to communicate with the chosen database.
