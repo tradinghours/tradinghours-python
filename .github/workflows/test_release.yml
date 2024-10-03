@@ -43,7 +43,7 @@ jobs:
         run: |
           export FLIT_USERNAME=__token__
           export FLIT_PASSWORD=${{ secrets.TEST_PYPI_TOKEN }}
-          export FLIT_INDEX_URL=https://test.pypi.org/legacy
+          export FLIT_INDEX_URL=https://test.pypi.org/legacy/
           flit publish
 
   test_from_test_pypi:
