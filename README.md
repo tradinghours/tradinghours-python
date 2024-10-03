@@ -31,16 +31,21 @@ Our global research team collects and verifies trading hours and market holidays
 
 Once data is collected, we continually monitor for changes to ensure the data is always up-to-date. Data updates occur daily.
 
-[Learn more »](https://www.tradinghours.com/data)
-
 ### Getting Started
 
-First, install `tradinghours` with pip and set your API key. [Click here to get your key](https://www.tradinghours.com/user/api-tokens).
+To get started, you'll need an active subscription. [Learn more »](https://www.tradinghours.com/data)
 
-```sh
-pip install tradinghours
-export TRADINGHOURS_TOKEN=<your-key-goes-here>
-```
+1. Install the `tradinghours` package
+   
+   ```sh
+   pip install tradinghours
+   ```
+   
+2. Set your API Key ([Click here to get your key](https://www.tradinghours.com/user/api-tokens))
+
+   ```sh
+   export TRADINGHOURS_TOKEN=<your-key-goes-here>
+   ```
 
 You can also install with mysql or postgres dependencies, if you wish to use one of these. You can read more about this in [advanced configuration options](#optional-advanced-configuration).
 ```sh
