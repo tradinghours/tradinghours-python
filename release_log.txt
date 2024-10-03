@@ -1,4 +1,4 @@
-## new_release
+## 0.4.0 (2024-10-03)
 This update completely overhauls the backend of the package:
  * Instead of using two storages (files and sql), it uses sqlite by default but can be used with a sql connection string to a remote database.
  * The interface is mostly the same, except that some functionality, outputs, and exceptions have been added or modified.
