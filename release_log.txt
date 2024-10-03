@@ -1,3 +1,10 @@
+## new_release
+This update completely overhauls the backend of the package:
+ * Instead of using two storages (files and sql), it uses sqlite by default but can be used with a sql connection string to a remote database.
+ * The interface is mostly the same, except that some functionality, outputs, and exceptions have been added or modified.
+ * It is best to consult the README.md and dev-readme.md as if it's the first time you are working with this package.
+
+
 ## 0.3.0 (2024-02-16)
 Breaking Changes:
   * renamed Market.generate_schedules to Market.generate_phases

@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 from tradinghours import Currency, Market
 from tradinghours.exceptions import NoAccess
+import tradinghours.store as st
 
-LEVEL = os.environ.get("API_KEY_LEVEL", "full").strip()
 
 def _convert(naive_dt, timezone_str):
     return naive_dt.replace(tzinfo=ZoneInfo(timezone_str))
@@ -51,7 +51,10 @@ def test_timezone_conversion(dt, new_timezone_str, expected_dt):
     assert dt.astimezone(ZoneInfo(new_timezone_str)) == expected_dt
 
 
-@pytest.mark.xfail(LEVEL != "full", reason="No access", strict=True, raises=NoAccess)
+@pytest.mark.xfail(
+    st.db.access_level != st.AccessLevel.full,
+    reason="No access", strict=True, raises=NoAccess
+)
 @pytest.mark.parametrize("currency, timezone", [
     ("BRL", "America/Sao_Paulo"),
     ("CAD", "America/Toronto"),
@@ -61,8 +64,7 @@ def test_timezone_conversion(dt, new_timezone_str, expected_dt):
 def test_currency_timezone(currency, timezone):
     currency = Currency.get(currency)
     assert currency.financial_capital_timezone == timezone
-    assert isinstance(currency.financial_capital_timezone_obj, ZoneInfo)
-    assert currency.financial_capital_timezone_obj == ZoneInfo(timezone)
+    assert ZoneInfo(currency.financial_capital_timezone) == ZoneInfo(timezone)
 
 
 
@@ -75,8 +77,7 @@ def test_currency_timezone(currency, timezone):
 def test_market_timezone(market, timezone):
     market = Market.get(market)
     assert market.timezone == timezone
-    assert isinstance(market.timezone_obj, ZoneInfo)
-    assert market.timezone_obj == ZoneInfo(timezone)
+    assert ZoneInfo(market.timezone) == ZoneInfo(timezone)
 
 
 

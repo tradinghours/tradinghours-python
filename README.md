@@ -1,15 +1,21 @@
 <div align="center">
-<img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
-<h1>TradingHours.com Python Library</h1>
+  <img src="https://www.tradinghours.com/img/logo-512x512.png" alt="TradingHours API Docs" height="100">
+  <h1>TradingHours.com Python Library</h1>
+
+  <!-- Badges centered -->
+  <p>
+    <a href="https://badge.fury.io/py/tradinghours">
+      <img src="https://badge.fury.io/py/tradinghours.svg" alt="PyPI version">
+    </a>
+    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-green" alt="Python versions">
+    <img src="https://github.com/tradinghours/tradinghours-python/actions/workflows/release.yml/badge.svg?branch=main" alt="GitHub Actions">
+  </p>
 </div>
 
-[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world.
-This library allows clients to easily integrate market holidays and trading hours data into existing applications.
-This packages downlods all available data from TradingHours.com and then allows you to work with the data locally.
+[TradingHours.com](https://www.tradinghours.com) licenses **Market Holidays and Trading Hours data** for over **1,000** exchanges and trading venues around the world. This library allows clients to easily integrate market holidays and trading hours data into existing applications. This package downloads all available data from TradingHours.com, allowing you to work with the data locally.
 
 ### About the Data
-We support over 1,000 exchanges and trading venues, including all major currencies.
-[See all supported markets](https://www.tradinghours.com/coverage).
+We support over 1,000 exchanges and trading venues, including all major currencies. [See all supported markets.](https://www.tradinghours.com/coverage)
 
 Our comprehensive data covers:
 
@@ -20,36 +26,45 @@ Our comprehensive data covers:
 - Currency holidays
 - Detailed trading phases
 
-### How is data collected?
-Our global research team collects and verifies trading hours and market holidays using exclusively primary sources.
-Manual and automated checks ensure the highest degree of accuracy and reliability.
+### How is the data collected?
+Our global research team collects and verifies trading hours and market holidays using primary sources exclusively. Manual and automated checks ensure the highest degree of accuracy and reliability.
 
-Once data is collected, we then continually monitor for changes to ensure the data is always up-to-date.
-Data is updated daily.
-
-[Learn more »](https://www.tradinghours.com/data)
+Once data is collected, we continually monitor for changes to ensure the data is always up-to-date. Data updates occur daily.
 
 ### Getting Started
 
-Just install `tradinghours` with pip and set your API key. [Click here to get your key](https://www.tradinghours.com/user/api-tokens).
-```
-pip install tradinghours
+To get started, you'll need an active subscription. [Learn more »](https://www.tradinghours.com/data)
 
-export TRADINGHOURS_TOKEN=<your-key-goes-here>
+1. Install the `tradinghours` package
+   
+   ```sh
+   pip install tradinghours
+   ```
+   
+2. Set your API Key ([Click here to get your key](https://www.tradinghours.com/user/api-tokens))
+
+   ```sh
+   export TRADINGHOURS_TOKEN=<your-key-goes-here>
+   ```
+
+You can also install with mysql or postgres dependencies, if you wish to use one of these. You can read more about this in [advanced configuration options](#optional-advanced-configuration).
+```sh
+pip install tradinghours[mysql] 
+# or 
+pip install tradinghours[postgres]
 ```
-See [advanced configuration options](#optional-advanced-configuration). 
 
 ### Alternatives
 
-Instead of using this Python Library, clients can also use the web-based [Trading Hours API](https://docs.tradinghours.com/). 
+Instead of using this Python Library, clients can also use the web-based [Trading Hours API](https://docs.tradinghours.com/).
 The web-based API is programming language agnostic.
 
----
 ### Contents
 - [Importing Data](#importing-data)
 - [Markets](#markets)
   - [View Available Markets](#view-available-markets)
-  - [Get A Specific Market](#get-a-specific-market)
+  - [Get a Specific Market](#get-a-specific-market)
+  - [Market Status](#market-status)
   - [Market Holidays](#market-holidays)
   - [Trading Hours](#trading-hours)
 - [Currencies](#currencies)
@@ -57,15 +72,15 @@ The web-based API is programming language agnostic.
   - [Currency Holidays](#currency-holidays)
 - [Advanced](#advanced)
   - [Optional Advanced Configuration](#optional-advanced-configuration)
-  - [Database Schema](#database-schema)
-  - [Time Zone Database](#time-zone-database)
+  - [Database](#database)
+  - [Time Zones](#time-zones)
   - [Model Configuration](#model-configuration)
     - [Change String Format](#change-string-format)
 
 ---
 ## Importing Data
 
-You just need to run the following command to download and import official data. Remember that you need to have a valid **TRADINGHOURS_TOKEN** environment variable.
+Run the following command to download and import official data. Ensure you have set the **TRADINGHOURS_TOKEN** environment variable.
 
 ```console
 $ tradinghours import
@@ -73,7 +88,7 @@ Downloading..... (0.824s)
 Ingesting.......................... (12.066s)
 ```
 
-You can then check current data status with the following subcommand:
+You can check the current data status with the following subcommand:
 
 ```console
 $ tradinghours status --extended
@@ -91,18 +106,32 @@ Extended Information:
 ## Markets
 
 ### View Available Markets
+
 ```python
 from tradinghours import Market
 
 for market in Market.list_all()[:3]:
     print(market)
-    
+
 >>> Market: AE.ADX Abu Dhabi Securities Exchange Asia/Dubai
     Market: AE.DFM Dubai Financial Market Asia/Dubai
     Market: AE.DGCX Dubai Gold & Commodities Exchange Asia/Dubai
 ```
 
-### Get A Specific Market   
+You can also use an `*` to filter the list of markets based on their `fin_id`:
+
+```python
+from tradinghours import Market
+
+for market in Market.list_all("US.*")[:3]:
+  print(market)
+
+>>> Market: US.BTEC.ACTIVES.ASIA BrokerTec America/New_York
+    Market: US.BTEC.ACTIVES.LDN BrokerTec America/New_York
+    Market: US.BTEC.ACTIVES.US BrokerTec America/New_York
+```
+
+### Get a Specific Market
 
 ```python
 from tradinghours import Market
@@ -114,24 +143,22 @@ market = Market.get('XNYS')
 # Easily see what attributes an object has
 # (You can call this on any object)
 market.pprint() # same as pprint(market.to_dict())
->>> {'fin_id': 'US.NYSE',
-     'exchange_name': 'New York Stock Exchange',
+>>> {'exchange_name': 'New York Stock Exchange',
      'market_name': 'Canonical',
      'security_group': None,
+     'timezone': 'America/New_York',
+     'weekend_definition': 'Sat-Sun',
+     'fin_id': 'US.NYSE',
      'mic': 'XNYS',
      'acronym': 'NYSE',
      'asset_type': 'Securities',
      'memo': 'Canonical',
      'permanently_closed': None,
-     'timezone': 'America/New_York',
-     'weekend_definition': 'Sat-Sun',
      'replaced_by': None,
      'country_code': 'US'}
 ```
 
-If a market is marked "permanently closed" it may be replaced or superseded by another market. 
-By default, the newer market will be returned automatically. You can still retrieve the 
-older market object for historical analysis by using the `follow=False` parameter.
+If a market is marked "permanently closed," it may be replaced or superseded by another market. By default, the newer market will be returned automatically. You can retrieve the older market object for historical analysis by using the `follow=False` parameter.
 
 ```python
 from tradinghours import Market
@@ -145,6 +172,41 @@ print(f'{original.fin_id} replaced by {original.replaced_by} on {original.perman
 
 >>> AR.BYMA replaced by None on None
     AR.BCBA replaced by AR.BYMA on 2017-04-17
+```
+
+### Market Status
+The `Market.status` method will return a `MarketStatus` representing the status of the market at a specific datetime.
+
+```python
+from tradinghours import Market
+import datetime as dt
+
+market = Market.get("US.NYSE")
+status = market.status()
+# The default datetime is the current time.
+now = dt.datetime.now(dt.timezone.utc)
+print(
+  status.status == market.status(now).status
+)
+>>> True
+```
+To use a different datetime, create a timezone-aware datetime object.
+
+```python
+from tradinghours import Market
+from zoneinfo import ZoneInfo
+import datetime as dt
+
+christmas_noon = dt.datetime(2024,12,25,12,tzinfo=ZoneInfo("America/New_York"))
+status = Market.get("US.NYSE").status(christmas_noon)
+
+status.pprint() # same as pprint(status.to_dict())
+>>> {'status': 'Closed',
+     'reason': 'Christmas',
+     'until': '2024-12-26 04:00:00-05:00',
+     'next_bell': '2024-12-26 09:30:00-05:00',
+     'phase': None,
+     'market': 'Market: US.NYSE New York Stock Exchange America/New_York'}
 ```
 
 ### Market Holidays
@@ -163,8 +225,8 @@ for holiday in holidays[:3]:
 ```
 ### Trading Hours
 #### Phases
-To get open and closing times for a particular date range, use the `Market.generate_phases` method.
-This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes. These are based on the "general schedule" of a market (see next section) but consider the impact of holidays and potential changes in the schedule.
+To get opening and closing times for a particular date range, use the `Market.generate_phases` method. This will return a generator yielding `tradinghours.models.Phase` objects, representing specific datetimes based on the "general schedule" of a market, considering holidays and potential schedule changes.
+
 ```python
 from tradinghours import Market
 
@@ -177,7 +239,7 @@ for phase in list(market.generate_phases("2023-09-01", "2023-09-30"))[:3]:
     Phase: 2023-09-01 09:30:00-04:00 - 2023-09-01 09:30:00-04:00 Call Auction
 ```
 #### Schedules
-To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide a list of `tradinghours.models.Schedule` objects, representing the schedule without consideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting the general schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above.
+To get the "general schedule" that phases are based on, use `Market.list_schedules()`. This will provide a list of `tradinghours.models.Schedule` objects, representing the schedule without consideration of holidays. The schedule will include 'Regular,' 'Partial,' and potentially other irregular schedules. Interpreting these schedule objects can be difficult. In most cases, you will want to use the `Market.generate_phases` method above.
 
 `US.NYSE` is one of the simplest examples for schedules:
 ```python
@@ -198,7 +260,8 @@ for schedule in market.list_schedules():
     Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
 ```
 
-`US.MGEX` is a more complex example, which has multiple irregular schedules and overnight trading sessions. (More on these fields in the next paragraph)
+`US.MGEX` is a more complex example, which has multiple irregular schedules and overnight trading sessions:
+
 ```python
 from tradinghours import Market
 
@@ -231,10 +294,10 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'phase_name': 'Pre-Open', # name for the phase as it is used by the market
      'phase_memo': None, # additional description for the phase_name
      'days': 'Wed', # days of the week that this schedule applies to
-     'start': datetime.time(16, 45), # start time of the phase
-     'end': datetime.time(8, 30), # end time of the phase
+     'start': '16:45:00', # start time of the phase
+     'end': '08:30:00', # end time of the phase
      'offset_days': 2, # number of days that need to be added to the end time
-     'duration': '143100', # total length of this phase in seconds
+     'duration': 143100, # total length of this phase in seconds
      'min_start': None, # earliest possible start when random start/stop times apply
      'max_start': None, # latest possible start when random start/stop times apply
      'min_end': None, # earliest possible end when random start/stop times apply
@@ -246,8 +309,7 @@ schedule.pprint() # same as pprint(schedule.to_dict())
      'end_with_offset': '08:30:00 +2', # string representation of the end time with offset_days concatenated
      'has_season': False} # Indicator whether this schedule only applies to a specific season
 ```
-As mentioned previously, it can be very error-prone to interpret these schedules yourself, so we recommend sticking to the `generate_phases` method as much as possible.
-
+As mentioned earlier, it can be very error-prone to interpret these schedules yourself, so we recommend sticking to the `generate_phases` method as much as possible.
 
 ## Currencies
 ### List Currencies
@@ -280,54 +342,51 @@ for holiday in currency.list_holidays("2023-06-01", "2023-12-31")[:3]:
 ## Advanced
 ### Optional Advanced Configuration
 
-By default, the library uses local file storage. Optionally you can 
-configure the library to use an SQL store. You can adjust settings
-using a **tradinghours.ini** file on the current working directory.
+Configuration can be changed by creating a `tradinghours.ini` file in the current directory.
 
-Here is a sample configuration file using file system storage:
+These are possible and optional values, for which explanations follow:
 
 ```ini
 [api]
-token = YOUR-TOKEN-HERE
+token = YOUR-TOKEN
 
 [data]
-use_db = False
-local_dir = /srv/tradinghours/local
-remote_dir = /srv/tradinghours/remote
+db_url = postgresql://postgres:password@localhost:5432/your_database
+table_prefix = thstore_
+remote_dir = path/to/empty/folder
+
+[control]
+check_tzdata = False
 ```
 
-And here you can see one using a local SQL Alchemy database. Note that
-you can use any valid [Database URL](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls):
+### Database
+* `[data]`
+  * `db_url`
+    * A connection string to a database. Please read the [caveats](#caveats) before using this setting.
+    * This allows you to download the data once and let your team members use the same database.
+  * `table_prefix`
+    * Every table created in the database will be prefixed with this. `'thstore_'` is the default.
+    * This can be used to avoid conflicts with existing tables.
+  * `remote_dir`
+    * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
+    * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
+    * Unless you want to access the raw CSV files directly, there is no reason to change this.
 
-```ini
-[api]
-token = YOUR-TOKEN-HERE
+#### Caveats
+* This package has been tested with MySQL 8.4 and PostgreSQL 15.8
+* Dependencies:
+  * Running `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` installs `pymysql` or `psycopg2-binary`, respectively.
+  * You can install any other package (e.g. `mysqlclient`), as long as it allows `sqlalchemy` to communicate with the chosen database.
+* Data ingestion:
+  * Tables used by this package (identified by the `table_prefix`) are dropped and recreated every time `tradinghours import` is run. 
+  * To avoid any complications with existing data, we recommend creating a separate database for the `tradinghours` data, and making this the only database the `db_url` user has access to.
 
-[data]
-use_db = True
-db_url = sqlite:///tradinghours.db
-```
+##### Schema
+* The tables are named after the CSV files, with `_` instead of `-` and prefixed with the `table_prefix` setting.
+* To allow flexibility with updates to the raw data, where columns might be added in the future, tables are created dynamically, based on the content of the CSV files.
+* Columns of the tables are named after the columns of the CSV files, although in lower case and with underscores instead of spaces.
 
-### Database Schema
-
-In case you would like to directly access the tables for the SQL mode, you
-can see that they all follow a very simple structure with keys for stored data
-and the data with actual JSON. The library uses this simple structure that
-should be compatible with nearly all database engines around.
-
-Here is the DDL for the tables currently in use:
-
-```sql
-CREATE TABLE thstore_currencies (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_currency_holidays (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_holidays (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_markets (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_mic_mapping (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_schedules (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-CREATE TABLE thstore_season_definitions (id INTEGER NOT NULL, slug VARCHAR, "key" VARCHAR, data JSON, PRIMARY KEY (id));
-```
-
-### Time Zone Database 
+### Time Zones
 This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
 which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
 `tradinghours` automatically checks your `tzdata` version against PyPI via HTTP request, issuing a warning 

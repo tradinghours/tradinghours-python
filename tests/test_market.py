@@ -1,5 +1,10 @@
-import pytest
-from tradinghours.models import Market
+import pytest, calendar
+from tradinghours import Market
+from tradinghours.models import MarketHoliday
+from tradinghours.exceptions import DateNotAvailable, NoAccess
+import tradinghours.store as st
+
+from .utils import fromiso
 
 # Test whether you can follow or not a permanently closed market
 @pytest.mark.parametrize("method, args, expected", [
@@ -12,7 +17,7 @@ from tradinghours.models import Market
     (Market.get_by_finid, ("AR.BCBA",), "AR.BYMA"),
     (Market.get_by_finid, ("AR.BCBA", False), "AR.BCBA"),
 ])
-def test_market_follow(level, method, args, expected):
+def test_market_follow(method, args, expected):
 
     market = method(*args)
     result = str(market.fin_id)
@@ -27,7 +32,156 @@ def test_market_follow(level, method, args, expected):
     (Market.get_by_mic, "xbue", "AR.BYMA"),
     (Market.get_by_mic, "xBuE", "AR.BYMA"),
 ])
-def test_market_case_insensitivity(level, method, identifier, expected):
+def test_market_case_insensitivity(method, identifier, expected):
     market = method(identifier)
     result = str(market.fin_id)
     assert result == expected
+
+
+def test_market_list_all():
+    found = Market.list_all()
+    assert len(found) == len(list(st.db.query(Market.table)))
+
+    found = Market.list_all("US*")
+    assert all(f.fin_id.startswith("US") for f in found)
+
+@pytest.mark.parametrize("fin_id", [
+    "US.NYSE", "US.CME.EQUITY.USINDEX1", "US.CBOE.VIX"
+])
+def test_market_available_dates(fin_id):
+    market = Market.get(fin_id)
+    table = MarketHoliday.table
+
+    first_should_be = st.db.query(table).filter(
+            table.c.fin_id == fin_id
+        ).order_by(
+            table.c.date
+        ).first().date.replace(day=1)
+
+    last_should_be = st.db.query(table).filter(
+            table.c.fin_id == fin_id
+        ).order_by(
+            table.c.date.desc()
+        ).first().date
+    _, num_days_in_month = calendar.monthrange(last_should_be.year, last_should_be.month)
+    last_should_be = last_should_be.replace(day=num_days_in_month)
+
+    assert market.first_available_date == first_should_be
+    assert market.last_available_date == last_should_be
+
+    if st.db.access_level != st.AccessLevel.only_holidays:
+        with pytest.raises(DateNotAvailable):
+            list(market.generate_phases("1900-01-01", "2020-01-01"))
+        with pytest.raises(DateNotAvailable):
+            list(market.generate_phases("2020-01-01", "2099-01-01"))
+        with pytest.raises(DateNotAvailable):
+            list(market.generate_phases("1900-01-01", "2099-01-01"))
+
+        with pytest.raises(DateNotAvailable):
+            market.status(fromiso("1900-01-01", "America/New_York"))
+        with pytest.raises(DateNotAvailable):
+            market.status(fromiso("2099-01-01", "America/New_York"))
+
+
+@pytest.mark.xfail(
+    st.db.access_level == st.AccessLevel.only_holidays,
+    reason="No access",
+    strict=True,
+    raises=NoAccess
+)
+@pytest.mark.parametrize("fin_id, datetime, expected", [
+    ("US.NYSE", fromiso("2023-11-15 12:00", "America/New_York"),
+     {
+         "status": "Open",
+         "reason": "Primary Trading Session",
+         "until": fromiso("2023-11-15 15:50", "America/New_York"),
+         "next_bell": fromiso("2023-11-15 16:00", "America/New_York"),
+         # "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-15 18:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": "Post-Trading Session",
+         "until": fromiso("2023-11-15 20:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-16 09:30", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-11 18:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": None,
+         "until": fromiso("2023-11-13 04:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-13 09:30", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-24 10:00", "America/New_York"),
+     {
+         "status": "Open",
+         "reason": "Thanksgiving Day - Primary Trading Session (Partial)",
+         "until": fromiso("2023-11-24 13:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-24 13:00", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2024-12-25 10:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": "Christmas",
+         "until": fromiso("2024-12-26 04:00", "America/New_York"),
+         "next_bell": fromiso("2024-12-26 09:30", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-15 16:00", "America/New_York"),
+     {
+         "status": "Closed",
+         "reason": "Post-Trading Session",
+         "until": fromiso("2023-11-15 20:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-16 09:30", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+    ("US.NYSE", fromiso("2023-11-15 15:59", "America/New_York"),
+     {
+         "status": "Open",
+         "reason": "Primary Trading Session",
+         "until": fromiso("2023-11-15 16:00", "America/New_York"),
+         "next_bell": fromiso("2023-11-15 16:00", "America/New_York"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-09-30 07:45", "America/Chicago"),
+     {
+         "status": "Closed",
+         "reason": None,
+         "until": fromiso("2024-09-30 08:00", "America/Chicago"),
+         "next_bell": fromiso("2024-09-30 08:30", "America/Chicago"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-09-30 08:00", "America/Chicago"),
+     {
+         "status": "Closed",
+         "reason": "Pre-Open",
+         "until": fromiso("2024-09-30 08:30", "America/Chicago"),
+         "next_bell": fromiso("2024-09-30 08:30", "America/Chicago"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-09-30 15:00", "America/Chicago"),
+     {
+         "status": "Closed",
+         "reason": "Post-Trading Session",
+         "until": fromiso("2024-09-30 16:00", "America/Chicago"),
+         "next_bell": fromiso("2024-09-30 19:00", "America/Chicago"),
+#          "timezone": "America/New_York",
+     }),
+     ("US.MGEX", fromiso("2024-10-04 00:00", "America/Chicago"),
+     {
+         "status": "Open",
+         "reason": "Primary Trading Session",
+         "until": fromiso("2024-10-04 07:45", "America/Chicago"),
+         "next_bell": fromiso("2024-10-04 07:45", "America/Chicago"),
+#          "timezone": "America/New_York",
+     })
+])
+def test_market_status(fin_id, datetime, expected):
+    market = Market.get(fin_id)
+    status = market.status(datetime=datetime)
+    status = status.to_dict()
+    status = {k: status.get(k) for k in expected}
+    assert status == expected
