@@ -33,6 +33,7 @@ dev = [
     'coverage[toml]',
     'pytest',
     'pytest-mock',
+    'pandas'
 ]
 mysql = [
     'pymysql',
