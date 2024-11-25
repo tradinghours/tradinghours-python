@@ -53,18 +53,17 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     full["start_date"] = (seasonal.season_start + years).apply(parse)
     full["end_date"] = (seasonal.season_end + years).apply(parse)
 
-    inversed = (full.start_date > full.end_date)
-    in_season = ~inversed & (full.start_date <= full.date) & (full.end_date >= full.date)
-    in_season = in_season | (inversed & (full.start_date >= full.date) & (full.end_date <= full.date))
-    full = full[(~seasonal) | in_season]
+    _temp = is_seasonal & (full.start_date > full.end_date)
+    in_season = _temp & (full.start_date <= full.date) & (full.end_date >= full.date)
+    _temp = is_seasonal & (full.start_date <= full.end_date)
+    in_season = in_season | (_temp & (full.start_date >= full.date) & (full.end_date <= full.date))
+    full = full[(~is_seasonal) | in_season]
 
     # filter out in_force
     has_in_force_start = full.in_force_start_date.notna()
-    full = full[(~has_in_force_start) | full.in_force_start_date < full.date]
+    full = full[(~has_in_force_start) | (full.in_force_start_date < full.date)]
     has_in_force_end = full.in_force_end_date.notna()
-    full = full[(~has_in_force_end) | full.in_force_end_date > full.date]
-
-
+    full = full[(~has_in_force_end) | (full.in_force_end_date > full.date)]
 
 
     return schedules, holidays, d_hols, full
