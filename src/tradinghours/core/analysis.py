@@ -1,7 +1,6 @@
 import datetime as dt
+from dateutil.parser import parse
 import pandas as pd
-
-
 
 def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     if _data is None:
@@ -40,13 +39,35 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     d_hols.loc[d_hols.schedule.isna(), "schedule"] = "Regular" # TODO: see about constants like Tradinghours::REGULAR
 
     # match the schedules to the holidays.
-    # Any rows that are still NaN will have no schedule according to the holiday's schedule_group
+    # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
     # weekdays/seasons still need to be handled
-    d_hol_scheds = d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
-    print(d_hol_scheds.iloc[:, :5].to_string())
+    full = d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
+    print(full.iloc[:, :5].to_string())
+
+    # filter out seasonal
+    tz = full.timezone.unique()[0]
+    full.date = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
+    is_seasonal = full.season_start.notna() | full.season_end.notna()
+    seasonal = full.loc[is_seasonal, ["date", "season_start", "season_end"]]
+    years = " " + seasonal.date.dt.year.astype("string")
+    full["start_date"] = (seasonal.season_start + years).apply(parse)
+    full["end_date"] = (seasonal.season_end + years).apply(parse)
+
+    inversed = (full.start_date > full.end_date)
+    in_season = ~inversed & (full.start_date <= full.date) & (full.end_date >= full.date)
+    in_season = in_season | (inversed & (full.start_date >= full.date) & (full.end_date <= full.date))
+    full = full[(~seasonal) | in_season]
+
+    # filter out in_force
+    has_in_force_start = full.in_force_start_date.notna()
+    full = full[(~has_in_force_start) | full.in_force_start_date < full.date]
+    has_in_force_end = full.in_force_end_date.notna()
+    full = full[(~has_in_force_end) | full.in_force_end_date > full.date]
 
 
 
 
-    return schedules, holidays, d_hols, d_hol_scheds
+    return schedules, holidays, d_hols, full
+
+
 
