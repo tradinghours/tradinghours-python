@@ -2,6 +2,51 @@ import datetime as dt
 from dateutil.parser import parse
 import pandas as pd
 
+
+weekday_mapping = {
+    "sunday": "6"
+}
+
+def convert_to_dates(seasons, year):
+    """
+    Always 4 or 6 words:
+     "previous day Second Sunday of march"
+    -> the first two words are optional
+    """
+    split = seasons.str.lower().str.split(" ")
+    months = split.str[-1] + " " + str(year)
+    months = pd.to_datetime(months, format="%B %Y")
+
+    anchor = split.str[-3]
+    anchor_offset = split.str[-4]
+    ## Handle "Day"
+    # first doesn't need to get done since it is set to first by default in pd.to_datetime
+    last = (anchor == "day") & (anchor_offset == "last")
+    months.loc[last] = months[last] + pd.to_timedelta(months[last].dt.days_in_month, "d") - pd.to_timedelta(1, "d")
+
+    ## Handle Weekday
+    anchor = anchor[anchor != "day"].replace(weekday_mapping).astype("int64")
+    _months = months.loc[anchor.index]
+    days = _months.repeat(_months.dt.days_in_month)
+    days += pd.to_timedelta(pd.Series(index=days.index).fillna(1).groupby(level=0).cumsum(), unit="D")
+    days = days[days.dt.weekday == anchor.loc[days.index]]
+    daysn = days.groupby(level=0).cumcount()
+
+    for i, offset in enumerate(("first", "second", "last")):
+        if offset == "last":
+            i = daysn.groupby(level=0).max().loc[daysn.index]
+        matches = days[(daysn == i) & (anchor_offset.loc[days.index] == offset)]
+        months.loc[matches.index] = matches
+
+    ## Handle optional extra shift
+    has_extra = split.str.len() == 6
+    previous = split.str[0] == "previous"
+    months.loc[has_extra & previous] -= pd.to_timedelta(1, "d")
+    months.loc[has_extra & (~previous)] += pd.to_timedelta(1, "d")
+
+    return months
+
+
 def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     if _data is None:
         raise ValueError("missing data")
@@ -64,6 +109,7 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     full = full[(~has_in_force_start) | (full.in_force_start_date < full.date)]
     has_in_force_end = full.in_force_end_date.notna()
     full = full[(~has_in_force_end) | (full.in_force_end_date > full.date)]
+
 
 
     return schedules, holidays, d_hols, full
