@@ -14,7 +14,7 @@ def convert_to_dates(seasons, year):
     -> the first two words are optional
     """
     split = seasons.str.lower().str.split(" ")
-    months = split.str[-1] + " " + str(year)
+    months = split.str[-1] + " " + year
     months = pd.to_datetime(months, format="%B %Y")
 
     anchor = split.str[-3]
@@ -57,9 +57,11 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     print(_data.keys())
     schedules = _data["schedules"]
     holidays = _data["holidays"]
+    seasondefs = _data["season_definitions"]
+    seasondefs["season"] = seasondefs.season.str.lower()
+    seasondefs = seasondefs.set_index(["season", "year"])["date"]
 
     # get all markets schedules in certain order
-    print(schedules.columns)
     schedules = schedules[schedules.fin_id == fin_id].sort_values(
         ["start", "duration"], ascending=True
     )
@@ -89,19 +91,28 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     full = d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
     print(full.iloc[:, :5].to_string())
 
-    # filter out seasonal
+    ### SEASONS
+    # set up concrete seasons
     tz = full.timezone.unique()[0]
     full.date = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
     is_seasonal = full.season_start.notna() | full.season_end.notna()
     seasonal = full.loc[is_seasonal, ["date", "season_start", "season_end"]]
-    years = " " + seasonal.date.dt.year.astype("string")
-    full["start_date"] = (seasonal.season_start + years).apply(parse)
-    full["end_date"] = (seasonal.season_end + years).apply(parse)
-
-    _temp = is_seasonal & (full.start_date > full.end_date)
-    in_season = _temp & (full.start_date <= full.date) & (full.end_date >= full.date)
-    _temp = is_seasonal & (full.start_date <= full.end_date)
-    in_season = in_season | (_temp & (full.start_date >= full.date) & (full.end_date <= full.date))
+    seasonal["year"] = seasonal.date.dt.year
+    del seasonal["date"]
+    seasonal["season_start"] = seasonal.season_start.str.lower()
+    seasonal["season_end"] = seasonal.season_end.str.lower()
+    starts = seasondefs.loc[seasonal.set_index(["season_start", "year"]).index].drop_duplicates()
+    ends = seasondefs.loc[seasonal.set_index(["season_end", "year"]).index].drop_duplicates()
+    starts.index = starts.index.droplevel(1)
+    ends.index = ends.index.droplevel(1)
+    full["season_start"] = seasonal.merge(starts, left_on="season_start", right_index=True)["date"]
+    full["season_end"] = seasonal.merge(ends, left_on="season_end", right_index=True)["date"]
+    del seasonal, starts, ends
+    # filter by concrete seasons
+    _temp = is_seasonal & (full.season_start > full.season_end)
+    in_season = _temp & (full.season_start <= full.date) & (full.season_end >= full.date)
+    _temp = is_seasonal & (full.season_start <= full.season_end)
+    in_season = in_season | (_temp & (full.season_start >= full.date) & (full.season_end <= full.date))
     full = full[(~is_seasonal) | in_season]
 
     # filter out in_force
@@ -109,7 +120,6 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     full = full[(~has_in_force_start) | (full.in_force_start_date < full.date)]
     has_in_force_end = full.in_force_end_date.notna()
     full = full[(~has_in_force_end) | (full.in_force_end_date > full.date)]
-
 
 
     return schedules, holidays, d_hols, full
