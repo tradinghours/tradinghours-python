@@ -109,10 +109,10 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     full["season_end"] = seasonal.merge(ends, left_on="season_end", right_index=True)["date"]
     del seasonal, starts, ends
     # filter by concrete seasons
-    _temp = is_seasonal & (full.season_start > full.season_end)
+    _temp = is_seasonal & (full.season_start < full.season_end)
     in_season = _temp & (full.season_start <= full.date) & (full.season_end >= full.date)
-    _temp = is_seasonal & (full.season_start <= full.season_end)
-    in_season = in_season | (_temp & (full.season_start >= full.date) & (full.season_end <= full.date))
+    _temp = is_seasonal & (full.season_start >= full.season_end)
+    in_season = in_season | (_temp & (full.season_start <= full.date) | (full.season_end >= full.date))
     full = full[(~is_seasonal) | in_season]
 
     # filter out in_force
