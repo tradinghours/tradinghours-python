@@ -61,14 +61,14 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     seasondefs["season"] = seasondefs.season.str.lower()
     seasondefs = seasondefs.set_index(["season", "year"])["date"]
 
-    # get all markets schedules in certain order
+    ### get all markets schedules in certain order
     schedules = schedules[schedules.fin_id == fin_id].sort_values(
         ["start", "duration"], ascending=True
     )
     print(schedules)
 
 
-    # get all relevant holidays
+    ### get all relevant holidays
     print(holidays.columns)
     holidays.date = holidays.date.astype("datetime64[ns]")
     date_match = (holidays.date >= start - dt.timedelta(weeks=1)) & (holidays.date <= end)
@@ -76,7 +76,7 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     print(holidays)
 
 
-    # match holidays with requested dates (making sure schedules with offset_days are included)
+    ### match holidays with requested dates (making sure schedules with offset_days are included)
     max_offset = schedules.offset_days.max()
     max_offset = int(max_offset) if pd.notna(max_offset) else 0
     dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D").to_series(name="date")
@@ -85,11 +85,9 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     # set non holidays dates to "Regular" schedule group
     d_hols.loc[d_hols.schedule.isna(), "schedule"] = "Regular" # TODO: see about constants like Tradinghours::REGULAR
 
-    # match the schedules to the holidays.
+    ### match the schedules to the holidays.
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
-    # weekdays/seasons still need to be handled
     full = d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
-    print(full.iloc[:, :5].to_string())
 
     ### SEASONS
     # set up concrete seasons
@@ -115,7 +113,7 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     in_season = in_season | (_temp & (full.season_start <= full.date) | (full.season_end >= full.date))
     full = full[(~is_seasonal) | in_season]
 
-    # filter out in_force
+    ### filter by in_force
     has_in_force_start = full.in_force_start_date.notna()
     full = full[(~has_in_force_start) | (full.in_force_start_date < full.date)]
     has_in_force_end = full.in_force_end_date.notna()
