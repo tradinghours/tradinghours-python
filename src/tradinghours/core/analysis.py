@@ -1,17 +1,35 @@
 import datetime as dt
 from dateutil.parser import parse
 import pandas as pd
+from .utils import read_sqlite_tables_to_dict
+
+_data = read_sqlite_tables_to_dict(
+    r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite",
+    tables=["schedules", "holidays", "season_definitions"]
+)
+
+SCHEDULES = _data["schedules"]
+HOLIDAYS = _data["holidays"]
+HOLIDAYS = HOLIDAYS.date.astype("datetime64[ns]")
+SEASONDEFS = _data["season_definitions"]
+SEASONDEFS["season"] = SEASONDEFS.season.str.lower()
+SEASONDEFS = SEASONDEFS.set_index(["season", "year"])["date"]
 
 
 weekday_mapping = {
     "sunday": "6"
 }
+day_to_idx = {
+    "mon": "0", "tue": "1", "wed": "2", "thu": "3",
+    "fri": "4", "sat": "5", "sun": "6"
+}
+
 
 def convert_to_dates(seasons, year):
     """
     Always 4 or 6 words:
      "previous day Second Sunday of march"
-    -> the first two words are optional
+     -> the first two words are optional
     """
     split = seasons.str.lower().str.split(" ")
     months = split.str[-1] + " " + year
@@ -47,35 +65,16 @@ def convert_to_dates(seasons, year):
     return months
 
 
-def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
-    if _data is None:
-        raise ValueError("missing data")
-
-    start = dt.datetime.fromisoformat(start)
-    end = dt.datetime.fromisoformat(end)
-
-    print(_data.keys())
-    schedules = _data["schedules"]
-    holidays = _data["holidays"]
-    seasondefs = _data["season_definitions"]
-    seasondefs["season"] = seasondefs.season.str.lower()
-    seasondefs = seasondefs.set_index(["season", "year"])["date"]
-
-    ### get all markets schedules in certain order
-    schedules = schedules[schedules.fin_id == fin_id].sort_values(
+def get_schedules_holidays(fin_id, start, end):
+    schedules = SCHEDULES[SCHEDULES.fin_id == fin_id].sort_values(
         ["start", "duration"], ascending=True
     )
-    print(schedules)
 
+    date_match = (HOLIDAYS.date >= start - dt.timedelta(weeks=1)) & (HOLIDAYS.date <= end)
+    holidays = HOLIDAYS[(HOLIDAYS.fin_id == fin_id) & date_match].sort_values("date")
+    return schedules, holidays
 
-    ### get all relevant holidays
-    print(holidays.columns)
-    holidays.date = holidays.date.astype("datetime64[ns]")
-    date_match = (holidays.date >= start - dt.timedelta(weeks=1)) & (holidays.date <= end)
-    holidays = holidays[(holidays.fin_id == fin_id) & date_match].sort_values("date")
-    print(holidays)
-
-
+def match_schedules_holidays(schedules, holidays, start, end):
     ### match holidays with requested dates (making sure schedules with offset_days are included)
     max_offset = schedules.offset_days.max()
     max_offset = int(max_offset) if pd.notna(max_offset) else 0
@@ -87,10 +86,13 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
 
     ### match the schedules to the holidays.
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
-    full = d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
+    return d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
 
-    ### SEASONS
-    # set up concrete seasons
+def get_full_df(fin_id, start, end, with_holidays):
+    schedules, holidays = get_schedules_holidays(fin_id, start, end)
+    return match_schedules_holidays(schedules, holidays, start, end)
+
+def filter_by_season(full):
     tz = full.timezone.unique()[0]
     full.date = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
     is_seasonal = full.season_start.notna() | full.season_end.notna()
@@ -99,8 +101,8 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     del seasonal["date"]
     seasonal["season_start"] = seasonal.season_start.str.lower()
     seasonal["season_end"] = seasonal.season_end.str.lower()
-    starts = seasondefs.loc[seasonal.set_index(["season_start", "year"]).index].drop_duplicates()
-    ends = seasondefs.loc[seasonal.set_index(["season_end", "year"]).index].drop_duplicates()
+    starts = SEASONDEFS.loc[seasonal.set_index(["season_start", "year"]).index].drop_duplicates()
+    ends = SEASONDEFS.loc[seasonal.set_index(["season_end", "year"]).index].drop_duplicates()
     starts.index = starts.index.droplevel(1)
     ends.index = ends.index.droplevel(1)
     full["season_start"] = seasonal.merge(starts, left_on="season_start", right_index=True)["date"]
@@ -111,16 +113,48 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True, _data=None):
     in_season = _temp & (full.season_start <= full.date) & (full.season_end >= full.date)
     _temp = is_seasonal & (full.season_start >= full.season_end)
     in_season = in_season | (_temp & (full.season_start <= full.date) | (full.season_end >= full.date))
-    full = full[(~is_seasonal) | in_season]
+    return full[(~is_seasonal) | in_season]
 
-    ### filter by in_force
+
+def filter_by_in_force(full):
     has_in_force_start = full.in_force_start_date.notna()
     full = full[(~has_in_force_start) | (full.in_force_start_date < full.date)]
     has_in_force_end = full.in_force_end_date.notna()
-    full = full[(~has_in_force_end) | (full.in_force_end_date > full.date)]
+    return full[(~has_in_force_end) | (full.in_force_end_date > full.date)]
 
 
-    return schedules, holidays, d_hols, full
+def filter_by_day_of_week(full):
+    concrete = full.date.dt.weekday
+    days = full.days
+
+    days = days.str.lower().str.replace(r'\s+', '', regex=True)
+    days = days.str.split(",").explode()
+    days.index = pd.MultiIndex.from_arrays([days.index, days.values], names=["ix", "range"])
+
+    days = days.str.split("-").explode()
+    days = days.replace(day_to_idx).astype("int64").to_frame("days")
+    concrete.index.name = "ix"
+    df = days.merge(concrete.to_frame("concrete"), left_index=True, right_index=True)
+
+    grouped = df.groupby(df.index)
+    match = (df.days >= df.concrete) & (grouped.days.shift(1) <= df.concrete)
+    # extra OR filter with df.days == df.concrete to ensure strings like "mon" get matched
+    return full[(match | (df.days == df.concrete)).groupby(level=0).any()]
+
+
+def calc_concrete_dates(fin_id, start, end, with_holidays=True):
+    start = dt.datetime.fromisoformat(start)
+    end = dt.datetime.fromisoformat(end)
+
+    full = get_full_df(fin_id, start, end, with_holidays)
+
+    full = filter_by_season(full)
+
+    full = filter_by_in_force(full)
+
+    full = filter_by_day_of_week(full)
+
+    return full
 
 
 
