@@ -74,6 +74,7 @@ def get_schedules_holidays(fin_id, start, end):
     holidays = HOLIDAYS[(HOLIDAYS.fin_id == fin_id) & date_match].sort_values("date")
     return schedules, holidays
 
+
 def match_schedules_holidays(schedules, holidays, start, end):
     ### match holidays with requested dates (making sure schedules with offset_days are included)
     max_offset = schedules.offset_days.max()
@@ -88,9 +89,11 @@ def match_schedules_holidays(schedules, holidays, start, end):
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
     return d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
 
+
 def get_full_df(fin_id, start, end, with_holidays):
     schedules, holidays = get_schedules_holidays(fin_id, start, end)
     return match_schedules_holidays(schedules, holidays, start, end)
+
 
 def filter_by_season(full):
     tz = full.timezone.unique()[0]
@@ -117,10 +120,8 @@ def filter_by_season(full):
 
 
 def filter_by_in_force(full):
-    has_in_force_start = full.in_force_start_date.notna()
-    full = full[(~has_in_force_start) | (full.in_force_start_date < full.date)]
-    has_in_force_end = full.in_force_end_date.notna()
-    return full[(~has_in_force_end) | (full.in_force_end_date > full.date)]
+    full = full[full.in_force_start_date.isna() | (full.in_force_start_date < full.date)]
+    return full[full.in_force_end_date.isna() | (full.in_force_end_date > full.date)]
 
 
 def filter_by_day_of_week(full):
@@ -130,11 +131,12 @@ def filter_by_day_of_week(full):
     days = days.str.lower().str.replace(r'\s+', '', regex=True)
     days = days.str.split(",").explode()
     days.index = pd.MultiIndex.from_arrays([days.index, days.values], names=["ix", "range"])
-
     days = days.str.split("-").explode()
     days = days.replace(day_to_idx).astype("int64").to_frame("days")
+
     concrete.index.name = "ix"
-    df = days.merge(concrete.to_frame("concrete"), left_index=True, right_index=True)
+    concrete.name = "concrete"
+    df = days.merge(concrete, left_index=True, right_index=True)
 
     grouped = df.groupby(df.index)
     match = (df.days >= df.concrete) & (grouped.days.shift(1) <= df.concrete)
