@@ -1,10 +1,15 @@
 import datetime as dt
 from dateutil.parser import parse
+from pathlib import Path
 import pandas as pd
 from .utils import read_sqlite_tables_to_dict
 
+# SQL_DATA = Path(r"storage/database/th-data/data.sqlite")
+SQL_DATA = Path(r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite")
+
+
 _data = read_sqlite_tables_to_dict(
-    r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite",
+    SQL_DATA,
     tables=["schedules", "holidays", "season_definitions", "phases"]
 )
 
@@ -99,21 +104,49 @@ def get_full_df(fin_id, start, end, with_holidays):
 
 
 def filter_by_season(full):
-    tz = full.timezone.unique()[0]
+    tz = full.timezone.unique()
+    tz = "UTC" if not len(tz) else tz[0]
     full.date = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
     is_seasonal = full.season_start.notna() | full.season_end.notna()
+    if not is_seasonal.any():
+        return full
+
     seasonal = full.loc[is_seasonal, ["date", "season_start", "season_end"]]
-    seasonal["year"] = seasonal.date.dt.year
-    del seasonal["date"]
     seasonal["season_start"] = seasonal.season_start.str.lower()
     seasonal["season_end"] = seasonal.season_end.str.lower()
-    starts = SEASONDEFS.loc[seasonal.set_index(["season_start", "year"]).index].drop_duplicates()
-    ends = SEASONDEFS.loc[seasonal.set_index(["season_end", "year"]).index].drop_duplicates()
-    starts.index = starts.index.droplevel(1)
-    ends.index = ends.index.droplevel(1)
-    full["season_start"] = seasonal.merge(starts, left_on="season_start", right_index=True)["date"]
-    full["season_end"] = seasonal.merge(ends, left_on="season_end", right_index=True)["date"]
+    starts = SEASONDEFS.loc[
+        pd.MultiIndex.from_arrays([seasonal.season_start, seasonal.date.dt.year], names=["season", "year"])
+    ].drop_duplicates()
+    ends = SEASONDEFS.loc[
+        pd.MultiIndex.from_arrays([seasonal.season_end, seasonal.date.dt.year], names=["season", "year"])
+    ].drop_duplicates()
+
+    # starts.index = starts.index.droplevel(1)
+    # ends.index = ends.index.droplevel(1)
+    full.index = pd.MultiIndex.from_arrays([full.index, full.season_start, full.date.dt.year], names=["ix", "season", "year"])
+    seasonal.index = pd.MultiIndex.from_arrays([seasonal.season_start, seasonal.date.dt.year], names=["season", "year"])
+    season_start = seasonal.merge(starts, left_on=["season", "year"], right_index=True)["date_y"]
+    full = full.merge(season_start, left_on=["season", "year"], right_index=True)
+    full["season_start"] = full.date_y
+    del full["date_y"]
+    full = full.droplevel("season")
+    full = full.droplevel("year")
+
+
+    full.index = mix = pd.MultiIndex.from_arrays([full.index, full.season_end, full.date.dt.year], names=["ix", "season", "year"])
+    seasonal.index = pd.MultiIndex.from_arrays([seasonal.season_end, seasonal.date.dt.year], names=["season", "year"])
+    season_end = seasonal.merge(ends, left_on=["season", "year"], right_index=True)["date_y"]
+    # TODO: sometimes level "ix" disappears
+    full = full.merge(season_end, left_on=["season", "year"], right_index=True)
+    full.index = mix
+    full["season_end"] = full.date_y
+    del full["date_y"]
+    full = full.droplevel("season")
+    full = full.droplevel("year")
+
     del seasonal, starts, ends
+
+
     # filter by concrete seasons
     _temp = is_seasonal & (full.season_start < full.season_end)
     in_season = _temp & (full.season_start <= full.date) & (full.season_end >= full.date)
@@ -150,6 +183,7 @@ def set_is_open(full):
     phases = _data["phases"][["name", "status"]]
     phases = full[["date", "phase_type", "start", "end", "offset_days"]
         ].merge(phases, how="left", left_on="phase_type", right_on="name")
+
     phases = phases.drop(columns=["phase_type", "name"])
     phases["start"] = phases.date + pd.to_timedelta(phases.start)
     phases["end"] = phases.start + pd.to_timedelta(phases.end
@@ -157,15 +191,18 @@ def set_is_open(full):
     phases["duration"] = (phases["end"] - phases["start"]).dt.total_seconds()
     phases["effective_date"] = (phases["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
 
-    full["is_open"] = (phases.status == "Open") & (full.date == phases.effective_date)
+    # TODO: still seems like there is a bug
+    full["is_open"] = (phases.status == "Open") & (phases.date == phases.effective_date)
     return full
 
 def to_dict(full):
     return {}
 
 def calc_concrete_dates(fin_id, start, end, with_holidays=True):
-    start = dt.datetime.fromisoformat(start)
-    end = dt.datetime.fromisoformat(end)
+    if isinstance(start, str):
+        start = dt.datetime.fromisoformat(start)
+    if isinstance(end, str):
+        end = dt.datetime.fromisoformat(end)
 
     full = get_full_df(fin_id, start, end, with_holidays)
 
