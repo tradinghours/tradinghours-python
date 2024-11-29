@@ -5,12 +5,12 @@ from .utils import read_sqlite_tables_to_dict
 
 _data = read_sqlite_tables_to_dict(
     r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite",
-    tables=["schedules", "holidays", "season_definitions"]
+    tables=["schedules", "holidays", "season_definitions", "phases"]
 )
 
 SCHEDULES = _data["schedules"]
 HOLIDAYS = _data["holidays"]
-HOLIDAYS = HOLIDAYS.date.astype("datetime64[ns]")
+HOLIDAYS["date"] = HOLIDAYS.date.astype("datetime64[ns]")
 SEASONDEFS = _data["season_definitions"]
 SEASONDEFS["season"] = SEASONDEFS.season.str.lower()
 SEASONDEFS = SEASONDEFS.set_index(["season", "year"])["date"]
@@ -65,10 +65,12 @@ def convert_to_dates(seasons, year):
     return months
 
 
-def get_schedules_holidays(fin_id, start, end):
+def get_schedules_holidays(fin_id, start, end, with_holidays):
     schedules = SCHEDULES[SCHEDULES.fin_id == fin_id].sort_values(
         ["start", "duration"], ascending=True
     )
+    if not with_holidays:
+        return schedules, pd.DataFrame(columns=HOLIDAYS.columns)
 
     date_match = (HOLIDAYS.date >= start - dt.timedelta(weeks=1)) & (HOLIDAYS.date <= end)
     holidays = HOLIDAYS[(HOLIDAYS.fin_id == fin_id) & date_match].sort_values("date")
@@ -80,6 +82,7 @@ def match_schedules_holidays(schedules, holidays, start, end):
     max_offset = schedules.offset_days.max()
     max_offset = int(max_offset) if pd.notna(max_offset) else 0
     dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D").to_series(name="date")
+
     d_hols = holidays.merge(dates, how='right', left_on="date", right_index=True)
     d_hols = d_hols.drop(columns=["date_x", "date_y"])
     # set non holidays dates to "Regular" schedule group
@@ -91,7 +94,7 @@ def match_schedules_holidays(schedules, holidays, start, end):
 
 
 def get_full_df(fin_id, start, end, with_holidays):
-    schedules, holidays = get_schedules_holidays(fin_id, start, end)
+    schedules, holidays = get_schedules_holidays(fin_id, start, end, with_holidays)
     return match_schedules_holidays(schedules, holidays, start, end)
 
 
@@ -143,6 +146,22 @@ def filter_by_day_of_week(full):
     # extra OR filter with df.days == df.concrete to ensure strings like "mon" get matched
     return full[(match | (df.days == df.concrete)).groupby(level=0).any()]
 
+def set_is_open(full):
+    phases = _data["phases"][["name", "status"]]
+    phases = full[["date", "phase_type", "start", "end", "offset_days"]
+        ].merge(phases, how="left", left_on="phase_type", right_on="name")
+    phases = phases.drop(columns=["phase_type", "name"])
+    phases["start"] = phases.date + pd.to_timedelta(phases.start)
+    phases["end"] = phases.start + pd.to_timedelta(phases.end
+                                                   ) + pd.to_timedelta(phases.offset_days.fillna(0), "D")
+    phases["duration"] = (phases["end"] - phases["start"]).dt.total_seconds()
+    phases["effective_date"] = (phases["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
+
+    full["is_open"] = (phases.status == "Open") & (full.date == phases.effective_date)
+    return full
+
+def to_dict(full):
+    return {}
 
 def calc_concrete_dates(fin_id, start, end, with_holidays=True):
     start = dt.datetime.fromisoformat(start)
@@ -155,6 +174,8 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True):
     full = filter_by_in_force(full)
 
     full = filter_by_day_of_week(full)
+
+    full = set_is_open(full)
 
     return full
 
