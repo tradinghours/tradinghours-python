@@ -7,6 +7,22 @@ from .utils import read_sqlite_tables_to_dict
 # SQL_DATA = Path(r"storage/database/th-data/data.sqlite")
 SQL_DATA = Path(r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite")
 
+used_fields_schedules = ["fin_id",
+    "start",
+    "end",
+    "duration",
+    "offset_days",
+    "schedule_group",
+    "timezone",
+    "in_force_start_date",
+    "in_force_end_date",
+    "season_start",
+    "season_end",
+    "days",
+    "phase_type",
+]
+
+used_fields_holidays = ["fin_id", "date", "schedule"]
 
 _data = read_sqlite_tables_to_dict(
     SQL_DATA,
@@ -19,6 +35,9 @@ HOLIDAYS["date"] = HOLIDAYS.date.astype("datetime64[ns]")
 SEASONDEFS = _data["season_definitions"]
 SEASONDEFS["season"] = SEASONDEFS.season.str.lower()
 SEASONDEFS = SEASONDEFS.set_index(["season", "year"])["date"]
+
+HOLIDAYS = HOLIDAYS[used_fields_holidays]
+SCHEDULES = SCHEDULES[used_fields_schedules]
 
 
 weekday_mapping = {
@@ -71,14 +90,18 @@ def convert_to_dates(seasons, year):
 
 
 def get_schedules_holidays(fin_id, start, end, with_holidays):
-    schedules = SCHEDULES[SCHEDULES.fin_id == fin_id].sort_values(
-        ["start", "duration"], ascending=True
-    )
+    #- don't filter, sort with extra fin_id layer
+    schedules = SCHEDULES if fin_id == "*" else SCHEDULES[SCHEDULES.fin_id == fin_id]
+    schedules = schedules.sort_values(["fin_id", "start", "duration"], ascending=True)
+    # TODO: skip MultiIndex for schedules now? since it is lost in match_schedules_holidays
     if not with_holidays:
         return schedules, pd.DataFrame(columns=HOLIDAYS.columns)
 
-    date_match = (HOLIDAYS.date >= start - dt.timedelta(weeks=1)) & (HOLIDAYS.date <= end)
-    holidays = HOLIDAYS[(HOLIDAYS.fin_id == fin_id) & date_match].sort_values("date")
+    holidays = HOLIDAYS if fin_id == "*" else HOLIDAYS[HOLIDAYS.fin_id == fin_id]
+    date_match = (holidays.date >= start - dt.timedelta(weeks=1)) & (holidays.date <= end)
+    holidays = holidays[date_match].sort_values("date")
+    holidays.index = pd.MultiIndex.from_arrays([holidays.fin_id, holidays.date], names=["fin_ix", "date"])
+    #- in both cases, setting MultiIndex with fin_id[/date] makes most sense I think
     return schedules, holidays
 
 
@@ -86,16 +109,17 @@ def match_schedules_holidays(schedules, holidays, start, end):
     ### match holidays with requested dates (making sure schedules with offset_days are included)
     max_offset = schedules.offset_days.max()
     max_offset = int(max_offset) if pd.notna(max_offset) else 0
-    dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D").to_series(name="date")
+    dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D")
+    dates = pd.MultiIndex.from_product([holidays.fin_id, dates], names=["fin_ix", "date"])
 
-    d_hols = holidays.merge(dates, how='right', left_on="date", right_index=True)
-    d_hols = d_hols.drop(columns=["date_x", "date_y"])
+    #- Would need to make sure that holidays are also matched based on fin_id --> MultiIndex with fin_id
+    d_hols = holidays.reindex(dates)
     # set non holidays dates to "Regular" schedule group
     d_hols.loc[d_hols.schedule.isna(), "schedule"] = "Regular" # TODO: see about constants like Tradinghours::REGULAR
 
     ### match the schedules to the holidays.
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
-    return d_hols.merge(schedules, how="inner", left_on="schedule", right_on="schedule_group")
+    return d_hols.merge(schedules, how="inner", left_on=["fin_id", "schedule"], right_on=["fin_id", "schedule_group"])
 
 
 def get_full_df(fin_id, start, end, with_holidays):
@@ -104,50 +128,45 @@ def get_full_df(fin_id, start, end, with_holidays):
 
 
 def filter_by_season(full):
+    # TODO: fix tz conversion for multiple timezones
     tz = full.timezone.unique()
     tz = "UTC" if not len(tz) else tz[0]
     full.date = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
+    full["season_start"] = full.season_start.str.lower()
+    full["season_end"] = full.season_end.str.lower()
     is_seasonal = full.season_start.notna() | full.season_end.notna()
     if not is_seasonal.any():
         return full
 
     seasonal = full.loc[is_seasonal, ["date", "season_start", "season_end"]]
-    seasonal["season_start"] = seasonal.season_start.str.lower()
-    seasonal["season_end"] = seasonal.season_end.str.lower()
     starts = SEASONDEFS.loc[
         pd.MultiIndex.from_arrays([seasonal.season_start, seasonal.date.dt.year], names=["season", "year"])
     ].drop_duplicates()
     ends = SEASONDEFS.loc[
         pd.MultiIndex.from_arrays([seasonal.season_end, seasonal.date.dt.year], names=["season", "year"])
     ].drop_duplicates()
+    del seasonal
 
-    # starts.index = starts.index.droplevel(1)
-    # ends.index = ends.index.droplevel(1)
-    full.index = pd.MultiIndex.from_arrays([full.index, full.season_start, full.date.dt.year], names=["ix", "season", "year"])
-    seasonal.index = pd.MultiIndex.from_arrays([seasonal.season_start, seasonal.date.dt.year], names=["season", "year"])
-    season_start = seasonal.merge(starts, left_on=["season", "year"], right_index=True)["date_y"]
-    full = full.merge(season_start, left_on=["season", "year"], right_index=True)
-    full["season_start"] = full.date_y
+    full.index = pd.MultiIndex.from_arrays([full.season_start, full.date.dt.year], names=["season", "year"])
+    full = full.merge(starts, left_index=True, right_index=True)
+    full[["date", "season_start"]] = full[["date_x", "date_y"]]
+    del full["date_x"]
     del full["date_y"]
-    full = full.droplevel("season")
-    full = full.droplevel("year")
+    del starts
 
-
-    full.index = mix = pd.MultiIndex.from_arrays([full.index, full.season_end, full.date.dt.year], names=["ix", "season", "year"])
-    seasonal.index = pd.MultiIndex.from_arrays([seasonal.season_end, seasonal.date.dt.year], names=["season", "year"])
-    season_end = seasonal.merge(ends, left_on=["season", "year"], right_index=True)["date_y"]
-    # TODO: sometimes level "ix" disappears
-    full = full.merge(season_end, left_on=["season", "year"], right_index=True)
-    full.index = mix
-    full["season_end"] = full.date_y
+    full.index = pd.MultiIndex.from_arrays([full.season_end, full.date.dt.year], names=["season", "year"])
+    full = full.merge(ends, left_index=True, right_index=True)
+    full[["date", "season_end"]] = full[["date_x", "date_y"]]
+    del full["date_x"]
     del full["date_y"]
-    full = full.droplevel("season")
-    full = full.droplevel("year")
+    del ends
 
-    del seasonal, starts, ends
-
+    full.reset_index(inplace=True)
+    del full["season"]
+    del full["year"]
 
     # filter by concrete seasons
+    is_seasonal = full.season_start.notna() | full.season_end.notna()
     _temp = is_seasonal & (full.season_start < full.season_end)
     in_season = _temp & (full.season_start <= full.date) & (full.season_end >= full.date)
     _temp = is_seasonal & (full.season_start >= full.season_end)
@@ -183,6 +202,7 @@ def set_is_open(full):
     phases = _data["phases"][["name", "status"]]
     phases = full[["date", "phase_type", "start", "end", "offset_days"]
         ].merge(phases, how="left", left_on="phase_type", right_on="name")
+    phases.index = full.index
 
     phases = phases.drop(columns=["phase_type", "name"])
     phases["start"] = phases.date + pd.to_timedelta(phases.start)
