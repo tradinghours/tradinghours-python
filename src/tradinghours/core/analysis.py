@@ -100,7 +100,6 @@ def get_schedules_holidays(fin_id, start, end, with_holidays):
     holidays = HOLIDAYS if fin_id == "*" else HOLIDAYS[HOLIDAYS.fin_id == fin_id]
     date_match = (holidays.date >= start - dt.timedelta(weeks=1)) & (holidays.date <= end)
     holidays = holidays[date_match].sort_values("date")
-    holidays.index = pd.MultiIndex.from_arrays([holidays.fin_id, holidays.date], names=["fin_ix", "date"])
     #- in both cases, setting MultiIndex with fin_id[/date] makes most sense I think
     return schedules, holidays
 
@@ -110,10 +109,10 @@ def match_schedules_holidays(schedules, holidays, start, end):
     max_offset = schedules.offset_days.max()
     max_offset = int(max_offset) if pd.notna(max_offset) else 0
     dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D")
-    dates = pd.MultiIndex.from_product([holidays.fin_id, dates], names=["fin_ix", "date"])
+    dates = pd.MultiIndex.from_product([holidays.fin_id, dates], names=["fin_id", "date"]).to_frame(index=False)
 
     #- Would need to make sure that holidays are also matched based on fin_id --> MultiIndex with fin_id
-    d_hols = holidays.reindex(dates)
+    d_hols = dates.merge(holidays, how="left", left_on=["fin_id", "date"], right_on=["fin_id", "date"])
     # set non holidays dates to "Regular" schedule group
     d_hols.loc[d_hols.schedule.isna(), "schedule"] = "Regular" # TODO: see about constants like Tradinghours::REGULAR
 
@@ -200,19 +199,20 @@ def filter_by_day_of_week(full):
 
 def set_is_open(full):
     phases = _data["phases"][["name", "status"]]
-    phases = full[["date", "phase_type", "start", "end", "offset_days"]
+    phases = full[["fin_id", "date", "phase_type", "start", "end", "offset_days"]
         ].merge(phases, how="left", left_on="phase_type", right_on="name")
     phases.index = full.index
 
-    phases = phases.drop(columns=["phase_type", "name"])
+    # phases = phases.drop(columns=["phase_type", "name"])
     phases["start"] = phases.date + pd.to_timedelta(phases.start)
-    phases["end"] = phases.start + pd.to_timedelta(phases.end
+    phases["end"] = phases.date + pd.to_timedelta(phases.end
                                                    ) + pd.to_timedelta(phases.offset_days.fillna(0), "D")
     phases["duration"] = (phases["end"] - phases["start"]).dt.total_seconds()
     phases["effective_date"] = (phases["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
 
     # TODO: still seems like there is a bug
     full["is_open"] = (phases.status == "Open") & (phases.date == phases.effective_date)
+    full["is_open"] = full.groupby(["fin_id", "date"]).is_open.transform("any")
     return full
 
 def to_dict(full):
