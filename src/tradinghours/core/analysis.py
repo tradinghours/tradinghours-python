@@ -3,11 +3,13 @@ from dateutil.parser import parse
 from pathlib import Path
 import pandas as pd
 from .utils import read_sqlite_tables_to_dict
+from .data_types import holidays_types
 
 # SQL_DATA = Path(r"storage/database/th-data/data.sqlite")
 SQL_DATA = Path(r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite")
 
-used_fields_schedules = ["fin_id",
+used_fields_schedules = [
+    "fin_id",
     "start",
     "end",
     "duration",
@@ -91,25 +93,45 @@ def convert_to_dates(seasons, year):
 
 def get_schedules_holidays(fin_id, start, end, with_holidays):
     #- don't filter, sort with extra fin_id layer
-    schedules = SCHEDULES if fin_id == "*" else SCHEDULES[SCHEDULES.fin_id == fin_id]
-    schedules = schedules.sort_values(["fin_id", "start", "duration"], ascending=True)
-    # TODO: skip MultiIndex for schedules now? since it is lost in match_schedules_holidays
-    if not with_holidays:
-        return schedules, pd.DataFrame(columns=HOLIDAYS.columns)
+    if isinstance(fin_id, str):
+        if fin_id == "*":
+            schedules = SCHEDULES
+        else:
+            schedules = SCHEDULES[SCHEDULES.fin_id == fin_id]
+    else:
+        schedules = SCHEDULES[SCHEDULES.fin_id.isin(fin_id)]
 
-    holidays = HOLIDAYS if fin_id == "*" else HOLIDAYS[HOLIDAYS.fin_id == fin_id]
+    schedules = schedules.sort_values(["fin_id", "start", "duration"], ascending=True)
+    if not with_holidays:
+        holidays = pd.DataFrame(columns=HOLIDAYS.columns)
+        holidays["date"] = holidays.date.astype("datetime64[ns]")
+        return schedules, holidays
+
+    if isinstance(fin_id, str):
+        if fin_id == "*":
+            holidays = HOLIDAYS
+        else:
+            holidays = HOLIDAYS[HOLIDAYS.fin_id == fin_id]
+    else:
+        holidays = HOLIDAYS[HOLIDAYS.fin_id.isin(fin_id)]
+
     date_match = (holidays.date >= start - dt.timedelta(weeks=1)) & (holidays.date <= end)
     holidays = holidays[date_match].sort_values("date")
-    #- in both cases, setting MultiIndex with fin_id[/date] makes most sense I think
     return schedules, holidays
 
 
 def match_schedules_holidays(schedules, holidays, start, end):
+    """
+    if end is None, it is assumed that start is the `dates` that would otherwise have to be calculated
+    """
     ### match holidays with requested dates (making sure schedules with offset_days are included)
-    max_offset = schedules.offset_days.max()
-    max_offset = int(max_offset) if pd.notna(max_offset) else 0
-    dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D")
-    dates = pd.MultiIndex.from_product([holidays.fin_id, dates], names=["fin_id", "date"]).to_frame(index=False)
+    if end is None:
+        dates = start
+    else:
+        max_offset = schedules.offset_days.max()
+        max_offset = int(max_offset) if pd.notna(max_offset) else 0
+        dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D")
+        dates = pd.MultiIndex.from_product([holidays.fin_id, dates], names=["fin_id", "date"]).to_frame(index=False)
 
     #- Would need to make sure that holidays are also matched based on fin_id --> MultiIndex with fin_id
     d_hols = dates.merge(holidays, how="left", left_on=["fin_id", "date"], right_on=["fin_id", "date"])
@@ -125,6 +147,13 @@ def get_full_df(fin_id, start, end, with_holidays):
     schedules, holidays = get_schedules_holidays(fin_id, start, end, with_holidays)
     return match_schedules_holidays(schedules, holidays, start, end)
 
+def get_full_df_w_index(fin_dates, with_holidays):
+    fin_ids = fin_dates.fin_id.unique()
+    start = fin_dates.date.min()
+    end = fin_dates.date.max()
+    schedules, holidays = get_schedules_holidays(fin_ids, start, end, with_holidays)
+    # pass fin_dates as start and None as end, to indicate that the dates index is already created
+    return match_schedules_holidays(schedules, holidays, fin_dates, None)
 
 def filter_by_season(full):
     # TODO: fix tz conversion for multiple timezones
@@ -219,12 +248,15 @@ def to_dict(full):
     return {}
 
 def calc_concrete_dates(fin_id, start, end, with_holidays=True):
-    if isinstance(start, str):
-        start = dt.datetime.fromisoformat(start)
-    if isinstance(end, str):
-        end = dt.datetime.fromisoformat(end)
+    if start is None and end is None:
+        full = get_full_df_w_index(fin_id, with_holidays)
+    else:
+        if isinstance(start, str):
+            start = dt.datetime.fromisoformat(start)
+        if isinstance(end, str):
+            end = dt.datetime.fromisoformat(end)
 
-    full = get_full_df(fin_id, start, end, with_holidays)
+        full = get_full_df(fin_id, start, end, with_holidays)
 
     full = filter_by_season(full)
 
@@ -234,7 +266,15 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True):
 
     full = set_is_open(full)
 
+    # TODO: should keep weekends and fully closed dates?
     return full
 
+def calc_derived_weekend_definition(fin_ids):
+    now = pd.to_datetime("now").normalize()
+    start = now - pd.to_timedelta(now.weekday(), "D")
+    end = now + pd.to_timedelta(6 - now.weekday(), "D")
+    # with_holidays=False because we want the generic schedule excluding specific holidays
+    full = calc_concrete_dates(fin_ids, start, end, with_holidays=False)
 
+    return full
 
