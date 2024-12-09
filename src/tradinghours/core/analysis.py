@@ -49,6 +49,9 @@ day_to_idx = {
     "mon": "0", "tue": "1", "wed": "2", "thu": "3",
     "fri": "4", "sat": "5", "sun": "6"
 }
+idx_to_day = {
+
+}
 
 
 def convert_to_dates(seasons, year):
@@ -131,7 +134,7 @@ def match_schedules_holidays(schedules, holidays, start, end):
         max_offset = schedules.offset_days.max()
         max_offset = int(max_offset) if pd.notna(max_offset) else 0
         dates = pd.date_range(start - dt.timedelta(days=max_offset), end, freq="D")
-        dates = pd.MultiIndex.from_product([holidays.fin_id, dates], names=["fin_id", "date"]).to_frame(index=False)
+        dates = pd.MultiIndex.from_product([schedules.fin_id.unique(), dates], names=["fin_id", "date"]).to_frame(index=False)
 
     #- Would need to make sure that holidays are also matched based on fin_id --> MultiIndex with fin_id
     d_hols = dates.merge(holidays, how="left", left_on=["fin_id", "date"], right_on=["fin_id", "date"])
@@ -269,12 +272,27 @@ def calc_concrete_dates(fin_id, start, end, with_holidays=True):
     # TODO: should keep weekends and fully closed dates?
     return full
 
-def calc_derived_weekend_definition(fin_ids):
+def calc_market_weekend_definitions(fin_ids):
     now = pd.to_datetime("now").normalize()
     start = now - pd.to_timedelta(now.weekday(), "D")
     end = now + pd.to_timedelta(6 - now.weekday(), "D")
     # with_holidays=False because we want the generic schedule excluding specific holidays
     full = calc_concrete_dates(fin_ids, start, end, with_holidays=False)
 
-    return full
+    df = full[["fin_id", "date", "is_open"]].drop_duplicates()
+    df["weekday"] = df.date.dt.weekday
+
+    wkdays = pd.MultiIndex.from_product([df[df.is_open].fin_id.unique(), range(7)], names=["fin_id", "weekday"]).to_frame(index=False)
+    missing = wkdays.merge(df[df.is_open], how="left", left_on=["fin_id", "weekday"], right_on=["fin_id", "weekday"])
+    # this is essentially the weekend definition
+    missing = missing[missing.date.isna()][["fin_id", "weekday"]].groupby("fin_id").weekday
+
+    df = df.merge(missing.min().rename("min"), how="left", left_on="fin_id", right_index=True)
+    df = df.merge(missing.max().rename("max"), how="left", left_on="fin_id", right_index=True)
+    return df
+
+def get_dynamic_holidays(fin_ids):
+    df = calc_market_weekend_definitions(fin_ids)
+    df["regularly_open"] = ~((df["min"] <= df.weekday) & (df.weekday <= df["max"]))
+    return df[df.is_open != df.regularly_open]
 
