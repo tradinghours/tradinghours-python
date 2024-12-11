@@ -161,7 +161,7 @@ class Market(BaseModel):
         phase_types_dict = PhaseType.as_dict()
 
         # Get required global data
-        offset_start = start - dt.timedelta(days=MAX_OFFSET_DAYS)
+        offset_start = max(start - dt.timedelta(days=MAX_OFFSET_DAYS), self.first_available_date)
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
         if _for_status:
