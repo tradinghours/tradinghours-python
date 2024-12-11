@@ -1,3 +1,7 @@
+## new_release
+Changes:
+ * fix for first_available_date conflicting with consideration of offset_days
+
 ## 0.4.0 (2024-10-03)
 This update completely overhauls the backend of the package:
  * Instead of using two storages (files and sql), it uses sqlite by default but can be used with a sql connection string to a remote database.
