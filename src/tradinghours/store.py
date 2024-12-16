@@ -21,7 +21,7 @@ from enum import Enum
 from .config import main_config
 from .client import get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name, timed_action
-from .core.utils import SQL_TYPES_CONVERTERS, SQL_DEFAULT_TYPES
+from .core.utils import FIELD_TYPES, SQL_TYPES
 from .exceptions import DBError, NoAccess
 
 class AccessLevel(Enum):
@@ -32,8 +32,8 @@ class AccessLevel(Enum):
 
 class DB:
     _instance = None
-    _types = SQL_TYPES_CONVERTERS
-    _default_type = SQL_DEFAULT_TYPES
+    _types = {field: SQL_TYPES.get(typ) for field, typ in FIELD_TYPES.items()}
+    _default_type = SQL_TYPES.get("text")
     _access = {
         "Currency.list_all" : {AccessLevel.full},
         "Currency.get": {AccessLevel.full},
