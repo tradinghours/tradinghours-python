@@ -1,31 +1,82 @@
 import sqlite3
+import datetime as dt
 import pandas as pd
 
+from sqlalchemy import (
+    Integer,
+    Time,
+    Date,
+    Boolean,
+    Text
+)
+
+SQL_TYPES = {
+    "date": (Date, dt.date.fromisoformat),
+    "bool": (Boolean, lambda v: v == "OBS"),
+    "time": (Time, dt.time.fromisoformat),
+    "int": (Integer, int),
+    "text": (Text, str)
+}
+PANDAS_TYPES = {
+    "date": "datetime64[ns]",
+    "bool": "bool",
+    "time": "timedelta64[ns]",
+    "int": "int64",
+    "text": "string",
+}
+
+FIELD_TYPES = {
+    "date": "date",
+    "observed": "bool",
+    "start": "time",
+    "end": "time",
+    "offset_days": "int",
+    "duration": "int",
+    "min_start": "time",
+    "max_start": "time",
+    "min_end": "time",
+    "max_end": "time",
+    "in_force_start_date": "date",
+    "in_force_end_date": "date",
+    "year": "int",
+}
+
+ANALYSIS_FIELDS_SCHEDULES = [
+    "fin_id",
+    "start",
+    "end",
+    "duration",
+    "offset_days",
+    "schedule_group",
+    "timezone",
+    "in_force_start_date",
+    "in_force_end_date",
+    "season_start",
+    "season_end",
+    "days",
+    "phase_type",
+]
+
+ANALYSIS_FIELDS_HOLIDAYS = ["fin_id", "date", "schedule"]
+
+# for calculations I want specific columns
+
+# for pipeline, I want all columns
+
+# general types
 
 
-# TODO: consider using store.DB
-def read_sqlite_tables_to_dict(db_path, tables=None):
+
+def slugify(string):
+    return string.lower().replace(" ", "_").replace("-", "_")
+
+
+def set_types(data):
     """
-    Reads all tables from a SQLite database and returns a dictionary where
-    the keys are the table names and the values are pandas DataFrames containing the table data.
-
-    Parameters:
-    db_path (str): The path to the SQLite database file.
-
-    Returns:
-    dict: A dictionary with table names as keys and DataFrames as values.
+    used to make sure pd.DataFrames are typed correctly
     """
-    dataframes_dict = {}
-    with sqlite3.connect(db_path) as conn:
-        # Retrieve the list of table names from the database
-        table_names = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn)
-        # Read each table into a DataFrame
-        for table_name in table_names['name']:
-            if table_name.startswith("sqlite"): continue
-            if not tables is None and table_name not in tables:
-                continue
-
-            df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-            dataframes_dict[table_name] = df
-            print(f"Data loaded from table '{table_name}' into DataFrame.")
-    return dataframes_dict
+    for title, df in data.items():
+        for col in df:
+            typ = FIELD_TYPES.get(col, "text")
+            df[col] = df[col].astype(PANDAS_TYPES.get(typ))
+    return data

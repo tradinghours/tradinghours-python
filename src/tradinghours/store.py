@@ -1,7 +1,6 @@
 import os, csv, json, codecs
 import datetime as dt
 from pathlib import Path
-from pprint import pprint
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -11,9 +10,6 @@ from sqlalchemy import (
     String,
     Integer,
     DateTime,
-    Time,
-    Date,
-    Boolean,
     Text
 )
 from sqlalchemy.orm import sessionmaker
@@ -25,6 +21,7 @@ from enum import Enum
 from .config import main_config
 from .client import get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name, timed_action
+from .core.utils import SQL_TYPES_CONVERTERS, SQL_DEFAULT_TYPES
 from .exceptions import DBError, NoAccess
 
 class AccessLevel(Enum):
@@ -35,23 +32,8 @@ class AccessLevel(Enum):
 
 class DB:
     _instance = None
-    _types = {
-        "date": (Date, dt.date.fromisoformat),
-        "observed": (Boolean, lambda v: v == "OBS"),
-        "start": (Time, dt.time.fromisoformat),
-        "end": (Time, dt.time.fromisoformat),
-        "offset_days": (Integer, int),
-        "duration": (Integer, int),
-        "min_start": (Time, dt.time.fromisoformat),
-        "max_start": (Time, dt.time.fromisoformat),
-        "min_end": (Time, dt.time.fromisoformat),
-        "max_end": (Time, dt.time.fromisoformat),
-        "in_force_start_date": (Date, dt.date.fromisoformat),
-        "in_force_end_date": (Date, dt.date.fromisoformat),
-        "year": (Integer, int),
-        # Everything else is Text
-    }
-    _default_type = (Text, str)
+    _types = SQL_TYPES_CONVERTERS
+    _default_type = SQL_DEFAULT_TYPES
     _access = {
         "Currency.list_all" : {AccessLevel.full},
         "Currency.get": {AccessLevel.full},

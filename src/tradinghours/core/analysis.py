@@ -2,29 +2,10 @@ import datetime as dt
 from dateutil.parser import parse
 from pathlib import Path
 import pandas as pd
-from .utils import read_sqlite_tables_to_dict
-from .data_types import holidays_types
+from .utils import read_sqlite_tables_to_dict, PANDAS_TYPES, ANALYSIS_FIELDS_HOLIDAYS, ANALYSIS_FIELDS_SCHEDULES
 
 # SQL_DATA = Path(r"storage/database/th-data/data.sqlite")
 SQL_DATA = Path(r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite")
-
-used_fields_schedules = [
-    "fin_id",
-    "start",
-    "end",
-    "duration",
-    "offset_days",
-    "schedule_group",
-    "timezone",
-    "in_force_start_date",
-    "in_force_end_date",
-    "season_start",
-    "season_end",
-    "days",
-    "phase_type",
-]
-
-used_fields_holidays = ["fin_id", "date", "schedule"]
 
 _data = read_sqlite_tables_to_dict(
     SQL_DATA,
@@ -38,8 +19,8 @@ SEASONDEFS = _data["season_definitions"]
 SEASONDEFS["season"] = SEASONDEFS.season.str.lower()
 SEASONDEFS = SEASONDEFS.set_index(["season", "year"])["date"]
 
-HOLIDAYS = HOLIDAYS[used_fields_holidays]
-SCHEDULES = SCHEDULES[used_fields_schedules]
+HOLIDAYS = HOLIDAYS[ANALYSIS_FIELDS_HOLIDAYS]
+SCHEDULES = SCHEDULES[ANALYSIS_FIELDS_SCHEDULES]
 
 
 weekday_mapping = {
