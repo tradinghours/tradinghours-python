@@ -1,27 +1,5 @@
 import datetime as dt
-from dateutil.parser import parse
-from pathlib import Path
 import pandas as pd
-from .utils import read_sqlite_tables_to_dict, PANDAS_TYPES, ANALYSIS_FIELDS_HOLIDAYS, ANALYSIS_FIELDS_SCHEDULES
-
-# SQL_DATA = Path(r"storage/database/th-data/data.sqlite")
-SQL_DATA = Path(r"C:\TradingHours\pipeline\tradinghours-admin\storage\database\th-data\data.sqlite")
-
-_data = read_sqlite_tables_to_dict(
-    SQL_DATA,
-    tables=["schedules", "holidays", "season_definitions", "phases"]
-)
-
-SCHEDULES = _data["schedules"]
-HOLIDAYS = _data["holidays"]
-HOLIDAYS["date"] = HOLIDAYS.date.astype("datetime64[ns]")
-SEASONDEFS = _data["season_definitions"]
-SEASONDEFS["season"] = SEASONDEFS.season.str.lower()
-SEASONDEFS = SEASONDEFS.set_index(["season", "year"])["date"]
-
-HOLIDAYS = HOLIDAYS[ANALYSIS_FIELDS_HOLIDAYS]
-SCHEDULES = SCHEDULES[ANALYSIS_FIELDS_SCHEDULES]
-
 
 weekday_mapping = {
     "sunday": "6"
@@ -75,29 +53,26 @@ def convert_to_dates(seasons, year):
     return months
 
 
-def get_schedules_holidays(fin_id, start, end, with_holidays):
+def get_schedules_holidays(fin_id, start, end, data):
     #- don't filter, sort with extra fin_id layer
-    if isinstance(fin_id, str):
-        if fin_id == "*":
-            schedules = SCHEDULES
-        else:
-            schedules = SCHEDULES[SCHEDULES.fin_id == fin_id]
+    with_holidays = "holidays" in data
+    schedules = data["schedules"]
+    if isinstance(fin_id, str) and fin_id != "*":
+        schedules = schedules[schedules.fin_id == fin_id]
     else:
-        schedules = SCHEDULES[SCHEDULES.fin_id.isin(fin_id)]
+        schedules = schedules[schedules.fin_id.isin(fin_id)]
 
     schedules = schedules.sort_values(["fin_id", "start", "duration"], ascending=True)
     if not with_holidays:
-        holidays = pd.DataFrame(columns=HOLIDAYS.columns)
+        holidays = pd.DataFrame(columns=["fin_id", "date", "schedule"])
         holidays["date"] = holidays.date.astype("datetime64[ns]")
         return schedules, holidays
 
-    if isinstance(fin_id, str):
-        if fin_id == "*":
-            holidays = HOLIDAYS
-        else:
-            holidays = HOLIDAYS[HOLIDAYS.fin_id == fin_id]
+    holidays = data["holidays"]
+    if isinstance(fin_id, str) and fin_id != "*":
+        holidays = holidays[holidays.fin_id == fin_id]
     else:
-        holidays = HOLIDAYS[HOLIDAYS.fin_id.isin(fin_id)]
+        holidays = holidays[holidays.fin_id.isin(fin_id)]
 
     date_match = (holidays.date >= start - dt.timedelta(weeks=1)) & (holidays.date <= end)
     holidays = holidays[date_match].sort_values("date")
@@ -127,19 +102,21 @@ def match_schedules_holidays(schedules, holidays, start, end):
     return d_hols.merge(schedules, how="inner", left_on=["fin_id", "schedule"], right_on=["fin_id", "schedule_group"])
 
 
-def get_full_df(fin_id, start, end, with_holidays):
-    schedules, holidays = get_schedules_holidays(fin_id, start, end, with_holidays)
+def get_full_df(fin_id, start, end, data):
+    schedules, holidays = get_schedules_holidays(fin_id, start, end, data)
     return match_schedules_holidays(schedules, holidays, start, end)
 
-def get_full_df_w_index(fin_dates, with_holidays):
+
+def get_full_df_w_index(fin_dates, data):
     fin_ids = fin_dates.fin_id.unique()
     start = fin_dates.date.min()
     end = fin_dates.date.max()
-    schedules, holidays = get_schedules_holidays(fin_ids, start, end, with_holidays)
+    schedules, holidays = get_schedules_holidays(fin_ids, start, end, data)
     # pass fin_dates as start and None as end, to indicate that the dates index is already created
     return match_schedules_holidays(schedules, holidays, fin_dates, None)
 
-def filter_by_season(full):
+
+def filter_by_season(full, seasondefs):
     # TODO: fix tz conversion for multiple timezones
     tz = full.timezone.unique()
     tz = "UTC" if not len(tz) else tz[0]
@@ -151,10 +128,10 @@ def filter_by_season(full):
         return full
 
     seasonal = full.loc[is_seasonal, ["date", "season_start", "season_end"]]
-    starts = SEASONDEFS.loc[
+    starts = seasondefs.loc[
         pd.MultiIndex.from_arrays([seasonal.season_start, seasonal.date.dt.year], names=["season", "year"])
     ].drop_duplicates()
-    ends = SEASONDEFS.loc[
+    ends = seasondefs.loc[
         pd.MultiIndex.from_arrays([seasonal.season_end, seasonal.date.dt.year], names=["season", "year"])
     ].drop_duplicates()
     del seasonal
@@ -210,8 +187,8 @@ def filter_by_day_of_week(full):
     # extra OR filter with df.days == df.concrete to ensure strings like "mon" get matched
     return full[(match | (df.days == df.concrete)).groupby(level=0).any()]
 
-def set_is_open(full):
-    phases = _data["phases"][["name", "status"]]
+
+def set_is_open(full, phases):
     phases = full[["fin_id", "date", "phase_type", "start", "end", "offset_days"]
         ].merge(phases, how="left", left_on="phase_type", right_on="name")
     phases.index = full.index
@@ -228,37 +205,44 @@ def set_is_open(full):
     full["is_open"] = full.groupby(["fin_id", "date"]).is_open.transform("any")
     return full
 
+
 def to_dict(full):
     return {}
 
-def calc_concrete_dates(fin_id, start, end, with_holidays=True):
+
+#####################
+# MAIN ENTRY POINTS #
+#####################
+
+def calc_concrete_dates(fin_id, start, end, data):
     if start is None and end is None:
-        full = get_full_df_w_index(fin_id, with_holidays)
+        full = get_full_df_w_index(fin_id, data)
     else:
         if isinstance(start, str):
             start = dt.datetime.fromisoformat(start)
         if isinstance(end, str):
             end = dt.datetime.fromisoformat(end)
 
-        full = get_full_df(fin_id, start, end, with_holidays)
+        full = get_full_df(fin_id, start, end, data)
 
-    full = filter_by_season(full)
+    full = filter_by_season(full, data["seasondefs"])
 
     full = filter_by_in_force(full)
 
     full = filter_by_day_of_week(full)
 
-    full = set_is_open(full)
+    full = set_is_open(full, data["phases"])
 
     # TODO: should keep weekends and fully closed dates?
     return full
 
-def calc_market_weekend_definitions(fin_ids):
+
+def calc_market_weekend_definitions(fin_ids, data):
     now = pd.to_datetime("now").normalize()
     start = now - pd.to_timedelta(now.weekday(), "D")
     end = now + pd.to_timedelta(6 - now.weekday(), "D")
     # with_holidays=False because we want the generic schedule excluding specific holidays
-    full = calc_concrete_dates(fin_ids, start, end, with_holidays=False)
+    full = calc_concrete_dates(fin_ids, start, end, {k:v for k,v in data.items() if k!="holidays"})
 
     df = full[["fin_id", "date", "is_open"]].drop_duplicates()
     df["weekday"] = df.date.dt.weekday
@@ -271,6 +255,7 @@ def calc_market_weekend_definitions(fin_ids):
     df = df.merge(missing.min().rename("min"), how="left", left_on="fin_id", right_index=True)
     df = df.merge(missing.max().rename("max"), how="left", left_on="fin_id", right_index=True)
     return df
+
 
 def get_dynamic_holidays(fin_ids):
     df = calc_market_weekend_definitions(fin_ids)
