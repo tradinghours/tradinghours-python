@@ -21,7 +21,7 @@ PANDAS_TYPES = {
     "date": "datetime64[ns]",
     "bool": "bool",
     "time": "timedelta64[ns]",
-    "int": "int64",
+    "int": "Int64", # not int64 (numpy) since that is not nullable
     "text": "string",
 }
 
