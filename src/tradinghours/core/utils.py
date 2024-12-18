@@ -65,10 +65,28 @@ ANALYSIS_FIELDS_HOLIDAYS = ["fin_id", "date", "schedule"]
 
 # general types
 
-
-
 def slugify(string):
     return string.lower().replace(" ", "_").replace("-", "_")
+
+def get_pandas_type(col):
+    return PANDAS_TYPES.get(FIELD_TYPES.get(col, "text"))
+
+def fix_types_for_sql(df):
+    """
+    needs to ensure correct conversion for saving in sql
+    without changing df in place or copying df if not necessary
+    """
+    td_cols = []
+    for col in df:
+        if "timedelta" in str(df[col].dtype):
+            td_cols.append(col)
+
+    if td_cols:
+        df = df.copy()
+        for col in td_cols:
+            df[col] = df[col].astype("string").str.split("days ").str[-1]
+
+    return df
 
 
 def set_types(data):
@@ -77,6 +95,5 @@ def set_types(data):
     """
     for title, df in data.items():
         for col in df:
-            typ = FIELD_TYPES.get(col, "text")
-            df[col] = df[col].astype(PANDAS_TYPES.get(typ))
+            df[col] = df[col].astype(get_pandas_type(col))
     return data

@@ -57,8 +57,9 @@ def get_schedules_holidays(fin_id, start, end, data):
     #- don't filter, sort with extra fin_id layer
     with_holidays = "holidays" in data
     schedules = data["schedules"]
-    if isinstance(fin_id, str) and fin_id != "*":
-        schedules = schedules[schedules.fin_id == fin_id]
+    if isinstance(fin_id, str):
+        if fin_id != "*":
+            schedules = schedules[schedules.fin_id == fin_id]
     else:
         schedules = schedules[schedules.fin_id.isin(fin_id)]
 
@@ -69,8 +70,9 @@ def get_schedules_holidays(fin_id, start, end, data):
         return schedules, holidays
 
     holidays = data["holidays"]
-    if isinstance(fin_id, str) and fin_id != "*":
-        holidays = holidays[holidays.fin_id == fin_id]
+    if isinstance(fin_id, str):
+        if fin_id != "*":
+            holidays = holidays[holidays.fin_id == fin_id]
     else:
         holidays = holidays[holidays.fin_id.isin(fin_id)]
 
@@ -117,10 +119,10 @@ def get_full_df_w_index(fin_dates, data):
 
 
 def filter_by_season(full, seasondefs):
-    # TODO: fix tz conversion for multiple timezones
-    tz = full.timezone.unique()
-    tz = "UTC" if not len(tz) else tz[0]
-    full.date = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
+    # TODO: Is it really necessary to use timezones here? what if multiple timezones?
+    # tz = full.timezone.unique()
+    # tz = "UTC" if not len(tz) else tz[0]
+    # full["date"] = full.date.dt.tz_localize(tz if pd.notna(tz) else "UTC")
     full["season_start"] = full.season_start.str.lower()
     full["season_end"] = full.season_end.str.lower()
     is_seasonal = full.season_start.notna() | full.season_end.notna()
@@ -257,8 +259,9 @@ def calc_market_weekend_definitions(fin_ids, data):
     return df
 
 
-def get_dynamic_holidays(fin_ids):
-    df = calc_market_weekend_definitions(fin_ids)
+def get_dynamic_holidays(fin_ids, data):
+    df = calc_market_weekend_definitions(fin_ids, data)
+    # TODO: still needs fixing
     df["regularly_open"] = ~((df["min"] <= df.weekday) & (df.weekday <= df["max"]))
     return df[df.is_open != df.regularly_open]
 

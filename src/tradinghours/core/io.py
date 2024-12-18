@@ -1,6 +1,6 @@
 import os, sqlite3
 from pathlib import Path
-from .utils import slugify, set_types
+from .utils import slugify, set_types, fix_types_for_sql
 import pandas as pd
 
 """
@@ -57,6 +57,7 @@ def df_data_from_sql(db_path, tables=None):
 def save_data_to_sql(db_path, data):
     with sqlite3.connect(db_path) as conn:
         for table_name, df in data.items():
+            df = fix_types_for_sql(df)
             try:
                 df.to_sql(table_name, conn, if_exists="replace", index=False)
             except Exception as e:
