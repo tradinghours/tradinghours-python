@@ -8,10 +8,7 @@ day_to_idx = {
     "mon": "0", "tue": "1", "wed": "2", "thu": "3",
     "fri": "4", "sat": "5", "sun": "6"
 }
-idx_to_day = {
-
-}
-
+idx_to_day = {v: k for k, v in day_to_idx.items()}
 
 def convert_to_dates(seasons, year):
     """
@@ -202,7 +199,6 @@ def set_is_open(full, phases):
     phases["duration"] = (phases["end"] - phases["start"]).dt.total_seconds()
     phases["effective_date"] = (phases["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
 
-    # TODO: still seems like there is a bug
     full["is_open"] = (phases.status == "Open") & (phases.date == phases.effective_date)
     full["is_open"] = full.groupby(["fin_id", "date"]).is_open.transform("any")
     return full
@@ -239,7 +235,7 @@ def calc_concrete_dates(fin_id, start, end, data):
     return full
 
 
-def calc_market_weekend_definitions(fin_ids, data):
+def calc_market_weekend_definitions(fin_ids, data, just_defintions):
     now = pd.to_datetime("now").normalize()
     start = now - pd.to_timedelta(now.weekday(), "D")
     end = now + pd.to_timedelta(6 - now.weekday(), "D")
@@ -254,14 +250,38 @@ def calc_market_weekend_definitions(fin_ids, data):
     # this is essentially the weekend definition
     missing = missing[missing.date.isna()][["fin_id", "weekday"]].groupby("fin_id").weekday
 
-    df = df.merge(missing.min().rename("min"), how="left", left_on="fin_id", right_index=True)
-    df = df.merge(missing.max().rename("max"), how="left", left_on="fin_id", right_index=True)
+    df = df.merge(missing.min().rename("we_start"), how="left", left_on="fin_id", right_index=True)
+    df = df.merge(missing.max().rename("we_end"), how="left", left_on="fin_id", right_index=True)
+
+    if just_defintions:
+        we = df[["fin_id", "we_start", "we_end"]].dropna().drop_duplicates()
+        we = we.set_index("fin_id").astype("int").astype("string").replace(idx_to_day)
+        return (we.we_start + "-" + we.we_end).rename("weekend_definitions")
+
     return df
 
 
 def get_dynamic_holidays(fin_ids, data):
-    df = calc_market_weekend_definitions(fin_ids, data)
+    df = calc_market_weekend_definitions(fin_ids, data, just_defintions=False)
     # TODO: still needs fixing
-    df["regularly_open"] = ~((df["min"] <= df.weekday) & (df.weekday <= df["max"]))
-    return df[df.is_open != df.regularly_open]
+    df["regularly_open"] = ~((df.we_start <= df.weekday) & (df.weekday <= df.we_end))
+    dynamic = df[df.is_open != df.regularly_open]
+
+    dynamic["holiday_name"] = "Market Holiday"
+    dynamic["their_holiday_name"] = "Market Holiday"
+    dynamic.loc[dynamic.is_open, "open"] = "Yes"
+    dynamic.loc[~dynamic.is_open, "open"] = "No"
+    dynamic["status"] = "Dynamically Added"
+
+    """
+        'fin_id' => $concreteDate['fin_id'],
+        'date' => $concreteDate['date'],
+        'holiday_name' => 'Market Holiday',
+        'their_holiday_name' => 'Market Holiday',
+    'schedule' => $concreteDate['schedule_group'][0] ?? Tradinghours::CLOSED,
+    'settlement' => $concreteDate['has_settlement'] ? Tradinghours::YES : Tradinghours::NO,
+        'open' => $concreteDate['is_open'] ? Tradinghours::YES : Tradinghours::NO,
+        'status' => Tradinghours::DYNAMICALLY_ADDED,
+    """
+
 

@@ -97,3 +97,7 @@ def set_types(data):
         for col in df:
             df[col] = df[col].astype(get_pandas_type(col))
     return data
+
+def create_seasondefs(season_definitions):
+    season_definitions["season"] = season_definitions.season.str.lower()
+    return season_definitions.set_index(["season", "year"])["date"]
