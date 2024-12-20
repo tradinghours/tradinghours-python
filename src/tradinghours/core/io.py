@@ -48,7 +48,7 @@ def df_data_from_sql(db_path, tables=None):
                 continue
 
             df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-            data[table_name] = df
+            data[table_name] = df.drop(columns=["id"], errors="ignore")
 
     data = set_types(data)
     return data

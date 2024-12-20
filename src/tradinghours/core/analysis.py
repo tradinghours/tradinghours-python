@@ -98,8 +98,8 @@ def match_schedules_holidays(schedules, holidays, start, end):
 
     ### match the schedules to the holidays.
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
-    return date_holidays.drop(columns=["id"]).merge(
-        schedules.drop(columns=["id"]), how="left",
+    return date_holidays.merge(
+        schedules, how="left",
         left_on=["fin_id", "schedule"],
         right_on=["fin_id", "schedule_group"],
         suffixes = ("_holiday", "_schedule")
@@ -198,6 +198,7 @@ def filter_by_day_of_week(full):
 
 def make_concrete(full, phases):
     full = full.merge(phases, how="left", left_on="phase_type", right_on="name", suffixes=("", "_phase"))
+    with_holidays = "status_phase" in full.columns # holidays may not be there to cause suffix to be used
 
     # phases = phases.drop(columns=["phase_type", "name"])
     full["start"] = full.date + pd.to_timedelta(full.start)
@@ -207,15 +208,18 @@ def make_concrete(full, phases):
     full["effective_date"] = (full["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
 
     is_effective_date = full.date == full.effective_date
-    full["is_open"] = (full.status_phase == "Open") & is_effective_date # TODO: constant
+    status = full.status_phase if with_holidays else full.status
+    full["is_open"] = (status == "Open") & is_effective_date # TODO: constant
     full["is_open"] = full.groupby(["fin_id", "date"]).is_open.transform("any")
 
     # has_settlement
     # where not holiday, check in phases (mapped through schedules)
-    full["has_settlement"] = (full.settlement_phase.str.lower() == "yes") & is_effective_date # TODO: constant
+    settlement = full.settlement_phase if with_holidays else full.settlement
+    full["has_settlement"] = (settlement.str.lower() == "yes") & is_effective_date # TODO: constant
     full["has_settlement"] = full.groupby(["fin_id", "date"]).has_settlement.transform("any")
     # where holiday, take from holiday
-    full.loc[full.uuid_holiday.notna(), "has_settlement"] = full.settlement.str.lower() == "yes" # TODO: constant
+    if with_holidays:
+        full.loc[full.uuid_holiday.notna(), "has_settlement"] = full.settlement.str.lower() == "yes" # TODO: constant
 
     return full
 
@@ -260,7 +264,7 @@ def calc_market_weekend_definitions(fin_ids, data, just_defintions):
     # with_holidays=False because we want the generic schedule excluding specific holidays
     full = calc_concrete_dates(fin_ids, start, end, {k:v for k,v in data.items() if k!="holidays"})
 
-    df = full[["fin_id", "date", "is_open"]].drop_duplicates()
+    df = full.drop_duplicates(subset=["fin_id", "date", "is_open"])
     df["weekday"] = df.date.dt.weekday
 
     wkdays = pd.MultiIndex.from_product([df[df.is_open].fin_id.unique(), range(7)], names=["fin_id", "weekday"]).to_frame(index=False)
@@ -290,7 +294,7 @@ def get_dynamic_holidays(fin_ids, data):
     dynamic.loc[dynamic.is_open, "open"] = "Yes"
     dynamic.loc[~dynamic.is_open, "open"] = "No"
     dynamic["status"] = "Dynamically Added"
-
+    return dynamic
 
 
     """
