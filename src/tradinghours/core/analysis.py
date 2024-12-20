@@ -98,7 +98,7 @@ def match_schedules_holidays(schedules, holidays, start, end):
 
     ### match the schedules to the holidays.
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
-    return d_hols.merge(schedules, how="inner", left_on=["fin_id", "schedule"], right_on=["fin_id", "schedule_group"])
+    return d_hols.merge(schedules, how="left", left_on=["fin_id", "schedule"], right_on=["fin_id", "schedule_group"])
 
 
 def get_full_df(fin_id, start, end, data):
@@ -172,19 +172,23 @@ def filter_by_day_of_week(full):
     days = full.days
 
     days = days.str.lower().str.replace(r'\s+', '', regex=True)
-    days = days.str.split(",").explode()
+    days = days.str.split(",").explode().astype("string")
     days.index = pd.MultiIndex.from_arrays([days.index, days.values], names=["ix", "range"])
-    days = days.str.split("-").explode()
-    days = days.replace(day_to_idx).astype("int64").to_frame("days")
+    days = days.str.split("-").explode().astype("string")
+    days = days.replace(day_to_idx).astype("Int64").to_frame("days")
 
     concrete.index.name = "ix"
     concrete.name = "concrete"
-    df = days.merge(concrete, left_index=True, right_index=True)
+    df = days.merge(concrete, how="left", left_index=True, right_index=True)
 
     grouped = df.groupby(df.index)
     match = (df.days >= df.concrete) & (grouped.days.shift(1) <= df.concrete)
     # extra OR filter with df.days == df.concrete to ensure strings like "mon" get matched
-    return full[(match | (df.days == df.concrete)).groupby(level=0).any()]
+    match = (match | (df.days == df.concrete)).groupby(level=0).any()
+    # if holiday or weekend in the data, `match` would remove it. But we want to keep
+    #  dates that have no schedule. TODO: 'phase_type' is a required field on schedules?
+    has_no_schedule = full.phase_type.isna()
+    return full[match | has_no_schedule]
 
 
 def set_is_open(full, phases):
