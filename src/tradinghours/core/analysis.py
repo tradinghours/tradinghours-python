@@ -92,15 +92,20 @@ def match_schedules_holidays(schedules, holidays, start, end):
         dates = pd.MultiIndex.from_product([schedules.fin_id.unique(), dates], names=["fin_id", "date"]).to_frame(index=False)
 
     #- Would need to make sure that holidays are also matched based on fin_id --> MultiIndex with fin_id
-    d_hols = dates.merge(holidays, how="left", left_on=["fin_id", "date"], right_on=["fin_id", "date"])
+    date_holidays = dates.merge(holidays, how="left", left_on=["fin_id", "date"], right_on=["fin_id", "date"])
     # set non holidays dates to "Regular" schedule group
-    d_hols.loc[d_hols.schedule.isna(), "schedule"] = "Regular" # TODO: see about constants like Tradinghours::REGULAR
+    date_holidays.loc[date_holidays.schedule.isna(), "schedule"] = "Regular" # TODO: see about constants like Tradinghours::REGULAR
 
     ### match the schedules to the holidays.
     # Any rows that are NaN after this, have no schedule according to the holiday's schedule_group
-    return d_hols.merge(schedules, how="left", left_on=["fin_id", "schedule"], right_on=["fin_id", "schedule_group"])
+    return date_holidays.drop(columns=["id"]).merge(
+        schedules.drop(columns=["id"]), how="left",
+        left_on=["fin_id", "schedule"],
+        right_on=["fin_id", "schedule_group"],
+        suffixes = ("_holiday", "_schedule")
+    )
 
-
+# TODO: consider prefixing columns with their table names to avoid confusion after merging
 def get_full_df(fin_id, start, end, data):
     schedules, holidays = get_schedules_holidays(fin_id, start, end, data)
     return match_schedules_holidays(schedules, holidays, start, end)
@@ -191,20 +196,27 @@ def filter_by_day_of_week(full):
     return full[match | has_no_schedule]
 
 
-def set_is_open(full, phases):
-    phases = full[["fin_id", "date", "phase_type", "start", "end", "offset_days"]
-        ].merge(phases, how="left", left_on="phase_type", right_on="name")
-    phases.index = full.index
+def make_concrete(full, phases):
+    full = full.merge(phases, how="left", left_on="phase_type", right_on="name", suffixes=("", "_phase"))
 
     # phases = phases.drop(columns=["phase_type", "name"])
-    phases["start"] = phases.date + pd.to_timedelta(phases.start)
-    phases["end"] = phases.date + pd.to_timedelta(phases.end
-                                                   ) + pd.to_timedelta(phases.offset_days.fillna(0), "D")
-    phases["duration"] = (phases["end"] - phases["start"]).dt.total_seconds()
-    phases["effective_date"] = (phases["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
+    full["start"] = full.date + pd.to_timedelta(full.start)
+    full["end"] = full.date + pd.to_timedelta(full.end
+                                              ) + pd.to_timedelta(full.offset_days.fillna(0), "D")
+    full["duration"] = (full["end"] - full["start"]).dt.total_seconds()
+    full["effective_date"] = (full["end"] - pd.to_timedelta(1, "ms")).dt.normalize()
 
-    full["is_open"] = (phases.status == "Open") & (phases.date == phases.effective_date)
+    is_effective_date = full.date == full.effective_date
+    full["is_open"] = (full.status_phase == "Open") & is_effective_date # TODO: constant
     full["is_open"] = full.groupby(["fin_id", "date"]).is_open.transform("any")
+
+    # has_settlement
+    # where not holiday, check in phases (mapped through schedules)
+    full["has_settlement"] = (full.settlement_phase.str.lower() == "yes") & is_effective_date # TODO: constant
+    full["has_settlement"] = full.groupby(["fin_id", "date"]).has_settlement.transform("any")
+    # where holiday, take from holiday
+    full.loc[full.uuid_holiday.notna(), "has_settlement"] = full.settlement.str.lower() == "yes" # TODO: constant
+
     return full
 
 
@@ -233,9 +245,11 @@ def calc_concrete_dates(fin_id, start, end, data):
 
     full = filter_by_day_of_week(full)
 
-    full = set_is_open(full, data["phases"])
+    full = make_concrete(full, data["phases"])
 
-    # TODO: should keep weekends and fully closed dates?
+    # TODO: remember
+    #   Filter schedules that end at midnight the previous
+    #   day because end times are always **EXCLUSIVE**
     return full
 
 
@@ -276,6 +290,8 @@ def get_dynamic_holidays(fin_ids, data):
     dynamic.loc[dynamic.is_open, "open"] = "Yes"
     dynamic.loc[~dynamic.is_open, "open"] = "No"
     dynamic["status"] = "Dynamically Added"
+
+
 
     """
         'fin_id' => $concreteDate['fin_id'],
