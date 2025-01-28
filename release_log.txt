@@ -1,3 +1,7 @@
+## new_release
+Changes:
+  * made the package compatible with python 3.13 by removing class properties
+
 ## 0.4.1 (2024-12-11)
 Changes:
  * fix for first_available_date conflicting with consideration of offset_days

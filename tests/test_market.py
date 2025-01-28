@@ -40,7 +40,7 @@ def test_market_case_insensitivity(method, identifier, expected):
 
 def test_market_list_all():
     found = Market.list_all()
-    assert len(found) == len(list(st.db.query(Market.table)))
+    assert len(found) == len(list(st.db.query(Market.table())))
 
     found = Market.list_all("US*")
     assert all(f.fin_id.startswith("US") for f in found)
@@ -50,7 +50,7 @@ def test_market_list_all():
 ])
 def test_market_available_dates(fin_id):
     market = Market.get(fin_id)
-    table = MarketHoliday.table
+    table = MarketHoliday.table()
 
     first_should_be = st.db.query(table).filter(
             table.c.fin_id == fin_id

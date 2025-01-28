@@ -27,7 +27,7 @@ class Currency(BaseModel):
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
-        table = CurrencyHoliday.table
+        table = CurrencyHoliday.table()
         result = db.query(table).filter(
             table.c.currency_code == self.currency_code,
             table.c.date >= start,
@@ -38,7 +38,7 @@ class Currency(BaseModel):
     @classmethod
     @db.check_access
     def list_all(cls) -> List["Currency"]:
-        return [cls(r) for r in db.query(cls.table)]
+        return [cls(r) for r in db.query(cls.table())]
 
     @classmethod
     def is_available(cls, code:str) -> bool:
@@ -66,8 +66,8 @@ class Currency(BaseModel):
     @db.check_access
     def get(cls, code: str) -> "Currency":
         validate_str_arg("code", code)
-        result = db.query(cls.table).filter(
-            cls.table.c.currency_code == code
+        result = db.query(cls.table()).filter(
+            cls.table().c.currency_code == code
         ).one_or_none()
         if result:
             return cls(result)

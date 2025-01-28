@@ -53,7 +53,7 @@ class Market(BaseModel):
         The first available date is the 1st day of
         the month of the first holiday of the given market.
         """
-        table = MarketHoliday.table
+        table = MarketHoliday.table()
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id
         ).order_by(
@@ -67,7 +67,7 @@ class Market(BaseModel):
         The last available date is the last day of the month
         of the last available holiday of the given market.
         """
-        table = MarketHoliday.table
+        table = MarketHoliday.table()
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id
         ).order_by(
@@ -251,12 +251,12 @@ class Market(BaseModel):
     def list_all(cls, sub_set="*") -> list["Market"]:
         validate_str_arg("sub_set", sub_set)
         sub_set = sub_set.upper().replace("*", "%")
-        return [cls(r) for r in db.query(cls.table).filter(
-            cls.table.c.fin_id.like(sub_set)
+        return [cls(r) for r in db.query(cls.table()).filter(
+            cls.table().c.fin_id.like(sub_set)
         )]
 
     def _last_holiday(self):
-        table = self.table
+        table = self.table()
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id
         ).order_by(
@@ -271,7 +271,7 @@ class Market(BaseModel):
             validate_date_arg("start", start),
             validate_date_arg("end", end),
         )
-        table = MarketHoliday.table
+        table = MarketHoliday.table()
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id,
             table.c.date >= start,
@@ -287,14 +287,14 @@ class Market(BaseModel):
 
     @db.check_access
     def list_schedules(self) -> list["Schedule"]:
-        schedules = db.query(Schedule.table).filter(
-            Schedule.table.c.fin_id == self.fin_id
+        schedules = db.query(Schedule.table()).filter(
+            Schedule.table().c.fin_id == self.fin_id
         ).order_by(
-            Schedule.table.c.schedule_group.asc(),
-            Schedule.table.c.in_force_start_date.asc(),
-            Schedule.table.c.season_start.asc(),
-            Schedule.table.c.start.asc(),
-            Schedule.table.c.end.asc()
+            Schedule.table().c.schedule_group.asc(),
+            Schedule.table().c.in_force_start_date.asc(),
+            Schedule.table().c.season_start.asc(),
+            Schedule.table().c.start.asc(),
+            Schedule.table().c.end.asc()
         )
         return [Schedule(r) for r in schedules]
 
@@ -325,8 +325,8 @@ class Market(BaseModel):
 
     @classmethod
     def _get_by_finid(cls, finid:str, following=None) -> Union[None, tuple]:
-        found = db.query(cls.table).filter(
-            cls.table.c.fin_id == finid
+        found = db.query(cls.table()).filter(
+            cls.table().c.fin_id == finid
         ).one_or_none()
         if found is not None:
             return found
@@ -356,8 +356,8 @@ class Market(BaseModel):
     @classmethod
     def get_by_mic(cls, mic: str, follow=True) -> "Market":
         mic = validate_mic_arg(mic)
-        mapping = db.query(MicMapping.table).filter(
-            MicMapping.table.c.mic == mic
+        mapping = db.query(MicMapping.table()).filter(
+            MicMapping.table().c.mic == mic
         ).one_or_none()
         if mapping:
             return cls.get_by_finid(mapping.fin_id, follow=follow)

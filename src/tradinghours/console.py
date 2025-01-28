@@ -131,8 +131,8 @@ def main():
                 debug_file.write(traceback_info)
             print_help(
                 "Details about this error were saved to debug.txt file. You can "
-                "submit it to the support team for further investigation. Feel "
-                "free also to submit the file in a new GitHub issue.",
+                "submit it to the support team for further investigation by emailing "
+                "support@tradinghours.com.",
             )
         except Exception as error:
             print("Failed saving debug information.", error)
