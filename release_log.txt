@@ -1,4 +1,4 @@
-## new_release
+## 0.4.1 (2024-12-11)
 Changes:
  * fix for first_available_date conflicting with consideration of offset_days
 
