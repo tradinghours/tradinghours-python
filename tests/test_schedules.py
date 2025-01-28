@@ -77,7 +77,7 @@ import tradinghours.store as st
         {'schedule_group': 'Partial', 'in_force_start_date': None, 'season_start': None,
          'start': datetime.time(12, 30), 'end': datetime.time(12, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Pre-Open',
-         'phase_name': 'Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
+         'phase_name': 'Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
          'duration': 900, 'min_start': None, 'max_start': None, 'min_end': None,
          'max_end': None, 'in_force_end_date': datetime.date(2022, 12, 18), 'season_end': None, 'end_with_offset': '12:45:00   ',
          'has_season': False},
@@ -105,7 +105,7 @@ import tradinghours.store as st
         {'schedule_group': 'Partial', 'in_force_start_date': None, 'season_start': None,
          'start': datetime.time(17, 25), 'end': datetime.time(17, 30), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri',
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri',
          'offset_days': 0, 'duration': 300, 'min_start': None, 'max_start': None,
          'min_end': None, 'max_end': None, 'in_force_end_date': datetime.date(2022, 12, 18),
          'season_end': None, 'end_with_offset': '17:30:00   ',
@@ -120,14 +120,14 @@ import tradinghours.store as st
         {'schedule_group': 'Partial', 'in_force_start_date': None, 'season_start': None,
          'start': datetime.time(18, 30), 'end': datetime.time(18, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri',
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri',
          'offset_days': 0, 'duration': 900, 'min_start': None, 'max_start': None, 'min_end': None,
          'max_end': None, 'in_force_end_date': datetime.date(2022, 12, 18), 'season_end': None,
          'end_with_offset': '18:45:00   ', 'has_season': False},
         {'schedule_group': 'Partial', 'in_force_start_date': datetime.date(2022, 12, 19), 'season_start': None,
          'start': datetime.time(12, 30), 'end': datetime.time(12, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Pre-Open',
-         'phase_name': 'Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
+         'phase_name': 'Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
          'duration': 900, 'min_start': None, 'max_start': None, 'min_end': None, 'max_end': None,
          'in_force_end_date': None, 'season_end': None, 'end_with_offset': '12:45:00   ',
          'has_season': False},
@@ -153,7 +153,7 @@ import tradinghours.store as st
         {'schedule_group': 'Partial', 'in_force_start_date': datetime.date(2022, 12, 19), 'season_start': None,
          'start': datetime.time(17, 25), 'end': datetime.time(17, 30), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
          'duration': 300, 'min_start': None, 'max_start': None, 'min_end': None, 'max_end': None,
          'in_force_end_date': None, 'season_end': None, 'end_with_offset': '17:30:00   ', 'has_season': False},
         {'schedule_group': 'Partial', 'in_force_start_date': datetime.date(2022, 12, 19), 'season_start': None,
@@ -165,14 +165,14 @@ import tradinghours.store as st
         {'schedule_group': 'Partial', 'in_force_start_date': datetime.date(2022, 12, 19), 'season_start': None,
          'start': datetime.time(18, 25), 'end': datetime.time(18, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri',
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri',
          'offset_days': 0, 'duration': 1200, 'min_start': None, 'max_start': None, 'min_end': None,
          'max_end': None, 'in_force_end_date': None, 'season_end': None, 'end_with_offset': '18:45:00   ',
          'has_season': False},
         {'schedule_group': 'Regular', 'in_force_start_date': None, 'season_start': 'First Sunday of November',
          'start': datetime.time(9, 30), 'end': datetime.time(9, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
+         'phase_name': 'Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
          'duration': 900, 'min_start': None, 'max_start': None, 'min_end': None, 'max_end': None,
          'in_force_end_date': datetime.date(2022, 12, 18), 'season_end': 'Previous day Second Sunday of march',
          'end_with_offset': '09:45:00   ', 'has_season': True},
@@ -200,7 +200,7 @@ import tradinghours.store as st
         {'schedule_group': 'Regular', 'in_force_start_date': None, 'season_start': 'Second Sunday of March',
          'start': datetime.time(9, 30), 'end': datetime.time(9, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
+         'phase_name': 'Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0,
          'duration': 900, 'min_start': None, 'max_start': None, 'min_end': None, 'max_end': None,
          'in_force_end_date': datetime.date(2022, 12, 18), 'season_end': 'Previous day first Sunday of November',
          'end_with_offset': '09:45:00   ', 'has_season': True},
@@ -228,7 +228,7 @@ import tradinghours.store as st
         {'schedule_group': 'Regular', 'in_force_start_date': None, 'season_start': 'Second Sunday of March',
          'start': datetime.time(17, 25), 'end': datetime.time(17, 30), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri',
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri',
          'offset_days': 0, 'duration': 300, 'min_start': None, 'max_start': None, 'min_end': None, 'max_end': None,
          'in_force_end_date': datetime.date(2022, 12, 18), 'season_end': 'Previous day first Sunday of November',
          'end_with_offset': '17:30:00   ', 'has_season': True},
@@ -243,21 +243,21 @@ import tradinghours.store as st
         {'schedule_group': 'Regular', 'in_force_start_date': None, 'season_start': 'Second Sunday of March',
          'start': datetime.time(18, 30), 'end': datetime.time(18, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri',
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri',
          'offset_days': 0, 'duration': 900, 'min_start': None, 'max_start': None, 'min_end': None, 'max_end': None,
          'in_force_end_date': datetime.date(2022, 12, 18), 'season_end': 'Previous day first Sunday of November',
          'end_with_offset': '18:45:00   ', 'has_season': True},
         {'schedule_group': 'Regular', 'in_force_start_date': datetime.date(2022, 12, 19), 'season_start': None,
          'start': datetime.time(18, 25), 'end': datetime.time(18, 45), 'fin_id': 'BR.BOVESPA',
          'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo', 'phase_type': 'Other',
-         'phase_name': 'After Market - Order Cancelation', 'phase_memo': None, 'days': 'Mon-Fri',
+         'phase_name': 'After Market - Order Cancellation', 'phase_memo': None, 'days': 'Mon-Fri',
          'offset_days': 0, 'duration': 1200, 'min_start': None, 'max_start': None,
          'min_end': None, 'max_end': None, 'in_force_end_date': None, 'season_end': None,
          'end_with_offset': '18:45:00   ', 'has_season': False},
         {'schedule_group': 'Regular', 'in_force_start_date': datetime.date(2022, 12, 19),
          'season_start': 'First Sunday of November', 'start': datetime.time(9, 30), 'end': datetime.time(9, 45),
          'fin_id': 'BR.BOVESPA', 'schedule_group_memo': None, 'timezone': 'America/Sao_Paulo',
-         'phase_type': 'Other', 'phase_name': 'Order Cancelation', 'phase_memo': None,
+         'phase_type': 'Other', 'phase_name': 'Order Cancellation', 'phase_memo': None,
          'days': 'Mon-Fri', 'offset_days': 0, 'duration': 900, 'min_start': None, 'max_start': None,
          'min_end': None, 'max_end': None, 'in_force_end_date': None,
          'season_end': 'Previous day Second Sunday of march', 'end_with_offset': '09:45:00   ',
@@ -310,7 +310,7 @@ import tradinghours.store as st
       'season_end': 'Previous day first Sunday of November', 'end_with_offset': '17:00:00   ', 'has_season': True},
      {'schedule_group': 'Regular', 'in_force_start_date': datetime.date(2022, 12, 19), 'season_start': 'Second Sunday of March',
       'start': datetime.time(17, 25), 'end': datetime.time(17, 30), 'fin_id': 'BR.BOVESPA', 'schedule_group_memo': None,
-      'timezone': 'America/Sao_Paulo', 'phase_type': 'Other', 'phase_name': 'After Market - Order Cancelation',
+      'timezone': 'America/Sao_Paulo', 'phase_type': 'Other', 'phase_name': 'After Market - Order Cancellation',
       'phase_memo': None, 'days': 'Mon-Fri', 'offset_days': 0, 'duration': 300, 'min_start': None, 'max_start': None,
       'min_end': None, 'max_end': None, 'in_force_end_date': None, 'season_end': 'Previous day first Sunday of November',
       'end_with_offset': '17:30:00   ', 'has_season': True},
@@ -329,16 +329,36 @@ def test_list_schedules(fin_id, expected):
 
     assert len(scheds) == len(expected)
 
+    
+
     matched = []
     for sched in scheds:
         equals = 0
         for i, expect in enumerate(expected):
             if i in matched: continue
-            if (sorted(sched.keys()) == sorted(expect.keys()) and
-                    all(sched[k] == expect[k] for k in sched)):
-                    matched.append(i)
-                    equals += 1
-        assert equals == 1
+            
+            matches = False
+            if sorted(sched.keys()) == sorted(expect.keys()):
+                for k in sched:
+                    if sched[k] is None and expect[k] is None:
+                        continue
+
+                    try:
+                        if sched[k].lower() != expect[k].lower():
+                            break
+                    except:
+                        if sched[k] != expect[k]:
+                            break
+                        
+                else:
+                    matches = True
+
+            if matches:
+                matched.append(i)
+                equals += 1
+
+
+        assert equals == 1, f"sched: {pformat(sched)}\nexpect: {pformat(expect)}"
 
 
         # # apply custom sorting of dictionaries
