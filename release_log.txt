@@ -1,4 +1,4 @@
-## new_release
+## 0.4.2 (2025-01-28)
 Changes:
   * made the package compatible with python 3.13 by removing class properties
 
