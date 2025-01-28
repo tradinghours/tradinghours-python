@@ -15,7 +15,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.11' # Specify your Python version here
+        python-version: '3.13' # Specify your Python version here
 
     - name: Version and Summary
       id: update_info

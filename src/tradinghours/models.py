@@ -81,11 +81,11 @@ class BaseModel:
          properties like .is_open, which means that there are keys present that don't exist
          in the matching table.
         """
-        return {f: getattr(self, f) for f in self.fields}
+        return {f: getattr(self, f) for f in self.fields()}
 
     def pprint(self) -> None:
         dct = {}
-        for f in self.fields:
+        for f in self.fields():
             val = getattr(self, f)
             if not isinstance(val, int) and not isinstance(val, float) and val is not None:
                 val = str(val)
