@@ -25,12 +25,10 @@ class BaseModel:
     _access_levels: set = set()
 
     @classmethod
-    @property
     def table(cls) -> "Table":
         return db.table(cls._table)
 
     @classmethod
-    @property
     def fields(cls):
         return cls._fields + cls._extra_fields
 
@@ -38,7 +36,7 @@ class BaseModel:
         if not isinstance(data, dict):
             data = {
                 col_name: value for col_name, value in zip(
-                    self.table.c.keys(), data
+                    self.table().c.keys(), data
                 )
             }
 
@@ -176,7 +174,7 @@ class PhaseType(BaseModel):
 
     @classmethod
     def as_dict(cls) -> dict[str, "PhaseType"]:
-        return {pt.name: cls(pt) for pt in db.query(cls.table)}
+        return {pt.name: cls(pt) for pt in db.query(cls.table())}
 
     @property
     def has_settlement(self):
@@ -257,7 +255,7 @@ class SeasonDefinition(BaseModel):
         season = validate_str_arg("season", season)
         year = validate_int_arg("year", year)
 
-        table = cls.table
+        table = cls.table()
         result = db.query(table).filter(
             func.lower(table.c["season"]) == season.lower(),
             table.c["year"] == year
