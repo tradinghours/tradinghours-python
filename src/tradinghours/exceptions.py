@@ -77,6 +77,14 @@ class TokenError(ClientError):
             "TRADINGHOURS_TOKEN and try again."
         )
 
+class FileNotFoundError(ClientError):
+    """When the file is not found"""
+
+    def build_help_message(self):
+        return (
+            "Your export is not available yet. "
+            "Please contact support@tradinghours.com"
+        )
 
 class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
