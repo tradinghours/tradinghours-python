@@ -9,6 +9,8 @@ from .client import (
     get_remote_timestamp as client_get_remote_timestamp,
     timed_action
 )
+from .server import run_server
+
 from .currency import Currency
 from .market import Market
 from .exceptions import TradingHoursError, NoAccess
@@ -42,6 +44,15 @@ def create_parser():
     import_parser = subparsers.add_parser("import", help="Import data")
     import_parser.add_argument("--force", action="store_true", help="Force the import")
     import_parser.add_argument("--reset", action="store_true", help="Re-ingest data, without downloading. (Resets the database)")
+
+    # "serve" subcommand
+    serve_parser = subparsers.add_parser("serve", help="Start API server")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+    serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to (default: 8000)")
+    serve_parser.add_argument("--uds", help="Unix domain socket path (overrides host/port)")
+    serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
+    serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
+                             help="Log level (default: info)")
 
     return parser
 
@@ -98,6 +109,25 @@ def run_import(args):
             "'?'. Consult the MySQL documentation for your version to enable this feature."
         )
 
+
+def run_serve(args):
+    """Run the API server."""
+    try:
+        run_server(
+            host=args.host,
+            port=args.port,
+            uds=args.uds,
+            workers=args.workers,
+            log_level=args.log_level
+        )
+    except ImportError as e:
+        print("ERROR: Server dependencies not installed.")
+        print_help("To use the server feature, install with: pip install tradinghours[server]")
+        exit(EXIT_CODE_EXPECTED_ERROR)
+    except Exception as e:
+        print(f"ERROR: Failed to start server: {e}")
+        exit(EXIT_CODE_UNKNOWN_ERROR)
+
 def main():
     try:
         # Main console entrypoint
@@ -107,6 +137,8 @@ def main():
             run_status(args)
         elif args.command == "import":
             run_import(args)
+        elif args.command == "serve":
+            run_serve(args)
 
     # Handle generic errors gracefully
     except Exception as error:
