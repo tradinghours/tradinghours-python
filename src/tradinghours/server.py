@@ -219,6 +219,66 @@ async def get_market_status(
     logger.info(f"Retrieved status for {identifier}")
     return status.to_dict()
 
+@app.get("/markets/{identifier}/is_available", summary="Check if market is available")
+async def check_market_available(identifier: str, db=Depends(get_db)):
+    """Check if market is available under current plan."""
+    is_available = Market.is_available(identifier)
+    logger.info(f"Checked availability for market {identifier}: {is_available}")
+    return {"identifier": identifier, "is_available": is_available}
+
+@app.get("/markets/{identifier}/is_covered", summary="Check if market is covered")
+async def check_market_covered(identifier: str, db=Depends(get_db)):
+    """Check if market is covered by TradingHours data."""
+    # Note: is_covered expects a finid, so we need to handle MICs
+    try:
+        if "." in identifier:
+            finid = identifier
+        else:
+            # It's a MIC, we need to get the finid first
+            market = Market.get_by_mic(identifier, follow=False)
+            finid = market.fin_id
+        is_covered = Market.is_covered(finid)
+        logger.info(f"Checked coverage for market {identifier} (finid: {finid}): {is_covered}")
+        return {"identifier": identifier, "finid": finid, "is_covered": is_covered}
+    except Exception as e:
+        logger.error(f"Error checking coverage for {identifier}: {e}")
+        return {"identifier": identifier, "finid": None, "is_covered": False}
+
+@app.get("/markets/{identifier}/date_range", summary="Get market date range")
+async def get_market_date_range(identifier: str, db=Depends(get_db)):
+    """Get the first and last available dates for the market."""
+    market = Market.get(identifier)
+    logger.info(f"Retrieved date range for {identifier}")
+    return {
+        "identifier": identifier,
+        "fin_id": market.fin_id,
+        "first_available_date": market.first_available_date.isoformat(),
+        "last_available_date": market.last_available_date.isoformat(),
+        "country_code": market.country_code
+    }
+
+@app.get("/markets/finid/{finid}", summary="Get market by FinID")
+async def get_market_by_finid(
+    finid: str,
+    follow: bool = Query(True, description="Follow replaced markets"),
+    db=Depends(get_db)
+):
+    """Get market specifically by FinID."""
+    market = Market.get_by_finid(finid, follow=follow)
+    logger.info(f"Retrieved market by FinID: {market.fin_id}")
+    return market.to_dict()
+
+@app.get("/markets/mic/{mic}", summary="Get market by MIC")
+async def get_market_by_mic(
+    mic: str,
+    follow: bool = Query(True, description="Follow replaced markets"),
+    db=Depends(get_db)
+):
+    """Get market specifically by MIC."""
+    market = Market.get_by_mic(mic, follow=follow)
+    logger.info(f"Retrieved market by MIC {mic}: {market.fin_id}")
+    return market.to_dict()
+
 # Currency endpoints
 @app.get("/currencies", summary="List currencies")
 async def list_currencies(db=Depends(get_db)):
@@ -246,6 +306,20 @@ async def get_currency_holidays(
     holidays = currency.list_holidays(start, end)
     logger.info(f"Retrieved {len(holidays)} holidays for currency {code}")
     return [holiday.to_dict() for holiday in holidays]
+
+@app.get("/currencies/{code}/is_available", summary="Check if currency is available")
+async def check_currency_available(code: str, db=Depends(get_db)):
+    """Check if currency is available under current plan."""
+    is_available = Currency.is_available(code)
+    logger.info(f"Checked availability for currency {code}: {is_available}")
+    return {"currency_code": code, "is_available": is_available}
+
+@app.get("/currencies/{code}/is_covered", summary="Check if currency is covered")
+async def check_currency_covered(code: str, db=Depends(get_db)):
+    """Check if currency is covered by TradingHours data."""
+    is_covered = Currency.is_covered(code)
+    logger.info(f"Checked coverage for currency {code}: {is_covered}")
+    return {"currency_code": code, "is_covered": is_covered}
 
 
 class GunicornApplication:
