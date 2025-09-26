@@ -10,7 +10,7 @@ from .exceptions import ClientError, TokenError, FileNotFoundError
 
 TOKEN = main_config.get("auth", "token")
 BASE_URL = main_config.get("internal", "base_url")
-ROOT = Path(main_config.get("internal", "remote_dir"))
+ROOT = Path(main_config.get("internal", "store_dir")) / "remote"
 ROOT.mkdir(parents=True, exist_ok=True)
 
 

@@ -11,7 +11,7 @@ os.makedirs(DEFAULT_STORE_DIR, exist_ok=True)
 default_settings = {
     "internal": {
         "base_url": "https://api.tradinghours.com/v3/",
-        "remote_dir": DEFAULT_STORE_DIR / "remote",
+        "store_dir": DEFAULT_STORE_DIR,
         "mode": "package"
     },
     "package-mode": {
