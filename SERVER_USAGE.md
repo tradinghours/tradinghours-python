@@ -52,6 +52,21 @@ tradinghours serve --uds /var/run/tradinghours/api.sock --workers 4 --server-typ
 | `--reload` | Auto-reload on code changes (development) | `False` |
 | `--log-level` | Log level: `debug`, `info`, `warning`, `error` | `info` |
 
+## Database Configuration
+
+**Important**: Server mode enforces the use of the default SQLite database for security and performance reasons. 
+
+- Server mode **cannot** use custom `[package-mode]` settings in `tradinghours.ini`
+- Server mode **cannot** use the `TH_DB_URL` environment variable
+- If you need to use MySQL or PostgreSQL, use the package in normal mode instead of server mode
+
+This restriction ensures:
+- Better security by preventing connection to external databases
+- Consistent performance characteristics
+- Simplified deployment and configuration
+
+If the server detects custom database settings, it will exit with an error message.
+
 ## API Endpoints
 
 Once the server is running, you can access these endpoints:

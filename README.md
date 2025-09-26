@@ -378,6 +378,7 @@ check_tzdata = False
     * Hosts allowed to access the API server. Use `*` for all hosts.
   * `allowed_origins`
     * Origins allowed for CORS requests. Use `*` for all origins.
+  * **Important**: Server mode cannot use custom `[package-mode]` settings and must use the default SQLite database.
 
 #### Caveats
 * This package has been tested with MySQL 8.4 and PostgreSQL 15.8

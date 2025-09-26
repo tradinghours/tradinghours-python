@@ -1,8 +1,8 @@
 import argparse, warnings, time
 import traceback
-from textwrap import wrap
 
 from . import __version__
+from .config import print_help
 from .store import Writer, db
 from .client import (
     download as client_download,
@@ -17,14 +17,6 @@ from .exceptions import TradingHoursError, NoAccess
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
-
-
-def print_help(text):
-    lines = wrap(text, initial_indent="  ", subsequent_indent="  ")
-    print("\n  --")
-    print("\n".join(lines))
-    print()
-
 
 
 def create_parser():
@@ -58,7 +50,7 @@ def create_parser():
     return parser
 
 
-def run_status(args):
+def run_status(extended=False):   
     db.ready()
     with timed_action("Collecting timestamps"):
         remote_timestamp = client_get_remote_timestamp()
@@ -67,7 +59,7 @@ def run_status(args):
     print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
     print()
-    if args.extended:
+    if extended:
         if local_timestamp:
             with timed_action("Reading local data"):
                 num_markets, num_currencies = db.get_num_covered()
@@ -117,19 +109,16 @@ def auto_update():
         time.sleep(60)
         run_import(quiet=True)
 
-def run_serve(args):
+
+def run_serve(server_config, auto_update=False):
     """Run the API server."""
     try:
-        if args.auto_update:
+        if auto_update:
             import threading
             threading.Thread(target=auto_update).start()
 
         run_server(
-            host=args.host,
-            port=args.port,
-            uds=args.uds,
-            workers=args.workers,
-            log_level=args.log_level
+            **server_config,
         )
     except ImportError as e:
         print("ERROR: Server dependencies not installed.")
@@ -139,6 +128,7 @@ def run_serve(args):
         print(f"ERROR: Failed to start server: {e}")
         exit(EXIT_CODE_UNKNOWN_ERROR)
 
+
 def main():
     try:
         # Main console entrypoint
@@ -147,9 +137,16 @@ def main():
         if args.command == "status":
             run_status(args)
         elif args.command == "import":
-            run_import(args)
+            run_import(reset=args.reset, force=args.force)
         elif args.command == "serve":
-            run_serve(args)
+            server_config = {
+                "host": args.host,
+                "port": args.port,
+                "uds": args.uds,
+                "workers": args.workers,
+                "log_level": args.log_level
+            }
+            run_serve(server_config, auto_update=args.auto_update)
 
     # Handle generic errors gracefully
     except Exception as error:
