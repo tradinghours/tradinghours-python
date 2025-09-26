@@ -135,7 +135,7 @@ def main():
         parser = create_parser()
         args = parser.parse_args()
         if args.command == "status":
-            run_status(args)
+            run_status(extended=args.extended)
         elif args.command == "import":
             run_import(reset=args.reset, force=args.force)
         elif args.command == "serve":

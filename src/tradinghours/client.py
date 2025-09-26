@@ -10,7 +10,7 @@ from .exceptions import ClientError, TokenError, FileNotFoundError
 
 TOKEN = main_config.get("auth", "token")
 BASE_URL = main_config.get("internal", "base_url")
-ROOT = Path(main_config.get("internal", "store_dir")) / "remote"
+ROOT = Path(main_config.get("internal", "remote_dir"))
 ROOT.mkdir(parents=True, exist_ok=True)
 
 
@@ -74,7 +74,7 @@ def download_covered_currencies():
 def download():
     """
     Downloads zip file from tradinghours and unzips it into the
-    folder set in main_config.data.remote_dir
+    folder set in main_config.internal.remote_dir
     """
     try:
         with timed_action("Downloading") as (change_message, start_time):

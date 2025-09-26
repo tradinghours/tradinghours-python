@@ -28,28 +28,24 @@ from .client import get_remote_timestamp as client_get_remote_timestamp
 from .util import tprefix, tname, clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
+DEFAULT_DB_PREFIX = "tradinghours_"
+
 # Helper functions for timestamped SQLite databases
-def _is_default_sqlite_url(db_url: str) -> bool:
+def _is_default_store() -> bool:
     """Check if the database URL is the default SQLite database."""
-    default_db_url = str(default_settings["package-mode"]["db_url"])
-    return db_url == default_db_url and db_url.startswith("sqlite:///")
+    return not main_config.get("package-mode", "db_url")
+
+def _find_timestamped_dbs() -> list[Path]:
+    """Find all timestamped database files."""
+    directory = Path(main_config.get("internal", "store_dir"))
+    pattern = f"{DEFAULT_DB_PREFIX}*.db"
+    return list(directory.glob(pattern))
 
 def _find_latest_timestamped_db() -> Path:
     """Find the latest timestamped database file, or return base_path if none exist."""
-    directory = Path(main_config.get("internal", "store_dir"))
-    if not directory.exists():
-        return None        
-    
-    # Pattern for timestamped databases: basename_YYYYMMDD_HHMMSS.db
-    pattern = f"data_[0-9]{{8}}_[0-9]{{6}}.db"
-    timestamped_files = list(directory.glob(pattern))
-    print("timestamped_files", timestamped_files)
-    
+    timestamped_files = _find_timestamped_dbs()
     if not timestamped_files:
-        # No timestamped files exist, return original if it exists
-        return None
-    
-    # Sort by timestamp (embedded in filename) and return the latest
+        return _create_timestamped_db_path()
     timestamped_files.sort(key=lambda p: p.stem.split('_')[-2:])  # Sort by date_time parts
     return timestamped_files[-1]
 
@@ -57,18 +53,11 @@ def _create_timestamped_db_path() -> Path:
     """Create a new timestamped database path."""
     directory = Path(main_config.get("internal", "store_dir"))
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d_%H%M%S")
-    return directory / f"data_{timestamp}.db"
+    return directory / f"{DEFAULT_DB_PREFIX}{timestamp}.db"
 
 def _cleanup_old_timestamped_dbs() -> None:
-    """Remove old timestamped databases, keeping only the latest N."""
-    directory = Path(main_config.get("internal", "store_dir"))
-    pattern = f"data_[0-9]{{8}}_[0-9]{{6}}.db"
-    timestamped_files = list(directory.glob(pattern))
-    
-    if len(timestamped_files) <= 1:
-        return
-    
-    # Sort by timestamp and keep only the latest ones
+    """Remove old timestamped databases, keeping only the latest 1."""
+    timestamped_files = _find_timestamped_dbs()
     timestamped_files.sort(key=lambda p: p.stem.split('_')[-2:])
     files_to_remove = timestamped_files[:-1]
     for file_path in files_to_remove:
@@ -83,8 +72,8 @@ class AccessLevel(Enum):
     only_holidays = "only_holidays"
     no_access = None
 
-class DB:
-    _instance = None
+class _DB:
+    main_instance = None
     _types = {
         "date": (Date, dt.date.fromisoformat),
         "observed": (Boolean, lambda v: v == "OBS"),
@@ -145,62 +134,47 @@ class DB:
 
         return converter(value) if value else None
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = self = super().__new__(cls)
-            
-            # Get the configured database URL
-            configured_db_url = main_config.get("package-mode", "db_url")
-            
-            # For default SQLite databases, use the latest timestamped version
-            if _is_default_sqlite_url(configured_db_url):
-                latest_db_path = _find_latest_timestamped_db()
-                self.db_url = f"sqlite:///{latest_db_path}"
-            else:
-                self.db_url = configured_db_url
-            
-            try:
-                self.engine = create_engine(self.db_url)
-            except ModuleNotFoundError as e:
-                raise ModuleNotFoundError(
-                    "You seem to be missing the required dependencies to interact with your chosen database. "
-                    "Please run `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` if "
-                    "you are trying to access mysql or postgres, respectively. Consult the docs for more information."
-                ) from e
+    def __init__(self, db_url=None):
+        if db_url is not None:
+            self.db_url = db_url
 
-            self.metadata = MetaData()
-            try:
-                self.update_metadata()
-            except Exception:
-                self._failed_to_access = True
+        elif _is_default_store():
+            latest_db_path = _find_latest_timestamped_db()
+            self.db_url = f"sqlite:///{latest_db_path}"
+        else:
+            self.db_url = main_config.get("package-mode", "db_url")
 
-            self.Session = sessionmaker(bind=self.engine)
-            self._access_level = None
+        self._set_engine()
+        
+    def _set_engine(self):
+        try:
+            self.engine = create_engine(str(self.db_url))
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError(
+                "You seem to be missing the required dependencies to interact with your chosen database. "
+                "Please run `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` if "
+                "you are trying to access mysql or postgres, respectively. Consult the docs for more information."
+            ) from e
 
-        return cls._instance
+        self.metadata = MetaData()
+        try:
+            self.update_metadata()
+        except Exception:
+            self._failed_to_access = True
+
+        self.Session = sessionmaker(bind=self.engine)
+        self._access_level = None
 
     def switch_to_latest_db(self):
-        """Switch to the latest timestamped database if using default SQLite."""
-        configured_db_url = main_config.get("package-mode", "db_url")
-        
-        if _is_default_sqlite_url(configured_db_url):
+        if _is_default_store():
             latest_db_path = _find_latest_timestamped_db()
             new_db_url = f"sqlite:///{latest_db_path}"
-            
             if new_db_url != self.db_url:
-                # Switch to the new database
                 self.db_url = new_db_url
-                
-                # Close existing sessions
                 if hasattr(self, "_session"):
                     self._session.close()
                     delattr(self, "_session")
-                
-                # Create new engine and update metadata
-                self.engine = create_engine(self.db_url)
-                self.Session = sessionmaker(bind=self.engine)
-                self.update_metadata()
-                self._access_level = None  # Reset access level to be re-determined
+                self._set_engine()
 
     def table(self, table_name: str) -> Table:
         try:
@@ -302,7 +276,6 @@ class DB:
 
         return new_method
 
-
     def needs_download(self):
         if local := self.get_local_timestamp():
             remote_timestamp = client_get_remote_timestamp()
@@ -331,7 +304,8 @@ class DB:
 ########################################################
 # Singleton db instance used across the entire project #
 ########################################################
-db = DB()
+db = _DB()
+_DB.main_instance = db
 
 
 # noinspection PyMethodMayBeStatic
@@ -345,12 +319,12 @@ class Writer:
         drops the table, recreates it, and re-inserts the 9 records."""
         table_name = tname("admin")
         last_9_records = []
-        if table_name not in db.metadata.tables:
+        if table_name not in self.db.metadata.tables:
             return last_9_records
 
-        table = db.metadata.tables[table_name]
+        table = self.db.metadata.tables[table_name]
         columns_to_select = [col for col in table.c.values() if col.name != 'id']
-        result = db.execute(
+        result = self.db.execute(
             table.select()
             .with_only_columns(*columns_to_select)
             .order_by(table.c['id'].desc())
@@ -363,21 +337,21 @@ class Writer:
             {col.name: value for col, value in zip(columns_to_select, row)}
             for row in last_9_records[::-1]
         ]
-        table.drop(db.engine)
-        db.update_metadata()
+        table.drop(self.db.engine)
+        self.db.update_metadata()
 
         return last_9_records
 
     def drop_th_tables(self):
         """Drops all tables from the database that start with 'thstore_'."""
         # Iterate over all tables in the metadata
-        for table_name in db.metadata.tables:
+        for table_name in self.db.metadata.tables:
             if table_name.startswith(tprefix):
-                table = db.metadata.tables[table_name]
-                table.drop(db.engine)
+                table = self.db.metadata.tables[table_name]
+                table.drop(self.db.engine)
 
         # Clear the metadata cache after dropping tables
-        db.update_metadata()
+        self.db.update_metadata()
         # print(f"Dropped all tables starting with {tprefix}.")
 
     def create_table_from_csv(self, file_path, table_name):
@@ -392,17 +366,17 @@ class Writer:
             # Define the SQL table dynamically with all columns as Strings
             table = Table(
                 table_name,
-                db.metadata,
+                self.db.metadata,
                 Column('id', Integer, primary_key=True),
-                *(Column(col_name, DB.get_type(col_name)) for col_name in columns)
+                *(Column(col_name, self.db.get_type(col_name)) for col_name in columns)
             )
             batch = []
             for i, row in enumerate(reader):
-                values = {col_name: DB.clean(col_name, value) for col_name, value in zip(columns, row)}
+                values = {col_name: self.db.clean(col_name, value) for col_name, value in zip(columns, row)}
                 batch.append(values)
 
-        table.create(db.engine)
-        db.execute(table.insert(), batch)
+        table.create(self.db.engine)
+        self.db.execute(table.insert(), batch)
 
     def create_table_from_json(self, file_path, table_name):
         """
@@ -429,16 +403,16 @@ class Writer:
         columns = [(k, clean_name(k)) for k, n in keys.items() if n == len_data]
         table = Table(
             table_name,
-            db.metadata,
+            self.db.metadata,
             Column('id', Integer, primary_key=True),
-            *(Column(col_name, DB.get_type(col_name)) for k, col_name in columns)
+            *(Column(col_name, self.db.get_type(col_name)) for k, col_name in columns)
         )
         batch = []
         for dct in data:
-            batch.append({clean_k: DB.clean(clean_k, dct.get(k, "")) for k, clean_k in columns})
+            batch.append({clean_k: self.db.clean(clean_k, dct.get(k, "")) for k, clean_k in columns})
 
-        table.create(db.engine)
-        db.execute(table.insert(), batch)
+        table.create(self.db.engine)
+        self.db.execute(table.insert(), batch)
 
     def create_admin(self, access_level, last_9_records):
         version_file = self.remote / "VERSION.txt"
@@ -449,150 +423,94 @@ class Writer:
 
         table = Table(
             tname("admin"),
-            db.metadata,
+            self.db.metadata,
             Column('id', Integer, primary_key=True),
             Column('data_timestamp', DateTime, nullable=False),
             Column('access_level', String(255), nullable=False),
             Column('download_timestamp', DateTime, nullable=False),
         )
-        table.create(db.engine)
+        table.create(self.db.engine)
         if last_9_records:
-            db.execute(table.insert(), last_9_records)
+            self.db.execute(table.insert(), last_9_records)
 
-        db.execute(
+        self.db.execute(
             table.insert().values(
                 data_timestamp=data_timestamp,
                 access_level=access_level.value,
                 download_timestamp=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
             )
         )
-        db.update_metadata()
+        self.db.update_metadata()
 
-    def _setup_timestamped_db(self):
-        """Set up a new timestamped database for ingestion if using default SQLite."""
-        configured_db_url = main_config.get("package-mode", "db_url")
-        if _is_default_sqlite_url(configured_db_url):
-            # Create a new timestamped database
-            new_db_path = _create_timestamped_db_path()
-            new_db_url = f"sqlite:///{new_db_path}"
-            
-            # Temporarily switch to the new database for ingestion
-            old_db_url = db.db_url
-            old_engine = db.engine
-            old_session = getattr(db, '_session', None)
-            
-            # Create new engine for the timestamped database
-            db.db_url = new_db_url
-            db.engine = create_engine(new_db_url)
-            db.Session = sessionmaker(bind=db.engine)
-            
-            # Clear any existing session
-            if hasattr(db, '_session'):
-                delattr(db, '_session')
-            
-            # Clear and recreate metadata for the new database
-            db.metadata = MetaData()
-            
-            return old_db_url, old_engine, old_session
-        
-        return None, None, None
+    def _finalize_timestamped_db(self):
+        """Finalize the timestamped database setup and cleanup old databases."""        
+        if _is_default_store():
+            # make the main db instance point to the latest timestamped database
+            db.switch_to_latest_db()
+            db.update_metadata()            
+            _cleanup_old_timestamped_dbs()
 
-    def _finalize_timestamped_db(self, old_db_url, old_engine, old_session):
-        """Finalize the timestamped database setup and cleanup old databases."""
-        configured_db_url = main_config.get("package-mode", "db_url")
-        
-        if _is_default_sqlite_url(configured_db_url):
-            # Get the path of the old database to clean up later
-            old_db_path = None
-            if old_db_url and old_db_url.startswith("sqlite:///"):
-                old_db_path = _get_sqlite_path_from_url(old_db_url)
-            
-            # Update metadata for the new database
-            db.update_metadata()
-            
-            # The db instance now points to the new timestamped database
-            # Any future database access will use the latest timestamped version
-            
-            # Clean up old databases (keep latest 2)
-            base_path = _get_sqlite_path_from_url(configured_db_url)
-            _cleanup_old_timestamped_dbs(base_path, keep_latest=2)
-            
-            # If there was an old database that wasn't timestamped, remove it
-            if old_db_path and old_db_path.exists() and not re.search(r'_\d{8}_\d{6}\.', str(old_db_path)):
-                try:
-                    old_db_path.unlink()
-                except OSError:
-                    pass  # Ignore errors during cleanup
 
     def _ingest_all(self, change_message):
         """Iterates over CSV files in the remote directory and ingests them."""
-        # Set up timestamped database if needed
-        old_db_url, old_engine, old_session = self._setup_timestamped_db()
-        
-        try:
-            db.reset_session()
-            last_9_admin_records = self.prepare_ingestion()
-            self.drop_th_tables()
+        # Set up timestamped database if needed        
+        self.db.reset_session()
+        last_9_admin_records = self.prepare_ingestion()
+        self.drop_th_tables()
 
-            csv_dir = self.remote / "csv"
-            # Iterate over all CSV files in the directory
-            downloaded_csvs = os.listdir(csv_dir)
+        csv_dir = self.remote / "csv"
+        # Iterate over all CSV files in the directory
+        downloaded_csvs = os.listdir(csv_dir)
 
-            for csv_file in downloaded_csvs:
-                if csv_file.endswith('.csv'):
-                    file_path = csv_dir / csv_file
-                    table_name = os.path.splitext(csv_file)[0]
-                    table_name = tname(clean_name(table_name))
-                    change_message(f"  {table_name}")
-                    self.create_table_from_csv(file_path, table_name)
-
-            for json_file in ("covered_markets", "covered_currencies"):
-                table_name = tname(json_file)
+        for csv_file in downloaded_csvs:
+            if csv_file.endswith('.csv'):
+                file_path = csv_dir / csv_file
+                table_name = os.path.splitext(csv_file)[0]
+                table_name = tname(clean_name(table_name))
                 change_message(f"  {table_name}")
-                self.create_table_from_json(
-                    self.remote / f"{json_file}.json",
-                    table_name
-                )
+                self.create_table_from_csv(file_path, table_name)
 
-            db.update_metadata()
+        for json_file in ("covered_markets", "covered_currencies"):
+            table_name = tname(json_file)
+            change_message(f"  {table_name}")
+            self.create_table_from_json(
+                self.remote / f"{json_file}.json",
+                table_name
+            )
 
-            if "schedules.csv" not in downloaded_csvs:
-                access_level = AccessLevel.only_holidays
-            elif "currencies.csv" not in downloaded_csvs:
-                access_level = AccessLevel.no_currencies
-            else:
-                access_level = AccessLevel.full
+        self.db.update_metadata()
 
-            self.create_admin(access_level, last_9_admin_records)
-            
-            # Finalize the timestamped database setup
-            self._finalize_timestamped_db(old_db_url, old_engine, old_session)
-            
-        except Exception:
-            # If something went wrong and we're using timestamped databases,
-            # restore the old database connection
-            if old_db_url is not None:
-                db.db_url = old_db_url
-                db.engine = old_engine
-                db.Session = sessionmaker(bind=old_engine)
-                if old_session:
-                    db._session = old_session
-                db.update_metadata()
-            raise
+        if "schedules.csv" not in downloaded_csvs:
+            access_level = AccessLevel.only_holidays
+        elif "currencies.csv" not in downloaded_csvs:
+            access_level = AccessLevel.no_currencies
+        else:
+            access_level = AccessLevel.full
 
-    def ingest_all(self) -> bool:
+        self.create_admin(access_level, last_9_admin_records)
+        
+        # Finalize the timestamped database setup
+        self._finalize_timestamped_db()
+        
+
+    def ingest_all(self) -> bool:       
+        self.db = db
+        if _is_default_store():
+            self.db = _DB(db_url="sqlite:///" + str(_create_timestamped_db_path()))
+
+        print("self.db.db_url", self.db.db_url)
         with timed_action("Ingesting") as (change_message, start_time):
             try:
                 self._ingest_all(change_message)
                 return True
             except Exception as e:
-                if db.engine.dialect.name != "mysql" or "Incorrect string value" not in str(e):
+                if self.db.engine.dialect.name != "mysql" or "Incorrect string value" not in str(e):
                     raise
 
         # Deal with the problem that MySQL may not be able to
         # handle the full unicode set and then try again
         print("\nHandling unicode problem, warning will follow")
-        db.set_no_unicode()
+        self.db.set_no_unicode()
         with timed_action("Ingesting") as (change_message, start_time):
             self._ingest_all(change_message)
         return False

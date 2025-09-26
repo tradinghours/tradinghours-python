@@ -12,10 +12,11 @@ default_settings = {
     "internal": {
         "base_url": "https://api.tradinghours.com/v3/",
         "store_dir": DEFAULT_STORE_DIR,
+        "remote_dir": DEFAULT_STORE_DIR / "remote",
         "mode": "package"
     },
     "package-mode": {
-        "db_url": f"sqlite:///{DEFAULT_STORE_DIR / 'tradinghours.db'}",
+        "db_url": "",
         "table_prefix": "thstore_",
     },
     "server-mode": {
@@ -69,15 +70,13 @@ def _validate_server_mode_config():
     
     # Get the current settings from the final config (after all processing)
     current_db_url = main_config.get("package-mode", "db_url")
-    default_db_url = str(default_settings["package-mode"]["db_url"])
-    print(current_db_url, default_db_url)
     
     current_table_prefix = main_config.get("package-mode", "table_prefix")
     default_table_prefix = default_settings["package-mode"]["table_prefix"]
     print(current_table_prefix, default_table_prefix)
 
     # Check if either setting has been customized from defaults
-    custom_db = str(current_db_url) != default_db_url
+    custom_db = current_db_url is not None
     custom_prefix = current_table_prefix != default_table_prefix
     
     if custom_db or custom_prefix:
