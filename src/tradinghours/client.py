@@ -8,9 +8,9 @@ from .config import main_config
 from .util import timed_action
 from .exceptions import ClientError, TokenError, FileNotFoundError
 
-TOKEN = main_config.get("api", "token")
-BASE_URL = main_config.get("api", "base_url")
-ROOT = Path(main_config.get("data", "remote_dir"))
+TOKEN = main_config.get("auth", "token")
+BASE_URL = main_config.get("internal", "base_url")
+ROOT = Path(main_config.get("internal", "remote_dir"))
 ROOT.mkdir(parents=True, exist_ok=True)
 
 

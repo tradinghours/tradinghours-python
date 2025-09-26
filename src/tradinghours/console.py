@@ -1,4 +1,4 @@
-import argparse, warnings
+import argparse, warnings, time
 import traceback
 from textwrap import wrap
 
@@ -53,6 +53,7 @@ def create_parser():
     serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
     serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
                              help="Log level (default: info)")
+    serve_parser.add_argument("--auto-update", action="store_true", help="Check for data updates every minute")
 
     return parser
 
@@ -91,15 +92,16 @@ def run_status(args):
             print("No local data to show extended information")
 
 
-def run_import(args):
+def run_import(reset=False, force=False, quiet=False):
     show_warning = False
-    if args.reset:
+    if reset:
         show_warning = not Writer().ingest_all()
 
-    elif args.force or db.needs_download():
+    elif force or db.needs_download():
         client_download()
         show_warning = not Writer().ingest_all()
-    else:
+
+    elif not quiet:
         print("Local data is up-to-date.")
 
     if show_warning:
@@ -110,9 +112,18 @@ def run_import(args):
         )
 
 
+def auto_update():
+    while True:
+        time.sleep(60)
+        run_import(quiet=True)
+
 def run_serve(args):
     """Run the API server."""
     try:
+        if args.auto_update:
+            import threading
+            threading.Thread(target=auto_update).start()
+
         run_server(
             host=args.host,
             port=args.port,

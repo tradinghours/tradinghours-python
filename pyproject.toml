@@ -41,6 +41,11 @@ mysql = [
 postgres = [
     'psycopg2-binary'
 ]
+server = [
+    'fastapi',
+    'uvicorn[standard]',
+    'gunicorn'
+]
 
 [project.scripts]
 tradinghours = "tradinghours.console:main"

@@ -21,6 +21,7 @@ from .market import Market
 from .currency import Currency
 from .store import db
 from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
+from .config import main_config
 from . import __version__
 
 # Configure logging
@@ -38,15 +39,17 @@ app = FastAPI(
 )
 
 # Security middleware for production
+allowed_hosts = main_config.get("server-mode", "allowed_hosts").split(",")
 app.add_middleware(
     TrustedHostMiddleware, 
-    allowed_hosts=["*"]  # Configure appropriately for production
+    allowed_hosts=allowed_hosts
 )
 
-# CORS middleware (configure for production)
+# CORS middleware (configure for production)  
+allowed_origins = main_config.get("server-mode", "allowed_origins").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],

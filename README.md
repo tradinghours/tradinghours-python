@@ -347,30 +347,37 @@ Configuration can be changed by creating a `tradinghours.ini` file in the curren
 These are possible and optional values, for which explanations follow:
 
 ```ini
-[api]
+[auth]
 token = YOUR-TOKEN
 
-[data]
+[package-mode]
 db_url = postgresql://postgres:password@localhost:5432/your_database
 table_prefix = thstore_
-remote_dir = path/to/empty/folder
 
-[control]
+[server-mode]
+allowed_hosts = *
+allowed_origins = *
+
+[extra]
 check_tzdata = False
 ```
 
 ### Database
-* `[data]`
+* `[package-mode]`
   * `db_url`
     * A connection string to a database. Please read the [caveats](#caveats) before using this setting.
     * This allows you to download the data once and let your team members use the same database.
+    * If not specified, uses SQLite by default.
   * `table_prefix`
     * Every table created in the database will be prefixed with this. `'thstore_'` is the default.
     * This can be used to avoid conflicts with existing tables.
-  * `remote_dir`
-    * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
-    * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
-    * Unless you want to access the raw CSV files directly, there is no reason to change this.
+
+### Server Configuration
+* `[server-mode]`
+  * `allowed_hosts`
+    * Hosts allowed to access the API server. Use `*` for all hosts.
+  * `allowed_origins`
+    * Origins allowed for CORS requests. Use `*` for all origins.
 
 #### Caveats
 * This package has been tested with MySQL 8.4 and PostgreSQL 15.8
@@ -396,7 +403,7 @@ To update `tzdata` run this command: `pip install tzdata --upgrade`
 
 To disable this verification and prevent the request, add this section to your tradinghours.ini file:
 ```ini
-[control]
+[extra]
 check_tzdata = False
 ```
 

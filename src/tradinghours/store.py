@@ -98,7 +98,7 @@ class DB:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = self = super().__new__(cls)
-            self.db_url = main_config.get("data", "db_url")
+            self.db_url = main_config.get("package-mode", "db_url")
             try:
                 self.engine = create_engine(self.db_url)
             except ModuleNotFoundError as e:
@@ -255,7 +255,7 @@ db = DB()
 class Writer:
 
     def __init__(self):
-        self.remote = Path(main_config.get("data", "remote_dir"))
+        self.remote = Path(main_config.get("internal", "remote_dir"))
 
     def prepare_ingestion(self):
         """Preserves the last 9 records from the thstore_admin table,
