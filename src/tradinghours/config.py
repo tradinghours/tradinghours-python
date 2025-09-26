@@ -69,14 +69,12 @@ def _validate_server_mode_config():
         sys.exit(1)
     
     # Get the current settings from the final config (after all processing)
-    current_db_url = main_config.get("package-mode", "db_url")
-    
+    current_db_url = main_config.get("package-mode", "db_url")    
     current_table_prefix = main_config.get("package-mode", "table_prefix")
     default_table_prefix = default_settings["package-mode"]["table_prefix"]
-    print(current_table_prefix, default_table_prefix)
 
     # Check if either setting has been customized from defaults
-    custom_db = current_db_url is not None
+    custom_db = current_db_url != ""
     custom_prefix = current_table_prefix != default_table_prefix
     
     if custom_db or custom_prefix:

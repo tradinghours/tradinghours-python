@@ -1,8 +1,6 @@
 import os, csv, json, codecs
 import datetime as dt
 from pathlib import Path
-import urllib.parse
-import re
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -279,6 +277,7 @@ class _DB:
     def needs_download(self):
         if local := self.get_local_timestamp():
             remote_timestamp = client_get_remote_timestamp()
+            print("remote - local:", (remote_timestamp - local).total_seconds())
             return remote_timestamp > local
         return True
 
@@ -435,7 +434,8 @@ class Writer:
 
         self.db.execute(
             table.insert().values(
-                data_timestamp=data_timestamp,
+                # TODO: look into last-udpated and generated_at discrepancy
+                data_timestamp=data_timestamp + dt.timedelta(minutes=10),
                 access_level=access_level.value,
                 download_timestamp=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
             )

@@ -1,4 +1,4 @@
-import argparse, warnings, time
+import argparse, warnings, time, threading
 import traceback
 
 from . import __version__
@@ -45,7 +45,7 @@ def create_parser():
     serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
     serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
                              help="Log level (default: info)")
-    serve_parser.add_argument("--auto-update", action="store_true", help="Check for data updates every minute")
+    serve_parser.add_argument("--no-auto-update", action="store_true", help="Do not check for data updates every minute")
 
     return parser
 
@@ -110,12 +110,13 @@ def auto_update():
         run_import(quiet=True)
 
 
-def run_serve(server_config, auto_update=False):
+def run_serve(server_config, no_auto_update=False):
     """Run the API server."""
     try:
-        if auto_update:
-            import threading
-            threading.Thread(target=auto_update).start()
+        if not no_auto_update:
+            print("Auto-updating...")
+            run_import(quiet=True)
+            threading.Thread(target=auto_update, daemon=True).start()
 
         run_server(
             **server_config,
@@ -146,7 +147,7 @@ def main():
                 "workers": args.workers,
                 "log_level": args.log_level
             }
-            run_serve(server_config, auto_update=args.auto_update)
+            run_serve(server_config, no_auto_update=args.no_auto_update)
 
     # Handle generic errors gracefully
     except Exception as error:
