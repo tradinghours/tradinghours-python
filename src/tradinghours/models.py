@@ -81,7 +81,11 @@ class BaseModel:
          properties like .is_open, which means that there are keys present that don't exist
          in the matching table.
         """
-        return {f: getattr(self, f) for f in self.fields()}
+        dct = {}
+        for f in self.fields():
+            dct[f] = getattr(self, f)
+            dct[f] = dct[f].to_dict() if hasattr(dct[f], 'to_dict') else dct[f]
+        return dct
 
     def pformat(self) -> str:
         dct = {}
