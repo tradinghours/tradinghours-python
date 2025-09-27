@@ -3,7 +3,8 @@ import os
 import sys, time
 import logging
 import logging.handlers
-from datetime import datetime, date
+import datetime as dt
+from zoneinfo import ZoneInfo
 from typing import Optional
 from pathlib import Path
 import io
@@ -305,8 +306,8 @@ async def get_market(
 @app.get("/markets/{identifier}/holidays", summary="Get market holidays")
 async def get_market_holidays(
     identifier: str,
-    start: date = Query(..., description="Start date (YYYY-MM-DD)"),
-    end: date = Query(..., description="End date (YYYY-MM-DD)"),
+    start: dt.date = Query(..., description="Start date (YYYY-MM-DD)"),
+    end: dt.date = Query(..., description="End date (YYYY-MM-DD)"),
     db=Depends(get_db)
 ):
     """Get market holidays for a date range."""
@@ -318,15 +319,15 @@ async def get_market_holidays(
 @app.get("/markets/{identifier}/phases", summary="Generate market phases")
 async def get_market_phases(
     identifier: str,
-    start: date = Query(..., description="Start date (YYYY-MM-DD)"),
-    end: date = Query(..., description="End date (YYYY-MM-DD)"),
+    start: dt.date = Query(..., description="Start date (YYYY-MM-DD)"),
+    end: dt.date = Query(..., description="End date (YYYY-MM-DD)"),
     db=Depends(get_db)
 ):
     """Generate market phases for a date range."""
     market = Market.get(identifier)
-    phases = list(market.generate_phases(start, end))
+    phases = [phase.to_dict() for phase in market.generate_phases(start, end)]
     logger.info(f"Generated {len(phases)} phases for {identifier}")
-    return [phase.to_dict() for phase in phases]
+    return phases
 
 @app.get("/markets/{identifier}/schedules", summary="Get market schedules")
 async def get_market_schedules(
@@ -342,21 +343,26 @@ async def get_market_schedules(
 @app.get("/markets/{identifier}/status", summary="Get market status")
 async def get_market_status(
     identifier: str,
-    datetime_str: Optional[str] = Query(None, alias="datetime", description="ISO datetime (YYYY-MM-DDTHH:MM:SS+TZ)"),
+    datetime_utc: Optional[dt.datetime] = Query(None, description="UTC datetime in ISO format (YYYY-MM-DDTHH:MM:SS+00:00)"),
     db=Depends(get_db)
 ):
-    """Get market status at a specific time (or current time if not provided)."""
-    market = Market.get(identifier)
+    """
+    Get market status at a specific time (or current time if not provided).
     
-    if datetime_str:
-        try:
-            dt = datetime.fromisoformat(datetime_str)
-            status = market.status(dt)
-        except ValueError:
+    To avoid problems with timezone offsets and conversions, the datetime_utc must have the +00:00 timezone offset.
+
+    All datetimes in the response will still be in the timezone of the market, like it is returned by other endpoints.
+    """
+    market = Market.get(identifier)
+
+    if datetime_utc:
+        if str(datetime_utc.tzinfo) != "UTC":
             raise HTTPException(
                 status_code=400, 
-                detail="Invalid datetime format. Use ISO format: YYYY-MM-DDTHH:MM:SS+TZ"
+                detail="Datetime must have +00:00 timezone offset, so that we agree on the same UTC datetime."
             )
+
+        status = market.status(datetime_utc)
     else:
         status = market.status()
     
@@ -441,8 +447,8 @@ async def get_currency(code: str, db=Depends(get_db)):
 @app.get("/currencies/{code}/holidays", summary="Get currency holidays")
 async def get_currency_holidays(
     code: str,
-    start: date = Query(..., description="Start date (YYYY-MM-DD)"),
-    end: date = Query(..., description="End date (YYYY-MM-DD)"),
+    start: dt.date = Query(..., description="Start date (YYYY-MM-DD)"),
+    end: dt.date = Query(..., description="End date (YYYY-MM-DD)"),
     db=Depends(get_db)
 ):
     """Get currency holidays for a date range."""

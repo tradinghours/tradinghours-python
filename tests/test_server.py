@@ -4,6 +4,7 @@ These tests focus on HTTP behavior, error handling, middleware, and general serv
 """
 import pytest
 from datetime import datetime, date
+from urllib.parse import urlencode
 from fastapi.testclient import TestClient
 from tradinghours.server import app
 
@@ -68,8 +69,8 @@ class TestErrorHandling:
 
     def test_invalid_datetime_format_400(self, client):
         """Test that invalid datetime format returns 400."""
-        response = client.get("/markets/US.NYSE/status?datetime=invalid-datetime")
-        assert response.status_code == 400
+        response = client.get("/markets/US.NYSE/status?datetime_utc=invalid-datetime")
+        assert response.status_code == 422
 
     def test_nonexistent_endpoint_404(self, client):
         """Test that nonexistent endpoints return 404."""
@@ -209,17 +210,21 @@ class TestParameterValidation:
         # Valid ISO datetime formats
         valid_datetimes = [
             "2023-11-15T12:00:00+00:00",
-            "2023-11-15T12:00:00-05:00",
             "2023-11-15T12:00:00Z"
         ]
-        
         for dt_str in valid_datetimes:
-            response = client.get(f"/markets/US.NYSE/status?datetime={dt_str}")
-            assert response.status_code in [200, 400, 403, 404]
-            # 400 only if the datetime is specifically invalid, not format issue
+            qp = urlencode({"datetime_utc": dt_str})
+            response = client.get(f"/markets/US.NYSE/status?{qp}")
+            assert response.status_code == 200
 
-        # Invalid datetime format should return 400
-        response = client.get("/markets/US.NYSE/status?datetime=not-a-datetime")
+        # Invalid datetime format should return 422
+        qp = urlencode({"datetime_utc": "not-a-datetime"})
+        response = client.get(f"/markets/US.NYSE/status?{qp}")
+        assert response.status_code == 422
+
+        # Invalid timezone offset should return 400
+        qp = urlencode({"datetime_utc": "2023-11-15T12:00:00-05:00"})
+        response = client.get(f"/markets/US.NYSE/status?{qp}")
         assert response.status_code == 400
 
 
