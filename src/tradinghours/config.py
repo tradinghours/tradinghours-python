@@ -15,6 +15,9 @@ default_settings = {
         "remote_dir": DEFAULT_STORE_DIR / "remote",
         "mode": "package"
     },
+    "auth": {
+        "token": "",
+    },
     "package-mode": {
         "db_url": "",
         "table_prefix": "thstore_",
