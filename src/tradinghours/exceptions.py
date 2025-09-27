@@ -77,6 +77,7 @@ class TokenError(ClientError):
             "TRADINGHOURS_TOKEN and try again."
         )
 
+
 class FileNotFoundError(ClientError):
     """When the file is not found"""
 
@@ -85,6 +86,7 @@ class FileNotFoundError(ClientError):
             "Your export is not available yet. "
             "Please contact support@tradinghours.com"
         )
+
 
 class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
@@ -102,12 +104,14 @@ class MissingSqlAlchemyError(TradingHoursError):
             "`pip install tradinghours[sql]` from the command line."
         )
 
+
 class NoAccess(TradingHoursError):
     """
     Raised when a user attempts accessing a type of data
     that is not available under their current plan.
     """
     pass
+
 
 class NotCovered(TradingHoursError):
     """
@@ -144,3 +148,15 @@ class DateNotAvailable(TradingHoursError):
     """
     pass
 
+
+class InvalidType(TradingHoursError, TypeError):
+    """
+    Raised when the type of the value is invalid
+    """
+    pass
+
+class InvalidValue(TradingHoursError, ValueError):
+    """
+    Raised when the value is invalid
+    """
+    pass

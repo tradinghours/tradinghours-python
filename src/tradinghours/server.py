@@ -21,7 +21,7 @@ except ImportError:
 from .market import Market
 from .currency import Currency
 from .store import db
-from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
+from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable, InvalidType, InvalidValue
 from .config import main_config
 from . import __version__
 
@@ -237,6 +237,17 @@ async def mic_not_exist_handler(request, exc):
 async def date_not_available_handler(request, exc):
     logger.warning(f"Date not available for {request.url}: {exc}")
     raise HTTPException(status_code=400, detail=str(exc))
+
+@app.exception_handler(InvalidType)
+async def invalid_type_handler(request, exc):
+    logger.warning(f"Invalid type for {request.url}: {exc}")
+    raise HTTPException(status_code=400, detail=str(exc))
+
+@app.exception_handler(InvalidValue)
+async def invalid_value_handler(request, exc):
+    logger.warning(f"Invalid value for {request.url}: {exc}")
+    raise HTTPException(status_code=400, detail=str(exc))
+
 
 # Health and info endpoints
 @app.get("/health")
