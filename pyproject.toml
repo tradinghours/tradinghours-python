@@ -33,6 +33,7 @@ dev = [
     'coverage[toml]',
     'pytest',
     'pytest-mock',
+    'httpx',  # Required for FastAPI TestClient
 ]
 mysql = [
     'pymysql',

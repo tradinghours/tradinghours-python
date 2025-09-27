@@ -233,7 +233,7 @@ class _DB:
         table = self.table("admin")
         with self.session() as s:
             result = s.query(
-                table.c["data_timestamp"]).order_by(
+                table.c["download_timestamp"]).order_by(
                     table.c["id"].desc()
             ).limit(1).scalar()
             if result:
@@ -434,8 +434,7 @@ class Writer:
 
         self.db.execute(
             table.insert().values(
-                # TODO: look into last-udpated and generated_at discrepancy
-                data_timestamp=data_timestamp + dt.timedelta(minutes=10),
+                data_timestamp=data_timestamp,
                 access_level=access_level.value,
                 download_timestamp=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
             )
