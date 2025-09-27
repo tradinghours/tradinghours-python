@@ -1,18 +1,18 @@
 """Production-ready FastAPI server for TradingHours API."""
 import os
-import sys
+import sys, time
 import logging
 import logging.handlers
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional
 from pathlib import Path
+import io
 
 try:
-    from fastapi import FastAPI, HTTPException, Query, Depends
+    from fastapi import FastAPI, HTTPException, Query, Depends, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.middleware.trustedhost import TrustedHostMiddleware
     from fastapi.responses import JSONResponse
-    import uvicorn
 except ImportError:
     raise ImportError(
         "Server dependencies not installed. Run: pip install tradinghours[server]"
@@ -73,11 +73,70 @@ def configure_logging():
     console_handler.setFormatter(formatter)
     console_handler.setLevel(log_level)
     root_logger.addHandler(console_handler)
+    
+    # Configure specific loggers to use our handlers
+    # Gunicorn loggers
+    gunicorn_logger = logging.getLogger('gunicorn')
+    gunicorn_logger.handlers = []
+    gunicorn_logger.propagate = True
+    
+    gunicorn_error_logger = logging.getLogger('gunicorn.error')
+    gunicorn_error_logger.handlers = []
+    gunicorn_error_logger.propagate = True
+    
+    gunicorn_access_logger = logging.getLogger('gunicorn.access')
+    gunicorn_access_logger.handlers = []
+    gunicorn_access_logger.propagate = True
+    
+    # Uvicorn loggers
+    uvicorn_logger = logging.getLogger('uvicorn')
+    uvicorn_logger.handlers = []
+    uvicorn_logger.propagate = True
+    
+    uvicorn_access_logger = logging.getLogger('uvicorn.access')
+    uvicorn_access_logger.handlers = []
+    uvicorn_access_logger.propagate = True
+    
+    uvicorn_error_logger = logging.getLogger('uvicorn.error')
+    uvicorn_error_logger.handlers = []
+    uvicorn_error_logger.propagate = True
+
+
+class LogCapture(io.TextIOWrapper):
+    """Custom stream to capture stdout/stderr and send to our logger."""
+    def __init__(self, original_stream, logger_name):
+        self.original_stream = original_stream
+        self.logger = logging.getLogger(logger_name)
+        
+    def write(self, text):
+        # Write to original stream (console)
+        # self.original_stream.write(text)
+        # self.original_stream.flush()
+        
+        # Also log to our files (strip newlines since logger adds them)
+        text = text.strip()
+        if text:  # Only log non-empty lines
+            self.logger.info(text)
+        
+    def flush(self):
+        self.original_stream.flush()
+        
+    def __getattr__(self, name):
+        return getattr(self.original_stream, name)
 
 
 # Configure logging
 configure_logging()
 logger = logging.getLogger(__name__)
+
+# Capture stdout/stderr to also log to our files
+original_stdout = sys.stdout
+original_stderr = sys.stderr
+sys.stdout = LogCapture(original_stdout, "gunicorn.stdout")
+sys.stderr = LogCapture(original_stderr, "gunicorn.stderr")
+
+# Access logger for HTTP requests
+access_logger = logging.getLogger("tradinghours.access")
 
 # Create FastAPI app
 app = FastAPI(
@@ -88,6 +147,29 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+# Custom logging middleware for access logs
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    client_ip = request.client.host if request.client else "unknown"
+    method = request.method
+    url = str(request.url)
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+    except Exception as e:
+        process_time = time.time() - start_time
+        access_logger.error(
+            f"{client_ip} - {method} {url} - ERROR - {process_time:.3f}s - {type(e).__name__}: {str(e)}"
+        )
+        raise
+    
+    process_time = time.time() - start_time    
+    access_logger.info(
+        f"{client_ip} - {method} {url} - {status_code} - {process_time:.3f}s"
+    )
+    return response
 
 # Security middleware for production
 allowed_hosts = main_config.get("server-mode", "allowed_hosts").split(",")
@@ -459,8 +541,10 @@ def run_server(
         'workers': workers,
         'worker_class': 'uvicorn.workers.UvicornWorker',
         'loglevel': log_level,
-        'accesslog': '-',
-        'errorlog': '-'
+        'capture_output': True,
+        'enable_stdio_inheritance': True,
+        'accesslog': '-',    # Log to stdout, captured by our LogCapture
+        'errorlog': '-'      # Log to stderr, captured by our LogCapture
     }
     
     gunicorn_app = GunicornApplication(app, options)
