@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+import logging.handlers
 from datetime import datetime, date
 from typing import Optional, List
 from pathlib import Path
@@ -24,8 +25,58 @@ from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
 from .config import main_config
 from . import __version__
 
+def configure_logging():
+    """Configure logging based on tradinghours.ini settings."""
+    log_level_str = main_config.get("server-mode", "log_level").upper()
+    log_folder = main_config.get("server-mode", "log_folder")
+    log_days_to_keep = main_config.getint("server-mode", "log_days_to_keep")
+    
+    # Convert string log level to logging constant
+    log_level = getattr(logging, log_level_str)
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    
+    # Remove any existing handlers
+    for handler in root_logger.handlers:
+        root_logger.removeHandler(handler)
+
+    # Create logs directory if it doesn't exist
+    logs_path = Path(log_folder)
+    logs_path.mkdir(parents=True, exist_ok=True)
+    
+    # Create log file path with daily rotation
+    log_file_path = logs_path / "th_server.log"
+    
+    # Use TimedRotatingFileHandler for daily rotation
+    file_handler = logging.handlers.TimedRotatingFileHandler(
+        filename=str(log_file_path),
+        when='midnight',
+        interval=1,
+        backupCount=log_days_to_keep,
+        encoding='utf-8'
+    )
+    # Set suffix for rotated files (YYYY-MM-DD format)
+    file_handler.suffix = "%Y-%m-%d"
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(log_level)
+    root_logger.addHandler(file_handler)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(log_level)
+    root_logger.addHandler(console_handler)
+
+
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 # Create FastAPI app
@@ -377,7 +428,7 @@ def run_server(
     port: int = 8000,
     uds: Optional[str] = None,
     workers: int = 2,
-    log_level: str = "info",
+    log_level: Optional[str] = None,
 ):
     """Run server with gunicorn or uvicorn.
     
@@ -386,9 +437,11 @@ def run_server(
         port: Port to bind to  
         uds: Unix domain socket path (overrides host/port)
         workers: Number of worker processes (only for gunicorn)
-        log_level: Log level
-        use_gunicorn: Whether to use gunicorn (True) or uvicorn (False)
+        log_level: Log level (if None, uses config from tradinghours.ini)
     """
+    # Use log_level from config if not provided
+    if log_level is None:
+        log_level = main_config.get("server-mode", "log_level", fallback="info")
     if uds:
         bind = f"unix:{uds}"
         logger.info(f"Starting TradingHours API on Unix socket: {uds}")

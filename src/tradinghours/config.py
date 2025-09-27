@@ -21,7 +21,10 @@ default_settings = {
     },
     "server-mode": {
         "allowed_hosts": "*",
-        "allowed_origins": "*"
+        "allowed_origins": "*",
+        "log_folder": "tradinghours_server_logs",
+        "log_days_to_keep": 14,
+        "log_level": "info"
     },
     "extra": {
         "check_tzdata": True,
