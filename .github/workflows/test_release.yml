@@ -79,7 +79,7 @@ jobs:
 
       - name: run all tests
         run: |          
-          pip install pytest pytest-mock
+          pip install pytest pytest-mock httpx fastapi
 
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
 

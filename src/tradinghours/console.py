@@ -9,8 +9,7 @@ from .client import (
     get_remote_timestamp as client_get_remote_timestamp,
     timed_action
 )
-from .server import run_server
-
+# server import handled in `run_serve` to keep its dependencies optional
 from .currency import Currency
 from .market import Market
 from .exceptions import TradingHoursError, NoAccess
@@ -112,6 +111,7 @@ def auto_update():
 
 def run_serve(server_config, no_auto_update=False):
     """Run the API server."""
+    from .server import run_server
     try:
         if not no_auto_update:
             print("Auto-updating...")

@@ -277,7 +277,6 @@ class _DB:
     def needs_download(self):
         if local := self.get_local_timestamp():
             remote_timestamp = client_get_remote_timestamp()
-            print("remote - local:", (remote_timestamp - local).total_seconds())
             return remote_timestamp > local
         return True
 
