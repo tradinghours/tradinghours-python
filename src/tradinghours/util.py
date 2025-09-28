@@ -143,36 +143,3 @@ def check_if_tzdata_required_and_up_to_date():
 
     return True
 
-
-def add_log_handlers(logger: logging.Logger, formatter):
-    log_folder = main_config.get("server-mode", "log_folder")
-    log_level_str = main_config.get("server-mode", "log_level").upper()
-    log_level = getattr(logging, log_level_str)
-    log_days_to_keep = main_config.getint("server-mode", "log_days_to_keep")
-
-    logs_path = Path(log_folder)
-    logs_path.mkdir(parents=True, exist_ok=True)
-    log_file_path = logs_path / "th_server.log"
-
-    logger.setLevel(log_level)
-
-    # Use TimedRotatingFileHandler for daily rotation
-    file_handler = logging.handlers.TimedRotatingFileHandler(
-        filename=str(log_file_path),
-        when='midnight',
-        interval=1,
-        backupCount=log_days_to_keep,
-        encoding='utf-8'
-    )
-    # Set suffix for rotated files (YYYY-MM-DD format)
-    file_handler.suffix = "%Y-%m-%d"
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(log_level)
-    logger.addHandler(file_handler)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(log_level)
-    logger.addHandler(console_handler)
-    return logger
-

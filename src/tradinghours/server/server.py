@@ -1,13 +1,9 @@
 """Production-ready FastAPI server for TradingHours API."""
-import os
 import sys, time
 import logging
-import logging.handlers
 import datetime as dt
-from zoneinfo import ZoneInfo
-from typing import Optional
+from typing import Optional, List
 from pathlib import Path
-import io
 
 try:
     from fastapi import FastAPI, HTTPException, Query, Depends, Request
@@ -19,53 +15,24 @@ except ImportError:
         "Server dependencies not installed. Run: pip install tradinghours[server]"
     )
 
-from .market import Market
-from .currency import Currency
-from .store import db
-from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable, InvalidType, InvalidValue
-from .config import main_config
-from . import __version__
-from .util import add_log_handlers
-
-
-def setup_root_logger():
-    """Configure logging based on tradinghours.ini settings."""
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers:
-        root_logger.removeHandler(handler)
-
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    add_log_handlers(root_logger, formatter)
-
-    
-
-class LogCapture(io.TextIOWrapper):
-    """Custom stream to capture stdout/stderr and send to our logger."""
-    def __init__(self, original_stream, logger_name):
-        self.original_stream = original_stream
-        self.logger = logging.getLogger(logger_name)
-        self.logger.propagate = False
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        add_log_handlers(self.logger, formatter)
-        self.level_to_log = logging.INFO if logger_name == "stdout" else logging.ERROR
-
-    def write(self, text):
-        text = text.strip()
-        if text:  # Only log non-empty lines
-            self.logger.log(self.level_to_log, text)
-        
-    def flush(self):
-        self.original_stream.flush()
-        
-    def __getattr__(self, name):
-        return getattr(self.original_stream, name)
-
+from ..market import Market
+from ..currency import Currency
+from ..store import db
+from ..exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable, InvalidType, InvalidValue
+from ..config import main_config
+from .. import __version__
+from .util import setup_root_logger, LogCapture
+from .responses import (
+    MarketResponse,
+    MarketHolidayResponse,
+    PhaseResponse,
+    ScheduleResponse,
+    MarketStatusResponse,
+    CurrencyResponse,
+    CurrencyHolidayResponse,
+    IsAvailableResponse,
+    IsCoveredResponse
+)
 
 # Configure logging
 setup_root_logger()
@@ -216,10 +183,10 @@ async def api_info(db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error getting API info: {str(e)}")
 
 # Market endpoints
-@app.get("/markets", summary="List markets")
+@app.get("/markets", summary="List markets", response_model=List[MarketResponse])
 async def list_markets(
     subset: str = Query("*", description="Filter markets by FinID pattern (e.g., 'US.*')"),
-    db=Depends(get_db)
+    db=Depends(get_db),
 ):
     """List all available markets with optional filtering."""
     try:
@@ -230,18 +197,18 @@ async def list_markets(
         logger.error(f"Error listing markets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/markets/{identifier}", summary="Get market")
+@app.get("/markets/{identifier}", summary="Get market", response_model=MarketResponse)
 async def get_market(
     identifier: str,
     follow: bool = Query(True, description="Follow replaced markets"),
-    db=Depends(get_db)
+    db=Depends(get_db),
 ):
     """Get market by FinID or MIC."""
     market = Market.get(identifier, follow=follow)
     logger.info(f"Retrieved market: {market.fin_id}")
     return market.to_dict()
 
-@app.get("/markets/{identifier}/holidays", summary="Get market holidays")
+@app.get("/markets/{identifier}/holidays", summary="Get market holidays", response_model=List[MarketHolidayResponse])
 async def get_market_holidays(
     identifier: str,
     start: dt.date = Query(..., description="Start date (YYYY-MM-DD)"),
@@ -254,7 +221,7 @@ async def get_market_holidays(
     logger.info(f"Retrieved {len(holidays)} holidays for {identifier}")
     return [holiday.to_dict() for holiday in holidays]
 
-@app.get("/markets/{identifier}/phases", summary="Generate market phases")
+@app.get("/markets/{identifier}/phases", summary="Generate market phases", response_model=List[PhaseResponse])
 async def get_market_phases(
     identifier: str,
     start: dt.date = Query(..., description="Start date (YYYY-MM-DD)"),
@@ -267,7 +234,7 @@ async def get_market_phases(
     logger.info(f"Generated {len(phases)} phases for {identifier}")
     return phases
 
-@app.get("/markets/{identifier}/schedules", summary="Get market schedules")
+@app.get("/markets/{identifier}/schedules", summary="Get market schedules", response_model=List[ScheduleResponse])
 async def get_market_schedules(
     identifier: str,
     db=Depends(get_db)
@@ -278,7 +245,7 @@ async def get_market_schedules(
     logger.info(f"Retrieved {len(schedules)} schedules for {identifier}")
     return [schedule.to_dict() for schedule in schedules]
 
-@app.get("/markets/{identifier}/status", summary="Get market status")
+@app.get("/markets/{identifier}/status", summary="Get market status", response_model=MarketStatusResponse)
 async def get_market_status(
     identifier: str,
     datetime_utc: Optional[dt.datetime] = Query(None, description="UTC datetime in ISO format (YYYY-MM-DDTHH:MM:SS+00:00)"),
@@ -307,45 +274,28 @@ async def get_market_status(
     logger.info(f"Retrieved status for {identifier}")
     return status.to_dict()
 
-@app.get("/markets/{identifier}/is_available", summary="Check if market is available")
+@app.get("/markets/{identifier}/is_available", summary="Check if market is available", response_model=IsAvailableResponse)
 async def check_market_available(identifier: str, db=Depends(get_db)):
     """Check if market is available under current plan."""
     is_available = Market.is_available(identifier)
     logger.info(f"Checked availability for market {identifier}: {is_available}")
-    return {"identifier": identifier, "is_available": is_available}
+    return {"is_available": is_available}
 
-@app.get("/markets/{identifier}/is_covered", summary="Check if market is covered")
+@app.get("/markets/{identifier}/is_covered", summary="Check if market is covered", response_model=IsCoveredResponse)
 async def check_market_covered(identifier: str, db=Depends(get_db)):
     """Check if market is covered by TradingHours data."""
-    # Note: is_covered expects a finid, so we need to handle MICs
-    try:
-        if "." in identifier:
-            finid = identifier
-        else:
-            # It's a MIC, we need to get the finid first
-            market = Market.get_by_mic(identifier, follow=False)
-            finid = market.fin_id
-        is_covered = Market.is_covered(finid)
-        logger.info(f"Checked coverage for market {identifier} (finid: {finid}): {is_covered}")
-        return {"identifier": identifier, "finid": finid, "is_covered": is_covered}
-    except Exception as e:
-        logger.error(f"Error checking coverage for {identifier}: {e}")
-        return {"identifier": identifier, "finid": None, "is_covered": False}
+    if "." in identifier:
+        finid = identifier
+    else:
+        # It's a MIC, we need to get the finid first
+        market = Market.get_by_mic(identifier, follow=False)
+        finid = market.fin_id
+    is_covered = Market.is_covered(finid)
+    logger.info(f"Checked coverage for market {identifier} (finid: {finid}): {is_covered}")
+    return {"is_covered": is_covered}
 
-@app.get("/markets/{identifier}/date_range", summary="Get market date range")
-async def get_market_date_range(identifier: str, db=Depends(get_db)):
-    """Get the first and last available dates for the market."""
-    market = Market.get(identifier)
-    logger.info(f"Retrieved date range for {identifier}")
-    return {
-        "identifier": identifier,
-        "fin_id": market.fin_id,
-        "first_available_date": market.first_available_date.isoformat(),
-        "last_available_date": market.last_available_date.isoformat(),
-        "country_code": market.country_code
-    }
 
-@app.get("/markets/finid/{finid}", summary="Get market by FinID")
+@app.get("/markets/finid/{finid}", summary="Get market by FinID", response_model=MarketResponse)
 async def get_market_by_finid(
     finid: str,
     follow: bool = Query(True, description="Follow replaced markets"),
@@ -356,7 +306,7 @@ async def get_market_by_finid(
     logger.info(f"Retrieved market by FinID: {market.fin_id}")
     return market.to_dict()
 
-@app.get("/markets/mic/{mic}", summary="Get market by MIC")
+@app.get("/markets/mic/{mic}", summary="Get market by MIC", response_model=MarketResponse)
 async def get_market_by_mic(
     mic: str,
     follow: bool = Query(True, description="Follow replaced markets"),
@@ -368,21 +318,21 @@ async def get_market_by_mic(
     return market.to_dict()
 
 # Currency endpoints
-@app.get("/currencies", summary="List currencies")
+@app.get("/currencies", summary="List currencies", response_model=List[CurrencyResponse])
 async def list_currencies(db=Depends(get_db)):
     """List all available currencies."""
     currencies = Currency.list_all()
     logger.info(f"Listed {len(currencies)} currencies")
     return [currency.to_dict() for currency in currencies]
 
-@app.get("/currencies/{code}", summary="Get currency")
+@app.get("/currencies/{code}", summary="Get currency", response_model=CurrencyResponse)
 async def get_currency(code: str, db=Depends(get_db)):
     """Get currency by code."""
     currency = Currency.get(code)
     logger.info(f"Retrieved currency: {currency.currency_code}")
     return currency.to_dict()
 
-@app.get("/currencies/{code}/holidays", summary="Get currency holidays")
+@app.get("/currencies/{code}/holidays", summary="Get currency holidays", response_model=List[CurrencyHolidayResponse])
 async def get_currency_holidays(
     code: str,
     start: dt.date = Query(..., description="Start date (YYYY-MM-DD)"),
@@ -395,19 +345,19 @@ async def get_currency_holidays(
     logger.info(f"Retrieved {len(holidays)} holidays for currency {code}")
     return [holiday.to_dict() for holiday in holidays]
 
-@app.get("/currencies/{code}/is_available", summary="Check if currency is available")
+@app.get("/currencies/{code}/is_available", summary="Check if currency is available", response_model=IsAvailableResponse)
 async def check_currency_available(code: str, db=Depends(get_db)):
     """Check if currency is available under current plan."""
     is_available = Currency.is_available(code)
     logger.info(f"Checked availability for currency {code}: {is_available}")
-    return {"currency_code": code, "is_available": is_available}
+    return {"is_available": is_available}
 
-@app.get("/currencies/{code}/is_covered", summary="Check if currency is covered")
+@app.get("/currencies/{code}/is_covered", summary="Check if currency is covered", response_model=IsCoveredResponse)
 async def check_currency_covered(code: str, db=Depends(get_db)):
     """Check if currency is covered by TradingHours data."""
     is_covered = Currency.is_covered(code)
     logger.info(f"Checked coverage for currency {code}: {is_covered}")
-    return {"currency_code": code, "is_covered": is_covered}
+    return {"is_covered": is_covered}
 
 
 class GunicornApplication:

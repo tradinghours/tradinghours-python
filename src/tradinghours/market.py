@@ -34,12 +34,12 @@ class Market(BaseModel):
 
     def __init__(self, data):
         super().__init__(data)
+        self.fin_id = self._data["fin_id"]
         self.exchange_name = self._data["exchange_name"]
         self.market_name = self._data["market_name"]
         self.security_group = self._data["security_group"]
         self.timezone = self._data["timezone"]
         self.weekend_definition = self._data["weekend_definition"]
-        self.fin_id = self._data["fin_id"]
         self.mic = self._data["mic"]
         self.acronym = self._data["acronym"]
         self.asset_type = self._data["asset_type"]
@@ -47,7 +47,7 @@ class Market(BaseModel):
         self.permanently_closed = self._data["permanently_closed"]
         self.replaced_by = self._data["replaced_by"]
 
-    @cached_property
+    @property
     def first_available_date(self):
         """
         The first available date is the 1st day of
@@ -61,7 +61,7 @@ class Market(BaseModel):
         ).first()
         return result.date.replace(day=1)
 
-    @cached_property
+    @property
     def last_available_date(self):
         """
         The last available date is the last day of the month
@@ -78,8 +78,9 @@ class Market(BaseModel):
         return date.replace(day=num_days_in_month)
 
     def _in_range(self, *dates) -> None:
+        first, last = self.first_available_date, self.last_available_date
         if not all(
-            self.first_available_date <= date <= self.last_available_date for date in dates
+            first <= date <= last for date in dates
         ):
             raise DateNotAvailable("the requested data is outside of the available dates for this "
                                    "Market. You can use the properties `first_available_date` and "

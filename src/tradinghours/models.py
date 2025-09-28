@@ -300,6 +300,7 @@ class Phase(BaseModel):
     def is_open(self):
         return self.status == 'Open'
 
+
 class MarketStatus(BaseModel):
     _table = None
     _original_string_format = "MarketStatus: {status}"
