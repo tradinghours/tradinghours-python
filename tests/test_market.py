@@ -190,13 +190,15 @@ def test_market_status(fin_id, datetime, expected):
     assert status == expected
 
 
-def test_first_last_available_dates():
+def test_stress_market():
     for market in Market.list_all():
         first = market.first_available_date
         last = market.last_available_date
         assert isinstance(first, dt.date) and first.day == 1
         assert isinstance(last, dt.date) and last.day == calendar.monthrange(last.year, last.month)[1]
         assert first <= last
+
+        assert str(market) == Market.get_string_format().format(**market.to_dict())
 
 # ===== SERVER ENDPOINT TESTS =====
 

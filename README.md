@@ -158,7 +158,9 @@ market.pprint() # same as pprint(market.to_dict())
      'memo': 'Canonical',
      'permanently_closed': None,
      'replaced_by': None,
-     'country_code': 'US'}
+     'country_code': 'US',
+     'first_available_date': '2000-01-01',
+     'last_available_date': '2033-12-31'}
 ```
 
 If a market is marked "permanently closed," it may be replaced or superseded by another market. By default, the newer market will be returned automatically. You can retrieve the older market object for historical analysis by using the `follow=False` parameter.
@@ -249,18 +251,19 @@ To get the "general schedule" that phases are based on, use `Market.list_schedul
 from tradinghours import Market
 
 market = Market.get('XNYS')
-for schedule in market.list_schedules():
+for schedule in market.list_schedules()[:10]:
     print(schedule)
 
 >>> Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session
     Schedule: US.NYSE (Partial) 09:30:00 - 13:00:00    Mon-Fri Primary Trading Session
     Schedule: US.NYSE (Partial) 13:00:00 - 13:30:00    Mon-Fri Post-Trading Session
+    Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session
+    Schedule: US.NYSE (Partial) 09:30:00 - 13:00:00    Mon-Fri Primary Trading Session
     Schedule: US.NYSE (Regular) 04:00:00 - 09:30:00    Mon-Fri Pre-Trading Session
     Schedule: US.NYSE (Regular) 06:30:00 - 09:30:00    Mon-Fri Pre-Open
     Schedule: US.NYSE (Regular) 09:30:00 - 09:30:00    Mon-Fri Call Auction
     Schedule: US.NYSE (Regular) 09:30:00 - 16:00:00    Mon-Fri Primary Trading Session
-    Schedule: US.NYSE (Regular) 15:50:00 - 16:00:00    Mon-Fri Pre-Close
-    Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
+    Schedule: US.NYSE (Regular) 15:45:00 - 16:00:00    Mon-Fri Pre-Close
 ```
 
 `US.MGEX` is a more complex example, which has multiple irregular schedules and overnight trading sessions:
@@ -365,7 +368,7 @@ log_level = DEBUG
 log_days_to_keep = 7
 
 [extra]
-check_tzdata = False
+check_tzdata = True
 ```
 
 ## Package Mode
