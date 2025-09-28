@@ -25,99 +25,40 @@ from .store import db
 from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable, InvalidType, InvalidValue
 from .config import main_config
 from . import __version__
+from .util import add_log_handlers
 
-def configure_logging():
+
+def setup_root_logger():
     """Configure logging based on tradinghours.ini settings."""
-    log_level_str = main_config.get("server-mode", "log_level").upper()
-    log_folder = main_config.get("server-mode", "log_folder")
-    log_days_to_keep = main_config.getint("server-mode", "log_days_to_keep")
-    
-    # Convert string log level to logging constant
-    log_level = getattr(logging, log_level_str)
-    
-    # Create formatter
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        root_logger.removeHandler(handler)
+
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
-    
-    # Remove any existing handlers
-    for handler in root_logger.handlers:
-        root_logger.removeHandler(handler)
+    add_log_handlers(root_logger, formatter)
 
-    # Create logs directory if it doesn't exist
-    logs_path = Path(log_folder)
-    logs_path.mkdir(parents=True, exist_ok=True)
     
-    # Create log file path with daily rotation
-    log_file_path = logs_path / "th_server.log"
-    
-    # Use TimedRotatingFileHandler for daily rotation
-    file_handler = logging.handlers.TimedRotatingFileHandler(
-        filename=str(log_file_path),
-        when='midnight',
-        interval=1,
-        backupCount=log_days_to_keep,
-        encoding='utf-8'
-    )
-    # Set suffix for rotated files (YYYY-MM-DD format)
-    file_handler.suffix = "%Y-%m-%d"
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(log_level)
-    root_logger.addHandler(file_handler)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(log_level)
-    root_logger.addHandler(console_handler)
-    
-    # Configure specific loggers to use our handlers
-    # Gunicorn loggers
-    gunicorn_logger = logging.getLogger('gunicorn')
-    gunicorn_logger.handlers = []
-    gunicorn_logger.propagate = True
-    
-    gunicorn_error_logger = logging.getLogger('gunicorn.error')
-    gunicorn_error_logger.handlers = []
-    gunicorn_error_logger.propagate = True
-    
-    gunicorn_access_logger = logging.getLogger('gunicorn.access')
-    gunicorn_access_logger.handlers = []
-    gunicorn_access_logger.propagate = True
-    
-    # Uvicorn loggers
-    uvicorn_logger = logging.getLogger('uvicorn')
-    uvicorn_logger.handlers = []
-    uvicorn_logger.propagate = True
-    
-    uvicorn_access_logger = logging.getLogger('uvicorn.access')
-    uvicorn_access_logger.handlers = []
-    uvicorn_access_logger.propagate = True
-    
-    uvicorn_error_logger = logging.getLogger('uvicorn.error')
-    uvicorn_error_logger.handlers = []
-    uvicorn_error_logger.propagate = True
-
 
 class LogCapture(io.TextIOWrapper):
     """Custom stream to capture stdout/stderr and send to our logger."""
     def __init__(self, original_stream, logger_name):
         self.original_stream = original_stream
         self.logger = logging.getLogger(logger_name)
-        
+        self.logger.propagate = False
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        add_log_handlers(self.logger, formatter)
+        self.level_to_log = logging.INFO if logger_name == "stdout" else logging.ERROR
+
     def write(self, text):
-        # Write to original stream (console)
-        # self.original_stream.write(text)
-        # self.original_stream.flush()
-        
-        # Also log to our files (strip newlines since logger adds them)
         text = text.strip()
         if text:  # Only log non-empty lines
-            self.logger.info(text)
+            self.logger.log(self.level_to_log, text)
         
     def flush(self):
         self.original_stream.flush()
@@ -127,17 +68,14 @@ class LogCapture(io.TextIOWrapper):
 
 
 # Configure logging
-configure_logging()
-logger = logging.getLogger(__name__)
+setup_root_logger()
+logger = logging.getLogger("th.server")
 
 # Capture stdout/stderr to also log to our files
 original_stdout = sys.stdout
 original_stderr = sys.stderr
-sys.stdout = LogCapture(original_stdout, "gunicorn.stdout")
-sys.stderr = LogCapture(original_stderr, "gunicorn.stderr")
-
-# Access logger for HTTP requests
-access_logger = logging.getLogger("tradinghours.access")
+sys.stdout = LogCapture(original_stdout, "stdout")
+sys.stderr = LogCapture(original_stderr, "stderr")
 
 # Create FastAPI app
 app = FastAPI(
@@ -161,13 +99,13 @@ async def log_requests(request: Request, call_next):
         status_code = response.status_code
     except Exception as e:
         process_time = time.time() - start_time
-        access_logger.error(
+        logger.error(
             f"{client_ip} - {method} {url} - ERROR - {process_time:.3f}s - {type(e).__name__}: {str(e)}"
         )
         raise
     
     process_time = time.time() - start_time    
-    access_logger.info(
+    logger.debug(
         f"{client_ip} - {method} {url} - {status_code} - {process_time:.3f}s"
     )
     return response
@@ -560,7 +498,7 @@ def run_server(
         'loglevel': log_level,
         'capture_output': True,
         'enable_stdio_inheritance': True,
-        'accesslog': '-',    # Log to stdout, captured by our LogCapture
+        'accesslog': None,    # Log to stdout, captured by our LogCapture
         'errorlog': '-'      # Log to stderr, captured by our LogCapture
     }
     
