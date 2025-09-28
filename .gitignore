@@ -13,6 +13,7 @@ tests/local
 tests/fixtures/remote
 *.db
 tradinghours.ini
+tradinghours_server_logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

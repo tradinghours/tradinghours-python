@@ -26,8 +26,9 @@ default_settings = {
         "allowed_hosts": "*",
         "allowed_origins": "*",
         "log_folder": "tradinghours_server_logs",
-        "log_days_to_keep": 14,
-        "log_level": "info"
+        "log_days_to_keep": 7,
+        "log_level": "DEBUG",
+        "uvicorn_workers": 1,
     },
     "extra": {
         "check_tzdata": True,

@@ -1,15 +1,11 @@
 from typing import List, Optional, Union, Any, Dict
 from datetime import date, datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 class BaseResponseModel(BaseModel):
     # Pydantic v2 configuration
     model_config = ConfigDict(
         extra="allow",         # Allows additional fields not defined in schema
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat(),
-        }
     )
 
 class MarketResponse(BaseResponseModel):

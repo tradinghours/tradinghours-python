@@ -144,8 +144,6 @@ def main():
                 "host": args.host,
                 "port": args.port,
                 "uds": args.uds,
-                "workers": args.workers,
-                "log_level": args.log_level
             }
             run_serve(server_config, no_auto_update=args.no_auto_update)
 

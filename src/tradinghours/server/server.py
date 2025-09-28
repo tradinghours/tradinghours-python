@@ -414,8 +414,6 @@ def run_server(
     host: str = "127.0.0.1",
     port: int = 8000,
     uds: Optional[str] = None,
-    workers: int = 2,
-    log_level: Optional[str] = None,
 ):
     """Run server with gunicorn or uvicorn.
     
@@ -423,12 +421,7 @@ def run_server(
         host: Host to bind to
         port: Port to bind to  
         uds: Unix domain socket path (overrides host/port)
-        workers: Number of worker processes (only for gunicorn)
-        log_level: Log level (if None, uses config from tradinghours.ini)
     """
-    # Use log_level from config if not provided
-    if log_level is None:
-        log_level = main_config.get("server-mode", "log_level", fallback="info")
     if uds:
         bind = f"unix:{uds}"
         logger.info(f"Starting TradingHours API on Unix socket: {uds}")
@@ -440,15 +433,18 @@ def run_server(
         logger.info(f"Starting TradingHours API on http://{host}:{port}")
     
 
+    uvicorn_workers = main_config.getint("server-mode", "uvicorn_workers") or 1
+    log_level = (main_config.get("server-mode", "log_level") or "DEBUG").upper()
+
     # Use Gunicorn for production with multiple workers
     options = {
         'bind': bind,
-        'workers': workers,
+        'workers': uvicorn_workers,
         'worker_class': 'uvicorn.workers.UvicornWorker',
         'loglevel': log_level,
         'capture_output': True,
         'enable_stdio_inheritance': True,
-        'accesslog': None,    # Log to stdout, captured by our LogCapture
+        'accesslog': None,
         'errorlog': '-'      # Log to stderr, captured by our LogCapture
     }
     
