@@ -213,7 +213,7 @@ class Market(BaseModel):
             # Sort based on start time and duration
             found_schedules = sorted(
                 found_schedules,
-                key=lambda s: (s.start, s.duration, s.phase_type != "Primary Trading Session"),
+                key=lambda s: (s.start, s.duration, "Primary Trading Session" not in s.phase_type),
             )
 
             # Generate phases for current date

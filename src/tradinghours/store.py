@@ -496,7 +496,6 @@ class Writer:
         if _is_default_store():
             self.db = _DB(db_url="sqlite:///" + str(_create_timestamped_db_path()))
 
-        print("self.db.db_url", self.db.db_url)
         with timed_action("Ingesting") as (change_message, start_time):
             try:
                 self._ingest_all(change_message)
