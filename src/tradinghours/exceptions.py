@@ -38,27 +38,6 @@ class TradingHoursError(Exception):
         return self.detail
 
 
-class PrepareError(TradingHoursError):
-    """Happens when a field from a model cannot be interpreted"""
-
-    def __init__(self, field: "Field", value: Any, inner: Optional[Exception] = None):
-        super().__init__("Error preparing field", inner=inner)
-        self._field = field
-        self._value = value
-
-    @property
-    def field(self):
-        return self._field
-
-    @property
-    def value(self):
-        return self._value
-
-    def build_detail(self):
-        message = f"Could not prepare field {self._field.field_name}"
-        return super().build_detail(message)
-
-
 class ClientError(TradingHoursError):
     """When an error occurs accessing remote HTTP server"""
 

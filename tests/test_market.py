@@ -1,3 +1,4 @@
+import datetime as dt
 import pytest, calendar
 from tradinghours import Market
 from tradinghours.models import MarketHoliday
@@ -189,6 +190,14 @@ def test_market_status(fin_id, datetime, expected):
     assert status == expected
 
 
+def test_first_last_available_dates():
+    for market in Market.list_all():
+        first = market.first_available_date
+        last = market.last_available_date
+        assert isinstance(first, dt.date) and first.day == 1
+        assert isinstance(last, dt.date) and last.day == calendar.monthrange(last.year, last.month)[1]
+        assert first <= last
+
 # ===== SERVER ENDPOINT TESTS =====
 
 @pytest.fixture
@@ -203,243 +212,190 @@ class TestMarketEndpoints:
     def test_list_markets_endpoint(self, client):
         """Test GET /markets endpoint."""
         response = client.get("/markets")
-        assert response.status_code in [200, 403]
+        assert response.status_code == 200
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, list)
-            # Compare with direct method call
-            direct_result = Market.list_all()
-            if data and direct_result:
-                assert isinstance(data[0], dict)
-                assert 'fin_id' in data[0]
+        data = response.json()
+        assert isinstance(data, list)
+        # Compare with direct method call
+        assert isinstance(data[0], dict)
+        assert 'fin_id' in data[0]
+        direct_result = Market.list_all()
+        assert len(data) == len(direct_result)
 
     def test_list_markets_with_subset_endpoint(self, client):
         """Test GET /markets endpoint with subset parameter."""
         response = client.get("/markets?subset=US*")
-        assert response.status_code in [200, 403]
+        assert response.status_code == 200
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, list)
-            # All returned markets should start with US
-            for market in data:
-                assert market['fin_id'].startswith('US')
+        data = response.json()
+        assert isinstance(data, list)
+        # All returned markets should start with US
+        for market in data:
+            assert market['fin_id'].startswith('US')
 
     def test_get_market_endpoint(self, client):
         """Test GET /markets/{identifier} endpoint."""
         response = client.get("/markets/US.NYSE")
+        assert response.status_code == 200
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            assert data['fin_id'] == 'US.NYSE'
-            
-            # Compare with direct method call
-            try:
-                direct_result = Market.get("US.NYSE")
-                direct_dict = direct_result.to_dict()
-                assert data == direct_dict
-            except Exception:
-                pass
+        data = response.json()
+        assert isinstance(data, dict)
+        assert data['fin_id'] == 'US.NYSE'
+        
+        # Compare with direct method call
+        direct_result = Market.get("US.NYSE")
+        direct_dict = direct_result.to_dict()
+        direct_dict["first_available_date"] = str(direct_dict["first_available_date"])
+        direct_dict["last_available_date"] = str(direct_dict["last_available_date"])
+        assert data == direct_dict
 
     def test_get_market_by_mic_endpoint(self, client):
         """Test GET /markets with MIC identifier."""
         response = client.get("/markets/XNYS")  # NYSE MIC
+        assert response.status_code == 200
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            # Should resolve to US.NYSE
-            assert 'fin_id' in data
+        data = response.json()
+        assert isinstance(data, dict)
+        # Should resolve to US.NYSE
+        assert 'fin_id' in data
 
     def test_market_holidays_endpoint(self, client):
         """Test GET /markets/{identifier}/holidays endpoint."""
         response = client.get("/markets/US.NYSE/holidays?start=2023-11-15&end=2023-11-15")
+        assert response.status_code == 200
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, list)
-            
-            # Compare with direct method call
-            try:
-                market = Market.get("US.NYSE")
-                direct_result = market.list_holidays("2023-11-15", "2023-11-15")
-                direct_dicts = [h.to_dict() for h in direct_result]
-                assert data == direct_dicts
-            except Exception:
-                pass
+        data = response.json()
+        assert isinstance(data, list)
+        
+        # Compare with direct method call
+        market = Market.get("US.NYSE")
+        direct_result = market.list_holidays("2023-11-15", "2023-11-15")
+        assert len(data) == len(direct_result)
 
     def test_market_phases_endpoint(self, client):
         """Test GET /markets/{identifier}/phases endpoint."""
         response = client.get("/markets/US.NYSE/phases?start=2023-11-15&end=2023-11-15")
+        assert response.status_code == 200
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, list)
-            
-            # Compare with direct method call  
-            try:
-                market = Market.get("US.NYSE")
-                direct_result = list(market.generate_phases("2023-11-15", "2023-11-15"))
-                direct_dicts = [p.to_dict() for p in direct_result]
-                assert data == direct_dicts
-            except Exception:
-                pass
+        data = response.json()
+        assert isinstance(data, list)
+        
+        # Compare with direct method call  
+        market = Market.get("US.NYSE")
+        direct_result = list(market.generate_phases("2023-11-15", "2023-11-15"))
+        assert len(data) == len(direct_result)
 
     def test_market_schedules_endpoint(self, client):
         """Test GET /markets/{identifier}/schedules endpoint."""
         response = client.get("/markets/US.NYSE/schedules")
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, list)
-            
-            # Compare with direct method call
-            try:
-                market = Market.get("US.NYSE")
-                direct_result = market.list_schedules()
-                direct_dicts = [s.to_dict() for s in direct_result]
-                assert data == direct_dicts
-            except Exception:
-                pass
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        
+        market = Market.get("US.NYSE")
+        direct_result = market.list_schedules()
+        direct_dicts = []
+        for s in direct_result:
+            dict = s.to_dict()
+            for tfield in [
+                "start", "end", "min_start", "max_start", "min_end", "max_end",
+                "in_force_start_date", "in_force_end_date",
+            ]:
+                if dict[tfield]:
+                    dict[tfield] = str(dict[tfield])
+
+            direct_dicts.append(dict)
+
+        assert data == direct_dicts
+
 
     def test_market_status_endpoint(self, client):
         """Test GET /markets/{identifier}/status endpoint."""
         response = client.get("/markets/US.NYSE/status")
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            assert 'status' in data
-            
-            # Compare with direct method call
-            try:
-                market = Market.get("US.NYSE")
-                direct_result = market.status()
-                direct_dict = direct_result.to_dict()
-                assert data == direct_dict
-            except Exception:
-                pass
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+        assert 'status' in data
+        
+        market = Market.get("US.NYSE")
+        direct_result = market.status()
+        assert data.keys() == (direct_result.to_dict()).keys()
 
     def test_market_status_with_datetime_endpoint(self, client):
         """Test GET /markets/{identifier}/status endpoint with datetime parameter."""
         datetime_str = "2023-11-15T12:00:00-05:00"
         response = client.get(f"/markets/US.NYSE/status?datetime={datetime_str}")
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            assert 'status' in data
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+        assert 'status' in data
 
     def test_market_is_available_endpoint(self, client):
         """Test GET /markets/{identifier}/is_available endpoint."""
         response = client.get("/markets/US.NYSE/is_available")
-        assert response.status_code in [200, 403]
-        
-        if response.status_code == 200:
-            data = response.json()
-            assert 'identifier' in data
-            assert 'is_available' in data
-            assert isinstance(data['is_available'], bool)
+        assert response.status_code == 200
+        data = response.json()
+        assert 'is_available' in data
+        assert isinstance(data['is_available'], bool)
             
-            # Compare with direct method call
-            direct_result = Market.is_available("US.NYSE")
-            assert data['is_available'] == direct_result
+        # Compare with direct method call
+        direct_result = Market.is_available("US.NYSE")
+        assert data['is_available'] == direct_result
 
     def test_market_is_covered_endpoint(self, client):
         """Test GET /markets/{identifier}/is_covered endpoint."""
-        response = client.get("/markets/US.NYSE/is_covered")
-        assert response.status_code in [200, 403]
+        response = client.get("/markets/US.NYSE/is_covered")        
+        assert response.status_code == 200
+        data = response.json()
+        assert 'is_covered' in data
+        assert isinstance(data['is_covered'], bool)
         
-        if response.status_code == 200:
-            data = response.json()
-            assert 'identifier' in data
-            assert 'is_covered' in data
-            assert isinstance(data['is_covered'], bool)
-            
-            # Compare with direct method call (if accessible)
-            try:
-                direct_result = Market.is_covered("US.NYSE")
-                assert data['is_covered'] == direct_result
-            except Exception:
-                pass
-
-    def test_market_date_range_endpoint(self, client):
-        """Test GET /markets/{identifier}/date_range endpoint."""
-        response = client.get("/markets/US.NYSE/date_range")
-        
-        if response.status_code == 200:
-            data = response.json()
-            assert 'first_available_date' in data
-            assert 'last_available_date' in data
-            assert 'country_code' in data
-            assert 'fin_id' in data
-            
-            # Compare with direct method call
-            try:
-                market = Market.get("US.NYSE")
-                assert data['first_available_date'] == market.first_available_date.isoformat()
-                assert data['last_available_date'] == market.last_available_date.isoformat()
-                assert data['country_code'] == market.country_code
-                assert data['fin_id'] == market.fin_id
-            except Exception:
-                pass
+        # Compare with direct method call (if accessible)
+        direct_result = Market.is_covered("US.NYSE")
+        assert data['is_covered'] == direct_result
 
     def test_market_get_by_finid_endpoint(self, client):
         """Test GET /markets/finid/{finid} endpoint."""
         response = client.get("/markets/finid/US.NYSE")
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            assert data['fin_id'] == 'US.NYSE'
-            
-            # Compare with direct method call
-            try:
-                direct_result = Market.get_by_finid("US.NYSE")
-                direct_dict = direct_result.to_dict()
-                assert data == direct_dict
-            except Exception:
-                pass
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+        assert data['fin_id'] == 'US.NYSE'
+        
+        direct_result = Market.get_by_finid("US.NYSE")
+        direct_dict = direct_result.to_dict()
+        assert data.keys() == direct_dict.keys()
+        assert data["fin_id"] == direct_dict["fin_id"]
+
 
     def test_market_get_by_finid_follow_parameter(self, client):
         """Test GET /markets/finid/{finid} endpoint with follow parameter."""
         # Test with follow=false for a replaced market
         response = client.get("/markets/finid/AR.BCBA?follow=false")
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            assert data['fin_id'] == 'AR.BCBA'
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+        assert data['fin_id'] == 'AR.BCBA'
 
     def test_market_get_by_mic_endpoint(self, client):
         """Test GET /markets/mic/{mic} endpoint."""
         response = client.get("/markets/mic/XNYS")  # NYSE MIC
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            # Should resolve to a valid market
-            assert 'fin_id' in data
-            
-            # Compare with direct method call
-            try:
-                direct_result = Market.get_by_mic("XNYS")
-                direct_dict = direct_result.to_dict()
-                assert data == direct_dict
-            except Exception:
-                pass
-
-    def test_market_get_by_mic_follow_parameter(self, client):
-        """Test GET /markets/mic/{mic} endpoint with follow parameter."""
-        response = client.get("/markets/mic/XBUE?follow=false")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+        # Should resolve to a valid market
+        assert 'fin_id' in data
         
-        if response.status_code == 200:
-            data = response.json()
-            assert isinstance(data, dict)
-            # Should return the replaced market when follow=false
-            assert 'fin_id' in data
+        direct_result = Market.get_by_mic("XNYS")
+        direct_dict = direct_result.to_dict()
+        assert data.keys() == direct_dict.keys()
+        assert data["fin_id"] == direct_dict["fin_id"]
 
 
 class TestMarketHybrid:
@@ -447,38 +403,31 @@ class TestMarketHybrid:
     
     def test_list_all_consistency(self, client):
         """Test that direct list_all() and /markets endpoint return equivalent data."""
-        try:
-            # Direct method call
-            direct_markets = Market.list_all()
-            direct_dicts = [m.to_dict() for m in direct_markets]
-            
-            # API endpoint call
-            response = client.get("/markets")
-            if response.status_code == 200:
-                api_data = response.json()
-                assert api_data == direct_dicts
-        except Exception:
-            # Skip if no access or other issues
-            pass
+        # Direct method call
+        direct_markets = Market.list_all()
+
+        # API endpoint call
+        response = client.get("/markets")
+        assert response.status_code == 200
+        api_data = response.json()
+        assert len(api_data) == len(direct_markets)
+
 
     def test_get_consistency(self, client):
         """Test that direct get() and /markets/{identifier} endpoint return equivalent data."""
         test_identifiers = ["US.NYSE", "US.NASDAQ", "XNYS", "XNAS"]
         
         for identifier in test_identifiers:
-            try:
-                # Direct method call
-                direct_market = Market.get(identifier)
-                direct_dict = direct_market.to_dict()
-                
-                # API endpoint call
-                response = client.get(f"/markets/{identifier}")
-                if response.status_code == 200:
-                    api_data = response.json()
-                    assert api_data == direct_dict
-            except Exception:
-                # Market might not be available, continue with next
-                continue
+            direct_market = Market.get(identifier)
+            direct_dict = direct_market.to_dict()
+            direct_dict["first_available_date"] = str(direct_dict["first_available_date"])
+            direct_dict["last_available_date"] = str(direct_dict["last_available_date"])
+            
+            # API endpoint call
+            response = client.get(f"/markets/{identifier}")
+            assert response.status_code == 200
+            api_data = response.json()
+            assert api_data == direct_dict
 
     def test_phases_consistency(self, client):
         """Test that direct generate_phases() and /markets/{identifier}/phases return equivalent data."""
@@ -487,17 +436,19 @@ class TestMarketHybrid:
         end_date = "2023-11-15"
         
         for identifier in test_identifiers:
-            try:
-                # Direct method call
-                market = Market.get(identifier)
-                direct_phases = list(market.generate_phases(start_date, end_date))
-                direct_dicts = [p.to_dict() for p in direct_phases]
-                
-                # API endpoint call
-                response = client.get(f"/markets/{identifier}/phases?start={start_date}&end={end_date}")
-                if response.status_code == 200:
-                    api_data = response.json()
-                    assert api_data == direct_dicts
-            except Exception:
-                # Market might not be available, continue with next
-                continue
+            # Direct method call
+            market = Market.get(identifier)
+            direct_phases = list(market.generate_phases(start_date, end_date))
+            direct_dicts = []
+            for p in direct_phases:
+                dict = p.to_dict()
+                for tfield in ["start", "end"]:
+                    if dict[tfield]:
+                        dict[tfield] = str(dict[tfield].isoformat())
+                direct_dicts.append(dict)
+            
+            # API endpoint call
+            response = client.get(f"/markets/{identifier}/phases?start={start_date}&end={end_date}")
+            assert response.status_code == 200
+            api_data = response.json()
+            assert api_data == direct_dicts

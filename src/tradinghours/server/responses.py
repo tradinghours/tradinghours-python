@@ -1,5 +1,5 @@
 from typing import List, Optional, Union, Any, Dict
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 class BaseResponseModel(BaseModel):
@@ -31,7 +31,7 @@ class MarketHolidayResponse(BaseResponseModel):
     holiday_name: Optional[str] = None
     schedule: Optional[str] = None
     settlement: Optional[str] = None
-    observed: Optional[str] = None
+    observed: bool
     memo: Optional[str] = None
     status: Optional[str] = None
     has_settlement: bool
@@ -58,14 +58,14 @@ class ScheduleResponse(BaseResponseModel):
     phase_name: Optional[str] = None
     phase_memo: Optional[str] = None
     days: Optional[str] = None
-    start: Optional[str] = None
-    end: Optional[str] = None
+    start: Optional[time] = None
+    end: Optional[time] = None
     offset_days: Optional[int] = None
     duration: Optional[int] = None  
-    min_start: Optional[str] = None
-    max_start: Optional[str] = None
-    min_end: Optional[str] = None
-    max_end: Optional[str] = None
+    min_start: Optional[time] = None
+    max_start: Optional[time] = None
+    min_end: Optional[time] = None
+    max_end: Optional[time] = None
     in_force_start_date: Optional[date] = None
     in_force_end_date: Optional[date] = None
     season_start: Optional[str] = None
@@ -94,7 +94,7 @@ class CurrencyHolidayResponse(BaseResponseModel):
     date: date
     holiday_name: Optional[str] = None
     settlement: Optional[str] = None
-    observed: Optional[str] = None
+    observed: bool
     memo: Optional[str] = None
     
 

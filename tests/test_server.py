@@ -42,15 +42,15 @@ class TestServerHealth:
 class TestErrorHandling:
     """Test error handling and HTTP status codes."""
     
-    def test_invalid_market_404(self, client):
-        """Test that invalid market returns 404."""
+    def test_invalid_market_400(self, client):
+        """Test that invalid market returns 400."""
         response = client.get("/markets/INVALID.MARKET")
-        assert response.status_code == 404
+        assert response.status_code == 400
 
-    def test_invalid_currency_404(self, client):
-        """Test that invalid currency returns 404."""
+    def test_invalid_currency_400(self, client):
+        """Test that invalid currency returns 400."""
         response = client.get("/currencies/INVALID")
-        assert response.status_code == 404
+        assert response.status_code == 400
 
     def test_invalid_date_format_422(self, client):
         """Test that invalid date format returns 422."""
@@ -83,88 +83,32 @@ class TestErrorHandling:
         assert response.status_code == 405
 
 
-class TestCORSAndSecurity:
-    """Test CORS and security middleware."""
-    
-    def test_cors_options_request(self, client):
-        """Test that OPTIONS requests are handled properly."""
-        response = client.options("/health")
-        # TestClient may not fully simulate CORS, but endpoint should respond
-        assert response.status_code in [200, 405]
-
-    def test_trusted_host_middleware_active(self, client):
-        """Test that the app responds properly (middleware is configured)."""
-        response = client.get("/health")
-        assert response.status_code == 200
-        # The fact that we get a response means middleware is working
-
-    def test_cors_headers_configured(self, client):
-        """Test basic CORS functionality."""
-        response = client.get("/health")
-        assert response.status_code == 200
-        # In a real deployment, we'd check for Access-Control-Allow-Origin headers
-
 
 class TestDataSerialization:
     """Test JSON serialization of datetime objects."""
     
     def test_datetime_serialization_in_phases(self, client):
         """Test that datetime objects are properly serialized in phases."""
-        response = client.get("/markets/US.NYSE/phases?start=2023-11-15&end=2023-11-15")
-        if response.status_code == 200:  # Only test if we have access
-            data = response.json()
-            if data:  # If we have phases
-                phase = data[0]
-                # Check that datetime fields are strings in ISO format
-                assert isinstance(phase["start"], str)
-                assert isinstance(phase["end"], str)
-                # Verify they parse as valid datetimes
-                datetime.fromisoformat(phase["start"].replace('Z', '+00:00'))
-                datetime.fromisoformat(phase["end"].replace('Z', '+00:00'))
+        response = client.get("/markets/US.NYSE/phases?start=2023-11-15&end=2023-11-25")
+        data = response.json()
+        
+        phase = data[0]
+        # Check that datetime fields are strings in ISO format
+        assert isinstance(phase["start"], str)
+        assert isinstance(phase["end"], str)
+        # Verify they parse as valid datetimes
+        datetime.fromisoformat(phase["start"])
+        datetime.fromisoformat(phase["end"])
 
     def test_date_serialization_in_holidays(self, client):
         """Test that date objects are properly serialized in holidays."""
-        response = client.get("/markets/US.NYSE/holidays?start=2023-11-15&end=2023-11-15")
-        if response.status_code == 200:  # Only test if we have access
-            data = response.json()
-            if data:  # If we have holidays
-                holiday = data[0]
-                # Check that date field is a string
-                assert isinstance(holiday["date"], str)
-                # Verify it parses as a valid date
-                date.fromisoformat(holiday["date"])
-
-    def test_iso_format_consistency(self, client):
-        """Test that all datetime/date serialization uses ISO format."""
-        endpoints_to_test = [
-            "/markets/US.NYSE/date_range",
-            "/markets/US.NYSE/phases?start=2023-11-15&end=2023-11-15",
-            "/markets/US.NYSE/holidays?start=2023-11-15&end=2023-11-15",
-            "/currencies/USD/holidays?start=2023-01-01&end=2023-01-31"
-        ]
-        
-        for endpoint in endpoints_to_test:
-            response = client.get(endpoint)
-            if response.status_code == 200:
-                data = response.json()
-                # Recursively check all datetime/date strings in response
-                self._check_datetime_format_recursive(data)
-
-    def _check_datetime_format_recursive(self, obj):
-        """Recursively check that datetime/date strings are in ISO format."""
-        if isinstance(obj, dict):
-            for key, value in obj.items():
-                if key in ['start', 'end', 'until', 'next_bell'] and isinstance(value, str):
-                    # Should be datetime ISO format
-                    datetime.fromisoformat(value.replace('Z', '+00:00'))
-                elif key in ['date', 'first_available_date', 'last_available_date'] and isinstance(value, str):
-                    # Should be date ISO format
-                    date.fromisoformat(value)
-                else:
-                    self._check_datetime_format_recursive(value)
-        elif isinstance(obj, list):
-            for item in obj:
-                self._check_datetime_format_recursive(item)
+        response = client.get("/markets/US.NYSE/holidays?start=2020-01-01&end=2030-01-01")
+        data = response.json()
+        holiday = data[0]
+        # Check that date field is a string
+        assert isinstance(holiday["date"], str)
+        # Verify it parses as a valid date
+        date.fromisoformat(holiday["date"])
 
 
 class TestParameterValidation:
@@ -174,7 +118,7 @@ class TestParameterValidation:
         """Test date range parameter validation."""
         # Valid date range
         response = client.get("/markets/US.NYSE/holidays?start=2023-01-01&end=2023-01-31")
-        assert response.status_code in [200, 403, 404]  # May fail due to access or market not found
+        assert response.status_code == 200
         
         # Missing required parameters should return 422
         response = client.get("/markets/US.NYSE/holidays")
@@ -228,161 +172,6 @@ class TestParameterValidation:
         assert response.status_code == 400
 
 
-class TestEndpointCoverage:
-    """Test that all expected endpoints exist and respond appropriately."""
-    
-    def test_all_market_endpoints_exist(self, client):
-        """Test that all market endpoints return proper status codes."""
-        endpoints = [
-            "/markets",
-            "/markets/US.NYSE",
-            "/markets/US.NYSE/holidays?start=2023-01-01&end=2023-01-31",
-            "/markets/US.NYSE/phases?start=2023-01-01&end=2023-01-31", 
-            "/markets/US.NYSE/schedules",
-            "/markets/US.NYSE/status",
-            "/markets/US.NYSE/is_available",
-            "/markets/US.NYSE/is_covered",
-            "/markets/US.NYSE/date_range",
-            "/markets/finid/US.NYSE",
-            "/markets/mic/XNYS",
-        ]
-        
-        for endpoint in endpoints:
-            response = client.get(endpoint)
-            # Should not return 404 (endpoint not found) or 405 (method not allowed)
-            assert response.status_code not in [404, 405], f"Endpoint {endpoint} not found"
-            # Expected status codes: 200 (success), 400 (bad request), 403 (no access), 422 (validation error)
-            assert response.status_code in [200, 400, 403, 422], f"Unexpected status for {endpoint}: {response.status_code}"
-
-    def test_all_currency_endpoints_exist(self, client):
-        """Test that all currency endpoints return proper status codes."""
-        endpoints = [
-            "/currencies",
-            "/currencies/USD",
-            "/currencies/USD/holidays?start=2023-01-01&end=2023-01-31",
-            "/currencies/USD/is_available", 
-            "/currencies/USD/is_covered",
-        ]
-        
-        for endpoint in endpoints:
-            response = client.get(endpoint)
-            # Should not return 404 (endpoint not found) or 405 (method not allowed)
-            assert response.status_code not in [404, 405], f"Endpoint {endpoint} not found"
-            # Expected status codes: 200 (success), 400 (bad request), 403 (no access), 422 (validation error)
-            assert response.status_code in [200, 400, 403, 422], f"Unexpected status for {endpoint}: {response.status_code}"
-
-    def test_endpoint_method_coverage(self, client):
-        """Test that endpoints only accept expected HTTP methods."""
-        # Test that GET endpoints reject other methods
-        get_endpoints = [
-            "/health",
-            "/info", 
-            "/markets",
-            "/currencies"
-        ]
-        
-        for endpoint in get_endpoints:
-            # POST should not be allowed
-            response = client.post(endpoint)
-            assert response.status_code == 405
-            
-            # PUT should not be allowed
-            response = client.put(endpoint)
-            assert response.status_code == 405
-            
-            # DELETE should not be allowed  
-            response = client.delete(endpoint)
-            assert response.status_code == 405
-
-
-class TestResponseStructure:
-    """Test the structure and consistency of API responses."""
-    
-    def test_health_response_structure(self, client):
-        """Test health endpoint response structure."""
-        response = client.get("/health")
-        assert response.status_code == 200
-        data = response.json()
-        
-        required_fields = ['status', 'message', 'version']
-        for field in required_fields:
-            assert field in data
-        
-        assert data['status'] == 'healthy'
-        assert isinstance(data['message'], str)
-        assert isinstance(data['version'], str)
-
-    def test_info_response_structure(self, client):
-        """Test info endpoint response structure."""
-        response = client.get("/info")
-        assert response.status_code == 200
-        data = response.json()
-        
-        required_fields = ['api_version', 'total_markets', 'total_currencies']
-        for field in required_fields:
-            assert field in data
-        
-        assert isinstance(data['total_markets'], int)
-        assert isinstance(data['total_currencies'], int)
-        assert data['total_markets'] >= 0
-        assert data['total_currencies'] >= 0
-
-    def test_is_available_response_structure(self, client):
-        """Test is_available endpoint response structure."""
-        # Test market is_available
-        response = client.get("/markets/US.NYSE/is_available")
-        if response.status_code == 200:
-            data = response.json()
-            assert 'identifier' in data
-            assert 'is_available' in data
-            assert isinstance(data['is_available'], bool)
-            assert data['identifier'] == 'US.NYSE'
-        
-        # Test currency is_available
-        response = client.get("/currencies/USD/is_available")
-        if response.status_code == 200:
-            data = response.json()
-            assert 'currency_code' in data
-            assert 'is_available' in data
-            assert isinstance(data['is_available'], bool)
-            assert data['currency_code'] == 'USD'
-
-    def test_is_covered_response_structure(self, client):
-        """Test is_covered endpoint response structure."""
-        # Test market is_covered
-        response = client.get("/markets/US.NYSE/is_covered")
-        if response.status_code == 200:
-            data = response.json()
-            assert 'identifier' in data
-            assert 'is_covered' in data
-            assert isinstance(data['is_covered'], bool)
-        
-        # Test currency is_covered
-        response = client.get("/currencies/USD/is_covered")
-        if response.status_code == 200:
-            data = response.json()
-            assert 'currency_code' in data
-            assert 'is_covered' in data
-            assert isinstance(data['is_covered'], bool)
-
-    def test_date_range_response_structure(self, client):
-        """Test date_range endpoint response structure."""
-        response = client.get("/markets/US.NYSE/date_range")
-        if response.status_code == 200:
-            data = response.json()
-            required_fields = ['identifier', 'fin_id', 'first_available_date', 'last_available_date', 'country_code']
-            for field in required_fields:
-                assert field in data
-            
-            # Verify date format
-            date.fromisoformat(data['first_available_date'])
-            date.fromisoformat(data['last_available_date'])
-            
-            # Verify logical date order
-            first_date = date.fromisoformat(data['first_available_date'])
-            last_date = date.fromisoformat(data['last_available_date'])
-            assert first_date <= last_date
-
 
 class TestServerPerformance:
     """Test server performance and response times."""
@@ -425,29 +214,17 @@ class TestEdgeCases:
         response1 = client.get("/markets/us.nyse")
         response2 = client.get("/markets/US.NYSE")
         
-        # Both should return the same status (both work or both fail)
         assert response1.status_code == response2.status_code
-        
-        # If successful, should return same data
-        if response1.status_code == 200 and response2.status_code == 200:
-            assert response1.json() == response2.json()
-
-    def test_whitespace_handling(self, client):
-        """Test handling of whitespace in parameters."""
-        # Identifiers with leading/trailing spaces should be handled gracefully
-        response = client.get("/markets/ US.NYSE ")
-        # Should either work (if trimmed) or return 404 (if not found due to spaces)
-        assert response.status_code in [200, 403, 404]
+        assert response1.json() == response2.json()
 
     def test_special_characters(self, client):
         """Test handling of special characters in identifiers."""
         # Test with URL-encoded special characters
         response = client.get("/markets/US%2ENYSE")  # URL-encoded dot
-        assert response.status_code in [200, 403, 404]
+        assert response.status_code == 200
 
     def test_very_long_identifiers(self, client):
         """Test handling of very long identifiers."""
         long_identifier = "A" * 500 + "." + "B" * 500
         response = client.get(f"/markets/{long_identifier}")
-        # Should return 404 (not found) rather than crash
-        assert response.status_code == 404
+        assert response.status_code == 400

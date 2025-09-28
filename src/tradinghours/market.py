@@ -59,6 +59,9 @@ class Market(BaseModel):
         ).order_by(
             table.c.date
         ).first()
+
+        if result is None:
+            return dt.date(2000, 1, 1)
         return result.date.replace(day=1)
 
     @property
@@ -73,6 +76,10 @@ class Market(BaseModel):
         ).order_by(
             table.c.date.desc()
         ).first()
+
+        if result is None:
+            return dt.date(dt.datetime.now().date().year + 5, 12, 31)
+        
         date = result.date
         _, num_days_in_month = calendar.monthrange(date.year, date.month)
         return date.replace(day=num_days_in_month)

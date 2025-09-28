@@ -1,5 +1,5 @@
 """Production-ready FastAPI server for TradingHours API."""
-import sys, time
+import sys, time, traceback
 import logging
 import datetime as dt
 from typing import Optional, List
@@ -18,7 +18,7 @@ except ImportError:
 from ..market import Market
 from ..currency import Currency
 from ..store import db
-from ..exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable, InvalidType, InvalidValue
+from ..exceptions import TradingHoursError
 from ..config import main_config
 from .. import __version__
 from .util import setup_root_logger, LogCapture
@@ -61,17 +61,27 @@ async def log_requests(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
     method = request.method
     url = str(request.url)
+    logger.critical(f"log_requests: {request}")
     try:
         response = await call_next(request)
         status_code = response.status_code
     except Exception as e:
         process_time = time.time() - start_time
-        logger.error(
+        logger.exception(
             f"{client_ip} - {method} {url} - ERROR - {process_time:.3f}s - {type(e).__name__}: {str(e)}"
         )
-        raise
+        if isinstance(e, TradingHoursError):
+            return JSONResponse(status_code=400, content={"message": str(e)})
+            
+        try:
+            log_folder = Path(main_config.get("server-mode", "log_folder")).absolute()
+            message = f"Server Error. Logs are saved in `{log_folder}`. Please send them to support@tradinghours.com for further investigation."
+        except Exception as e:
+            message = "Server Error. Please contact support@tradinghours.com for further investigation."
+
+        return JSONResponse(status_code=500, content={"message": message})
     
-    process_time = time.time() - start_time    
+    process_time = time.time() - start_time
     logger.debug(
         f"{client_ip} - {method} {url} - {status_code} - {process_time:.3f}s"
     )
@@ -90,7 +100,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -102,57 +112,6 @@ async def get_db():
         return db
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database not ready: {str(e)}")
-
-# Custom JSON encoder for datetime objects
-class CustomJSONResponse(JSONResponse):
-    def render(self, content) -> bytes:
-        # Handle datetime serialization
-        def serialize_datetime(obj):
-            if hasattr(obj, 'isoformat'):
-                return obj.isoformat()
-            elif isinstance(obj, dict):
-                return {k: serialize_datetime(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [serialize_datetime(item) for item in obj]
-            return obj
-        
-        if content is not None:
-            content = serialize_datetime(content)
-        return super().render(content)
-
-# Override default response class
-app.response_class = CustomJSONResponse
-
-# Exception handlers
-@app.exception_handler(NoAccess)
-async def no_access_handler(request, exc):
-    logger.warning(f"Access denied for {request.url}: {exc}")
-    raise HTTPException(status_code=403, detail=str(exc))
-
-@app.exception_handler(NotCovered)
-async def not_covered_handler(request, exc):
-    logger.info(f"Resource not found for {request.url}: {exc}")
-    raise HTTPException(status_code=404, detail=str(exc))
-
-@app.exception_handler(MICDoesNotExist)
-async def mic_not_exist_handler(request, exc):
-    logger.info(f"MIC not found for {request.url}: {exc}")
-    raise HTTPException(status_code=404, detail=str(exc))
-
-@app.exception_handler(DateNotAvailable)
-async def date_not_available_handler(request, exc):
-    logger.warning(f"Date not available for {request.url}: {exc}")
-    raise HTTPException(status_code=400, detail=str(exc))
-
-@app.exception_handler(InvalidType)
-async def invalid_type_handler(request, exc):
-    logger.warning(f"Invalid type for {request.url}: {exc}")
-    raise HTTPException(status_code=400, detail=str(exc))
-
-@app.exception_handler(InvalidValue)
-async def invalid_value_handler(request, exc):
-    logger.warning(f"Invalid value for {request.url}: {exc}")
-    raise HTTPException(status_code=400, detail=str(exc))
 
 
 # Health and info endpoints
@@ -189,13 +148,10 @@ async def list_markets(
     db=Depends(get_db),
 ):
     """List all available markets with optional filtering."""
-    try:
-        markets = Market.list_all(subset)
-        logger.info(f"Listed {len(markets)} markets with subset '{subset}'")
-        return [market.to_dict() for market in markets]
-    except Exception as e:
-        logger.error(f"Error listing markets: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    markets = Market.list_all(subset)
+    logger.info(f"Listed {len(markets)} markets with subset '{subset}'")
+    return [market.to_dict() for market in markets]
+
 
 @app.get("/markets/{identifier}", summary="Get market", response_model=MarketResponse)
 async def get_market(
