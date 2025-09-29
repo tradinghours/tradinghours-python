@@ -73,5 +73,14 @@ class LogCapture(io.TextIOWrapper):
     def flush(self):
         self.original_stream.flush()
         
+    def isatty(self):
+        """Check if the original stream is a TTY."""
+        try:
+            return self.original_stream.isatty()
+        except (AttributeError, ValueError):
+            return False
+
     def __getattr__(self, name):
         return getattr(self.original_stream, name)
+
+
