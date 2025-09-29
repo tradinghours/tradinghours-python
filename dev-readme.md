@@ -37,7 +37,7 @@ pytest
 If you want to run it with a MySQL or Postgres database, create a `tradinghours.ini` file in the current directory with the connection string:
 
 ```ini
-[data]
+[package-mode]
 db_url = mysql+pymysql://test_user:test_password@localhost:3306/test_db
 ```
 

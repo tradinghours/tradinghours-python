@@ -1,6 +1,7 @@
-import re, time
+import re, time, logging
 from contextlib import contextmanager
 from threading import Thread, Event
+from pathlib import Path
 
 from zoneinfo import TZPATH
 import importlib.metadata as metadata
@@ -9,7 +10,7 @@ import requests, warnings
 from .exceptions import MissingTzdata
 from .config import main_config
 
-tprefix = main_config.get("data", "table_prefix")
+tprefix = main_config.get("package-mode", "table_prefix")
 
 
 @contextmanager
@@ -115,7 +116,7 @@ def check_if_tzdata_required_and_up_to_date():
     else (tzpath):
 
     """
-    if not main_config.getboolean("control", "check_tzdata"):
+    if not main_config.getboolean("extra", "check_tzdata"):
         return False
 
     required = len(TZPATH) == 0
@@ -131,7 +132,7 @@ def check_if_tzdata_required_and_up_to_date():
         if latest_version is None:
             warnings.warn("Failed to get latest version of tzdata. "
                           "Check your internet connection or set "
-                          "check_tzdata = False under [control] in tradinghours.ini")
+                          "check_tzdata = False under [extra] in tradinghours.ini")
             return None
 
         if installed_version < latest_version:
@@ -141,3 +142,4 @@ def check_if_tzdata_required_and_up_to_date():
             return None
 
     return True
+

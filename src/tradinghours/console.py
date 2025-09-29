@@ -1,28 +1,21 @@
-import argparse, warnings
+import argparse, warnings, time, threading
 import traceback
-from textwrap import wrap
 
 from . import __version__
+from .config import print_help
 from .store import Writer, db
 from .client import (
     download as client_download,
     get_remote_timestamp as client_get_remote_timestamp,
     timed_action
 )
+# server import handled in `run_serve` to keep its dependencies optional
 from .currency import Currency
 from .market import Market
 from .exceptions import TradingHoursError, NoAccess
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
-
-
-def print_help(text):
-    lines = wrap(text, initial_indent="  ", subsequent_indent="  ")
-    print("\n  --")
-    print("\n".join(lines))
-    print()
-
 
 
 def create_parser():
@@ -43,10 +36,20 @@ def create_parser():
     import_parser.add_argument("--force", action="store_true", help="Force the import")
     import_parser.add_argument("--reset", action="store_true", help="Re-ingest data, without downloading. (Resets the database)")
 
+    # "serve" subcommand
+    serve_parser = subparsers.add_parser("serve", help="Start API server")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+    serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to (default: 8000)")
+    serve_parser.add_argument("--uds", help="Unix domain socket path (overrides host/port)")
+    serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
+    serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
+                             help="Log level (default: info)")
+    serve_parser.add_argument("--no-auto-update", action="store_true", help="Do not check for data updates every minute")
+
     return parser
 
 
-def run_status(args):
+def run_status(extended=False):   
     db.ready()
     with timed_action("Collecting timestamps"):
         remote_timestamp = client_get_remote_timestamp()
@@ -55,7 +58,7 @@ def run_status(args):
     print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
     print()
-    if args.extended:
+    if extended:
         if local_timestamp:
             with timed_action("Reading local data"):
                 num_markets, num_currencies = db.get_num_covered()
@@ -80,15 +83,16 @@ def run_status(args):
             print("No local data to show extended information")
 
 
-def run_import(args):
+def run_import(reset=False, force=False, quiet=False):
     show_warning = False
-    if args.reset:
+    if reset:
         show_warning = not Writer().ingest_all()
 
-    elif args.force or db.needs_download():
+    elif force or db.needs_download():
         client_download()
         show_warning = not Writer().ingest_all()
-    else:
+
+    elif not quiet:
         print("Local data is up-to-date.")
 
     if show_warning:
@@ -98,15 +102,50 @@ def run_import(args):
             "'?'. Consult the MySQL documentation for your version to enable this feature."
         )
 
+
+def auto_update():
+    while True:
+        time.sleep(60)
+        run_import(quiet=True)
+
+
+def run_serve(server_config, no_auto_update=False):
+    """Run the API server."""
+    from .server import run_server
+    try:
+        if not no_auto_update:
+            print("Auto-updating...")
+            run_import(quiet=True)
+            threading.Thread(target=auto_update, daemon=True).start()
+
+        run_server(
+            **server_config,
+        )
+    except ImportError as e:
+        print("ERROR: Server dependencies not installed.")
+        print_help("To use the server feature, install with: pip install tradinghours[server]")
+        exit(EXIT_CODE_EXPECTED_ERROR)
+    except Exception as e:
+        print(f"ERROR: Failed to start server: {e}")
+        exit(EXIT_CODE_UNKNOWN_ERROR)
+
+
 def main():
     try:
         # Main console entrypoint
         parser = create_parser()
         args = parser.parse_args()
         if args.command == "status":
-            run_status(args)
+            run_status(extended=args.extended)
         elif args.command == "import":
-            run_import(args)
+            run_import(reset=args.reset, force=args.force)
+        elif args.command == "serve":
+            server_config = {
+                "host": args.host,
+                "port": args.port,
+                "uds": args.uds,
+            }
+            run_serve(server_config, no_auto_update=args.no_auto_update)
 
     # Handle generic errors gracefully
     except Exception as error:

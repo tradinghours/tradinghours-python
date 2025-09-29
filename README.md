@@ -47,11 +47,13 @@ To get started, you'll need an active subscription. [Learn more »](https://www.
    export TRADINGHOURS_TOKEN=<your-key-goes-here>
    ```
 
-You can also install with mysql or postgres dependencies, if you wish to use one of these. You can read more about this in [advanced configuration options](#optional-advanced-configuration).
+You can also install with mysql, postgres, or server dependencies, if you wish to use one of these. You can read more about this in [advanced configuration options](#optional-advanced-configuration).
 ```sh
 pip install tradinghours[mysql] 
 # or 
 pip install tradinghours[postgres]
+# or
+pip install tradinghours[server]
 ```
 
 ### Alternatives
@@ -72,7 +74,8 @@ The web-based API is programming language agnostic.
   - [Currency Holidays](#currency-holidays)
 - [Advanced](#advanced)
   - [Optional Advanced Configuration](#optional-advanced-configuration)
-  - [Database](#database)
+  - [Package Mode](#package-mode)
+  - [Server Mode](#server-mode)
   - [Time Zones](#time-zones)
   - [Model Configuration](#model-configuration)
     - [Change String Format](#change-string-format)
@@ -155,7 +158,9 @@ market.pprint() # same as pprint(market.to_dict())
      'memo': 'Canonical',
      'permanently_closed': None,
      'replaced_by': None,
-     'country_code': 'US'}
+     'country_code': 'US',
+     'first_available_date': '2000-01-01',
+     'last_available_date': '2033-12-31'}
 ```
 
 If a market is marked "permanently closed," it may be replaced or superseded by another market. By default, the newer market will be returned automatically. You can retrieve the older market object for historical analysis by using the `follow=False` parameter.
@@ -246,18 +251,19 @@ To get the "general schedule" that phases are based on, use `Market.list_schedul
 from tradinghours import Market
 
 market = Market.get('XNYS')
-for schedule in market.list_schedules():
+for schedule in market.list_schedules()[:10]:
     print(schedule)
 
 >>> Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session
     Schedule: US.NYSE (Partial) 09:30:00 - 13:00:00    Mon-Fri Primary Trading Session
     Schedule: US.NYSE (Partial) 13:00:00 - 13:30:00    Mon-Fri Post-Trading Session
+    Schedule: US.NYSE (Partial) 06:30:00 - 09:30:00    Mon-Fri Pre-Trading Session
+    Schedule: US.NYSE (Partial) 09:30:00 - 13:00:00    Mon-Fri Primary Trading Session
     Schedule: US.NYSE (Regular) 04:00:00 - 09:30:00    Mon-Fri Pre-Trading Session
     Schedule: US.NYSE (Regular) 06:30:00 - 09:30:00    Mon-Fri Pre-Open
     Schedule: US.NYSE (Regular) 09:30:00 - 09:30:00    Mon-Fri Call Auction
     Schedule: US.NYSE (Regular) 09:30:00 - 16:00:00    Mon-Fri Primary Trading Session
-    Schedule: US.NYSE (Regular) 15:50:00 - 16:00:00    Mon-Fri Pre-Close
-    Schedule: US.NYSE (Regular) 16:00:00 - 20:00:00    Mon-Fri Post-Trading Session
+    Schedule: US.NYSE (Regular) 15:45:00 - 16:00:00    Mon-Fri Pre-Close
 ```
 
 `US.MGEX` is a more complex example, which has multiple irregular schedules and overnight trading sessions:
@@ -347,32 +353,37 @@ Configuration can be changed by creating a `tradinghours.ini` file in the curren
 These are possible and optional values, for which explanations follow:
 
 ```ini
-[api]
+[auth]
 token = YOUR-TOKEN
 
-[data]
+[package-mode]
 db_url = postgresql://postgres:password@localhost:5432/your_database
 table_prefix = thstore_
-remote_dir = path/to/empty/folder
 
-[control]
-check_tzdata = False
+[server-mode]
+allowed_hosts = *
+allowed_origins = *
+log_folder = tradinghours_server_logs
+log_level = DEBUG
+log_days_to_keep = 7
+
+[extra]
+check_tzdata = True
 ```
 
-### Database
-* `[data]`
+## Package Mode
+When using this package the regular way (i.e as a python import), it is possible to make `tradinghours import` load data into a database of your choice and allowing other team members to use the same database.
+* `[package-mode]`
   * `db_url`
     * A connection string to a database. Please read the [caveats](#caveats) before using this setting.
     * This allows you to download the data once and let your team members use the same database.
+    * If not specified, uses SQLite by default.
   * `table_prefix`
     * Every table created in the database will be prefixed with this. `'thstore_'` is the default.
     * This can be used to avoid conflicts with existing tables.
-  * `remote_dir`
-    * The folder in which to save the raw CSV files after downloading with `tradinghours import`.
-    * The content of these CSV files will immediately be ingested into the database defined in `db_url` and then not used anymore.
-    * Unless you want to access the raw CSV files directly, there is no reason to change this.
 
 #### Caveats
+* The `[package-mode]` setting cannot be used with `tradinghours serve`
 * This package has been tested with MySQL 8.4 and PostgreSQL 15.8
 * Dependencies:
   * Running `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` installs `pymysql` or `psycopg2-binary`, respectively.
@@ -386,6 +397,37 @@ check_tzdata = False
 * To allow flexibility with updates to the raw data, where columns might be added in the future, tables are created dynamically, based on the content of the CSV files.
 * Columns of the tables are named after the columns of the CSV files, although in lower case and with underscores instead of spaces.
 
+## Server Mode
+This package can also be used to run a server by running `tradinghours serve`, for which you need to install the server dependencies with `pip install tradinghours[server]`. When running a server, you cannot have `[package-mode]` settings in your tradinghours.ini file to make it clear that the server will only use the default database settings.
+
+Keeping all default settings, the server will run on `http://127.0.0.1:8000`. You can visit the Swagger UI at `http://127.0.0.1:8000/docs` to explore the API, which is a very close replica of the main interface of this package.
+
+The server is a FastAPI application, using gunicorn to run uvicorn worker processes. By default, every minute, the server will check if data needs to be updated and import it if needed  (i.e `tradinghours import`). With the `[server-mode]` section, the following settings can be overridden:
+
+* `[server-mode]`
+  * `allowed_hosts`
+    * Comma-separated list of hosts allowed to access the API server. Use `*` for all hosts.
+  * `allowed_origins`
+    * Comma-separated list of origins allowed for CORS requests. Use `*` for all origins.
+  * `log_folder`
+    * The folder in which to keep logs with daily rotation
+  * `log_level`
+    * The level at which to log
+  * `log_days_to_keep`
+    * The number of log files to keep in `log_folder`
+  * **Important**: Server mode cannot use custom `[package-mode]` settings and must use the default SQLite database.
+
+To launch the server, run `tradinghours serve`, which takes these otional command line arguments:
+* `--host`
+  * The host to bind to. (default: `127.0.0.1`)
+* `--port`
+  * The port to bind to. (default: `8000`)
+* `--uds`
+  * The Unix domain socket path to bind to. (overrides host/port for faster local communication)
+* `--no-auto-update`
+  * Disable the minute-by-minute check and potential update of data.
+
+
 ### Time Zones
 This package employs `zoneinfo` for timezone management, utilizing the IANA Time Zone Database, 
 which is routinely updated. In certain environments, it's essential to update the `tzdata` package accordingly. 
@@ -396,7 +438,7 @@ To update `tzdata` run this command: `pip install tzdata --upgrade`
 
 To disable this verification and prevent the request, add this section to your tradinghours.ini file:
 ```ini
-[control]
+[extra]
 check_tzdata = False
 ```
 

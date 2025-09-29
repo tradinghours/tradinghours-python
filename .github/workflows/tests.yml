@@ -83,7 +83,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-mock
+          pip install pytest pytest-mock httpx fastapi
           pip install -e ".[${{ matrix.db }}]"
 
       - name: Wait for DB to be ready
@@ -136,7 +136,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-mock
+          pip install pytest pytest-mock httpx fastapi
           pip install -e .
 
       - name: Set up test data

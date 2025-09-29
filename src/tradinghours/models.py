@@ -1,5 +1,5 @@
 from typing import Union
-from pprint import pprint
+import pprint
 from sqlalchemy import func
 import datetime as dt
 
@@ -81,16 +81,23 @@ class BaseModel:
          properties like .is_open, which means that there are keys present that don't exist
          in the matching table.
         """
-        return {f: getattr(self, f) for f in self.fields()}
+        dct = {}
+        for f in self.fields():
+            dct[f] = getattr(self, f)
+            dct[f] = dct[f].to_dict() if hasattr(dct[f], 'to_dict') else dct[f]
+        return dct
 
-    def pprint(self) -> None:
+    def pformat(self) -> str:
         dct = {}
         for f in self.fields():
             val = getattr(self, f)
             if not isinstance(val, int) and not isinstance(val, float) and val is not None:
                 val = str(val)
             dct[f] = val
-        pprint(dct, sort_dicts=False)
+        return pprint.pformat(dct, sort_dicts=False)
+
+    def pprint(self) -> None:
+        print(self.pformat())
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -292,6 +299,7 @@ class Phase(BaseModel):
     @property
     def is_open(self):
         return self.status == 'Open'
+
 
 class MarketStatus(BaseModel):
     _table = None

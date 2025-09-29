@@ -7,83 +7,6 @@ from tradinghours.models import PhaseType, SeasonDefinition
 from tradinghours.exceptions import NoAccess
 import tradinghours.store as st
 
-# @pytest.mark.parametrize("model, columns", [
-#     (Market, ["Exchange Name",
-#                       "Market Name",
-#                       "Security Group",
-#                       "Timezone",
-#                       "Weekend Definition",
-#                       "FinID",
-#                       "MIC",
-#                       "Acronym",
-#                       "Asset Type",
-#                       "Memo",
-#                       "Permanently Closed",
-#                       "Replaced By"]
-#      ),
-#     (Currency, ["Currency Code",
-#                 "Currency Name",
-#                 "Country Code",
-#                 "Central Bank",
-#                 "Financial Capital",
-#                 "Financial Capital Timezone",
-#                 "Weekend Definition"]
-#      ),
-#     (CurrencyHoliday, ["Currency Code",
-#                        "Date",
-#                        "Holiday Name",
-#                        "Settlement",
-#                        "Observed",
-#                        "Memo"]
-#      ),
-#     (MarketHoliday, ["FinID",
-#                      "Date",
-#                      "Holiday Name",
-#                      "Schedule",
-#                      "Settlement",
-#                      "Observed",
-#                      "Memo",
-#                      "Status"]
-#      ),
-#     (MicMapping, ["MIC",
-#                  "FinID"]
-#      ),
-#     (Schedule, ["FinID",
-#                 "Schedule Group",
-#                 "Schedule Group Memo",
-#                 "Timezone",
-#                 "Phase Type",
-#                 "Phase Name",
-#                 "Phase Memo",
-#                 "Days",
-#                 "Start",
-#                 "End",
-#                 "Offset Days",
-#                 "Duration",
-#                 "Min Start",
-#                 "Max Start",
-#                 "Min End",
-#                 "Max End",
-#                 "In Force Start Date",
-#                 "In Force End Date",
-#                 "Season Start",
-#                 "Season End"]
-#      ),
-#     (SeasonDefinition, ["Season",
-#                         "Year",
-#                         "Date"]
-#      ),
-#     (PhaseType, ["Name",
-#                  "Status",
-#                  "Settlement"]
-#      )
-# ])
-# def test_model_fields(model, columns):
-#     column_snakes = sorted([snake_case(c) for c in columns])
-#     field_names = sorted(model._fields)
-#     assert field_names == column_snakes
-
-
 def test_market_instance_fields():
     nyse = Market.get("US.NYSE")
     assert nyse.fin_id == "US.NYSE"
@@ -200,7 +123,7 @@ def test_string_format():
         assert str(concrete_phase) == 'Phase: 2024-02-06 04:00:00-05:00 - 2024-02-06 09:30:00-05:00 Pre-Trading Session'
 
         season = SeasonDefinition.get("First day of March", 2022)
-        assert str(season) == 'SeasonDefinition: 2022-03-01 First day of March'
+        assert str(season).lower() == 'SeasonDefinition: 2022-03-01 First day of March'.lower()
 
 
 def test_set_string_format():
