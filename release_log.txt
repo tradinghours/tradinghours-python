@@ -1,6 +1,7 @@
 ## new_release
 Changes:
-  * adjustment to the download functionality for the import command
+  * New 'server mode' allowing to run the package as a server.
+  * This changes the configuration of the package, please consult the README.md
 
 ## 0.4.2 (2025-01-28)
 Changes:
