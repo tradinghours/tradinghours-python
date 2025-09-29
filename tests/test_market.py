@@ -189,7 +189,7 @@ def test_market_status(fin_id, datetime, expected):
     status = {k: status.get(k) for k in expected}
     assert status == expected
 
-
+@pytest.mark.slow
 def test_stress_market():
     for market in Market.list_all():
         first = market.first_available_date
@@ -277,6 +277,9 @@ class TestMarketEndpoints:
     def test_market_phases_endpoint(self, client):
         """Test GET /markets/{identifier}/phases endpoint."""
         response = client.get("/markets/US.NYSE/phases?start=2023-11-15&end=2023-11-15")
+        if st.db.access_level == st.AccessLevel.only_holidays:
+            assert response.status_code == 400
+            return
         assert response.status_code == 200
         
         data = response.json()
@@ -290,6 +293,9 @@ class TestMarketEndpoints:
     def test_market_schedules_endpoint(self, client):
         """Test GET /markets/{identifier}/schedules endpoint."""
         response = client.get("/markets/US.NYSE/schedules")
+        if st.db.access_level == st.AccessLevel.only_holidays:
+            assert response.status_code == 400
+            return
         
         assert response.status_code == 200
         data = response.json()
@@ -315,7 +321,10 @@ class TestMarketEndpoints:
     def test_market_status_endpoint(self, client):
         """Test GET /markets/{identifier}/status endpoint."""
         response = client.get("/markets/US.NYSE/status")
-        
+        if st.db.access_level == st.AccessLevel.only_holidays:
+            assert response.status_code == 400
+            return
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
@@ -329,6 +338,9 @@ class TestMarketEndpoints:
         """Test GET /markets/{identifier}/status endpoint with datetime parameter."""
         datetime_str = "2023-11-15T12:00:00-05:00"
         response = client.get(f"/markets/US.NYSE/status?datetime={datetime_str}")
+        if st.db.access_level == st.AccessLevel.only_holidays:
+            assert response.status_code == 400
+            return
         
         assert response.status_code == 200
         data = response.json()
@@ -431,6 +443,12 @@ class TestMarketHybrid:
             api_data = response.json()
             assert api_data == direct_dict
 
+    @pytest.mark.xfail(
+        st.db.access_level == st.AccessLevel.only_holidays,
+        reason="No access",
+        strict=True,
+        raises=NoAccess
+    )
     def test_phases_consistency(self, client):
         """Test that direct generate_phases() and /markets/{identifier}/phases return equivalent data."""
         test_identifiers = ["US.NYSE", "US.NASDAQ"]

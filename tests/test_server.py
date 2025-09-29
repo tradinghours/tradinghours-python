@@ -7,6 +7,8 @@ from datetime import datetime, date
 from urllib.parse import urlencode
 from fastapi.testclient import TestClient
 from tradinghours.server import app
+from tradinghours import store as st
+from tradinghours import exceptions as ex
 
 
 @pytest.fixture
@@ -83,7 +85,6 @@ class TestErrorHandling:
         assert response.status_code == 405
 
 
-
 class TestDataSerialization:
     """Test JSON serialization of datetime objects."""
     
@@ -91,7 +92,10 @@ class TestDataSerialization:
         """Test that datetime objects are properly serialized in phases."""
         response = client.get("/markets/US.NYSE/phases?start=2023-11-15&end=2023-11-25")
         data = response.json()
-        
+        if st.db.access_level == st.AccessLevel.only_holidays:
+            assert response.status_code == 400
+            return
+
         phase = data[0]
         # Check that datetime fields are strings in ISO format
         assert isinstance(phase["start"], str)
@@ -103,6 +107,7 @@ class TestDataSerialization:
     def test_date_serialization_in_holidays(self, client):
         """Test that date objects are properly serialized in holidays."""
         response = client.get("/markets/US.NYSE/holidays?start=2020-01-01&end=2030-01-01")
+        
         data = response.json()
         holiday = data[0]
         # Check that date field is a string
@@ -152,6 +157,7 @@ class TestParameterValidation:
     def test_datetime_parameter_validation(self, client):
         """Test datetime parameter validation."""
         # Valid ISO datetime formats
+        is_restricted = st.db.access_level == st.AccessLevel.only_holidays
         valid_datetimes = [
             "2023-11-15T12:00:00+00:00",
             "2023-11-15T12:00:00Z"
@@ -159,17 +165,17 @@ class TestParameterValidation:
         for dt_str in valid_datetimes:
             qp = urlencode({"datetime_utc": dt_str})
             response = client.get(f"/markets/US.NYSE/status?{qp}")
-            assert response.status_code == 200
+            assert response.status_code == 200 if not is_restricted else 400
 
         # Invalid datetime format should return 422
         qp = urlencode({"datetime_utc": "not-a-datetime"})
         response = client.get(f"/markets/US.NYSE/status?{qp}")
-        assert response.status_code == 422
+        assert response.status_code == 422 if not is_restricted else 400
 
         # Invalid timezone offset should return 400
         qp = urlencode({"datetime_utc": "2023-11-15T12:00:00-05:00"})
         response = client.get(f"/markets/US.NYSE/status?{qp}")
-        assert response.status_code == 400
+        assert response.status_code == 400 if not is_restricted else 400
 
 
 
