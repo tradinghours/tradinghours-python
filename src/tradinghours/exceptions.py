@@ -38,27 +38,6 @@ class TradingHoursError(Exception):
         return self.detail
 
 
-class PrepareError(TradingHoursError):
-    """Happens when a field from a model cannot be interpreted"""
-
-    def __init__(self, field: "Field", value: Any, inner: Optional[Exception] = None):
-        super().__init__("Error preparing field", inner=inner)
-        self._field = field
-        self._value = value
-
-    @property
-    def field(self):
-        return self._field
-
-    @property
-    def value(self):
-        return self._value
-
-    def build_detail(self):
-        message = f"Could not prepare field {self._field.field_name}"
-        return super().build_detail(message)
-
-
 class ClientError(TradingHoursError):
     """When an error occurs accessing remote HTTP server"""
 
@@ -78,6 +57,16 @@ class TokenError(ClientError):
         )
 
 
+class FileNotFoundError(ClientError):
+    """When the file is not found"""
+
+    def build_help_message(self):
+        return (
+            "Your export is not available yet. "
+            "Please contact support@tradinghours.com"
+        )
+
+
 class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
 
@@ -94,12 +83,14 @@ class MissingSqlAlchemyError(TradingHoursError):
             "`pip install tradinghours[sql]` from the command line."
         )
 
+
 class NoAccess(TradingHoursError):
     """
     Raised when a user attempts accessing a type of data
     that is not available under their current plan.
     """
     pass
+
 
 class NotCovered(TradingHoursError):
     """
@@ -136,3 +127,15 @@ class DateNotAvailable(TradingHoursError):
     """
     pass
 
+
+class InvalidType(TradingHoursError, TypeError):
+    """
+    Raised when the type of the value is invalid
+    """
+    pass
+
+class InvalidValue(TradingHoursError, ValueError):
+    """
+    Raised when the value is invalid
+    """
+    pass

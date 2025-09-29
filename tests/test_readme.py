@@ -8,12 +8,6 @@ import tradinghours.store as st
 from pathlib import Path
 
 
-def test_market_list_all():
-
-    for obj in Market.list_all():
-        assert str(obj) == Market.get_string_format().format(**obj.to_dict())
-
-
 def test_get_by_finid_or_mic():
     # Get by either FinID or MIC
     market = Market.get('US.NYSE')

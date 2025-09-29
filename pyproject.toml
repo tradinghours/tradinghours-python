@@ -33,6 +33,8 @@ dev = [
     'coverage[toml]',
     'pytest',
     'pytest-mock',
+    'httpx',  # Required for FastAPI TestClient
+    'fastapi',
 ]
 mysql = [
     'pymysql',
@@ -40,6 +42,11 @@ mysql = [
 ]
 postgres = [
     'psycopg2-binary'
+]
+server = [
+    'fastapi',
+    'uvicorn[standard]',
+    'gunicorn'
 ]
 
 [project.scripts]
@@ -61,3 +68,8 @@ exclude = '''
 
 [tool.coverage.run]
 omit = [ 'tests/*' ]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]

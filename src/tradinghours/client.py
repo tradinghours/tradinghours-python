@@ -6,11 +6,11 @@ from urllib.request import Request, urlopen
 
 from .config import main_config
 from .util import timed_action
-from .exceptions import ClientError, TokenError
+from .exceptions import ClientError, TokenError, FileNotFoundError
 
-TOKEN = main_config.get("api", "token")
-BASE_URL = main_config.get("api", "base_url")
-ROOT = Path(main_config.get("data", "remote_dir"))
+TOKEN = main_config.get("auth", "token")
+BASE_URL = main_config.get("internal", "base_url")
+ROOT = Path(main_config.get("internal", "remote_dir"))
 ROOT.mkdir(parents=True, exist_ok=True)
 
 
@@ -18,11 +18,14 @@ def get_response(path):
     url = urljoin(BASE_URL, path)
     request = Request(url)
     request.add_header("Authorization", f"Bearer {TOKEN}")
+    request.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
     try:
         response = urlopen(request)
     except HTTPError as error:
         if error.code == 401:
             raise TokenError("Token is missing or invalid")
+        if error.code == 404:
+            raise FileNotFoundError("Error getting server response", inner=error)
         raise ClientError("Error getting server response", inner=error)
 
     return response
@@ -71,7 +74,7 @@ def download_covered_currencies():
 def download():
     """
     Downloads zip file from tradinghours and unzips it into the
-    folder set in main_config.data.remote_dir
+    folder set in main_config.internal.remote_dir
     """
     try:
         with timed_action("Downloading") as (change_message, start_time):
