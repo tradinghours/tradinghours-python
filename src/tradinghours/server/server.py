@@ -1,4 +1,5 @@
 """Production-ready FastAPI server for TradingHours API."""
+import platform
 import sys, time, traceback
 import logging
 import datetime as dt
@@ -10,10 +11,11 @@ try:
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.middleware.trustedhost import TrustedHostMiddleware
     from fastapi.responses import JSONResponse
-except ImportError:
+except ImportError as e:
+    print(traceback.format_exc())
     raise ImportError(
         "Server dependencies not installed. Run: pip install tradinghours[server]"
-    )
+    ) from e
 
 from ..market import Market
 from ..currency import Currency
@@ -404,9 +406,18 @@ def run_server(
         'errorlog': '-'      # Log to stderr, captured by our LogCapture
     }
     
-    gunicorn_app = GunicornApplication(app, options)
-    gunicorn_app.run()
-    
+    if platform.system() == 'Windows':
+        # Use uvicorn directly on Windows
+        import uvicorn
+        try:
+            uvicorn.run(app, host=host, port=port, workers=1, log_level=log_level.lower())
+        except Exception as e:
+            print(traceback.format_exc())
+            raise
+    else:
+        # Use existing gunicorn logic on Unix
+        gunicorn_app = GunicornApplication(app, options)
+        gunicorn_app.run()
 
 # For backwards compatibility
 create_app = lambda: app
