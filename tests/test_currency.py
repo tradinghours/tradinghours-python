@@ -6,6 +6,8 @@ from datetime import date
 from fastapi.testclient import TestClient
 from tradinghours import Currency
 from tradinghours.server import app
+from tradinghours import store as st
+from tradinghours import exceptions as ex
 
 
 @pytest.fixture
@@ -17,6 +19,12 @@ def client():
 class TestCurrencyDirect:
     """Test Currency class methods directly."""
     
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_currency_list_all(self):
         """Test Currency.list_all() method."""
         currencies = Currency.list_all()
@@ -25,6 +33,12 @@ class TestCurrencyDirect:
             assert hasattr(currencies[0], 'currency_code')
             assert hasattr(currencies[0], 'currency_name')
 
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_currency_get(self):
         """Test Currency.get() method."""
         currency = Currency.get("USD")
@@ -38,12 +52,24 @@ class TestCurrencyDirect:
         result = Currency.is_available("USD")
         assert isinstance(result, bool)
 
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_currency_is_covered(self):
         """Test Currency.is_covered() method."""
         # Test with a common currency
         result = Currency.is_covered("USD")
         assert isinstance(result, bool)
 
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_currency_list_holidays(self):
         """Test Currency.list_holidays() method."""
         currency = Currency.get("USD")
@@ -57,6 +83,10 @@ class TestCurrencyEndpoints:
     def test_list_currencies_endpoint(self, client):
         """Test GET /currencies endpoint."""
         response = client.get("/currencies")
+        if st.db.access_level != st.AccessLevel.full:
+            assert response.status_code == 400
+            return
+
         assert response.status_code == 200
         
         data = response.json()
@@ -70,6 +100,9 @@ class TestCurrencyEndpoints:
     def test_get_currency_endpoint(self, client):
         """Test GET /currencies/{code} endpoint."""
         response = client.get("/currencies/USD")
+        if st.db.access_level != st.AccessLevel.full:
+            assert response.status_code == 400
+            return
         assert response.status_code == 200
         
         data = response.json()
@@ -84,6 +117,9 @@ class TestCurrencyEndpoints:
     def test_currency_holidays_endpoint(self, client):
         """Test GET /currencies/{code}/holidays endpoint."""
         response = client.get("/currencies/USD/holidays?start=2023-01-01&end=2023-01-31")
+        if st.db.access_level != st.AccessLevel.full:
+            assert response.status_code == 400
+            return
         assert response.status_code == 200
         
         data = response.json()
@@ -109,6 +145,9 @@ class TestCurrencyEndpoints:
     def test_currency_is_covered_endpoint(self, client):
         """Test GET /currencies/{code}/is_covered endpoint."""
         response = client.get("/currencies/USD/is_covered")
+        if st.db.access_level != st.AccessLevel.full:
+            assert response.status_code == 400
+            return
         assert response.status_code == 200
         
         data = response.json()
@@ -122,6 +161,12 @@ class TestCurrencyEndpoints:
 class TestCurrencyHybrid:
     """Test that both direct calls and endpoints return equivalent results."""
     
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_list_all_consistency(self, client):
         """Test that direct list_all() and /currencies endpoint return equivalent data."""
         # Direct method call
@@ -134,7 +179,12 @@ class TestCurrencyHybrid:
         api_data = response.json()
         assert api_data == direct_dicts
 
-
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_get_consistency(self, client):
         """Test that direct get() and /currencies/{code} endpoint return equivalent data."""
         test_codes = ["USD", "EUR", "GBP"]
@@ -150,6 +200,12 @@ class TestCurrencyHybrid:
             api_data = response.json()
             assert api_data == direct_dict
 
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_holidays_consistency(self, client):
         """Test that direct list_holidays() and /currencies/{code}/holidays return equivalent data."""
         test_codes = ["USD", "EUR"]
@@ -182,6 +238,12 @@ class TestCurrencyHybrid:
             api_data = response.json()
             assert api_data['is_available'] == direct_result
 
+    @pytest.mark.xfail(
+        st.db.access_level != st.AccessLevel.full,
+        reason="No access",
+        strict=True,
+        raises=ex.NoAccess
+    )
     def test_is_covered_consistency(self, client):
         """Test that direct is_covered() and endpoint return equivalent data."""
         test_codes = ["USD", "EUR", "GBP", "INVALID"]

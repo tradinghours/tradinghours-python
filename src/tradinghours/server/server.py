@@ -61,7 +61,7 @@ async def log_requests(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
     method = request.method
     url = str(request.url)
-    logger.critical(f"log_requests: {request}")
+
     try:
         response = await call_next(request)
         status_code = response.status_code
