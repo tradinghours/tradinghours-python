@@ -28,7 +28,7 @@ We support over **1,000 exchanges and trading venues** around the world, includi
 
 Our global research team collects and verifies trading hours and market holidays using **primary sources exclusively**. Manual and automated checks ensure the highest degree of accuracy and reliability. Data updates occur **daily**.
 
-## Why Use This Library?
+---
 
 ## Key Benefits
 
