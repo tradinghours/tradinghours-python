@@ -30,7 +30,7 @@ Our global research team collects and verifies trading hours and market holidays
 
 ---
 
-## Key Benefits
+## Why Use the Python Library?
 
 - ⚡ **Blazing fast** - No network latency, instant queries from local database
 - 🚫 **No rate limits** - Run unlimited queries without throttling
