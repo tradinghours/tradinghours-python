@@ -80,9 +80,9 @@ tradinghours serve
 ```
 
 Perfect for:
-- Microservices architecture
-- Multi-language infrastructure
-- Private on-premise hosting
+- Microservice and multi-language infrastructure
+- Low latency and no rate limits
+- Fully private and on-premise hosting
 
 **[📖 Documentation →](https://docs.tradinghours.com/python-library/server-mode/getting-started)**
 
