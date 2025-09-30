@@ -30,27 +30,31 @@ Our global research team collects and verifies trading hours and market holidays
 
 ## Why Use This Library?
 
-### Key Benefits
+## Key Benefits
 
 - ⚡ **Blazing fast** - No network latency, instant queries from local database
 - 🚫 **No rate limits** - Run unlimited queries without throttling
 - 💾 **Offline access** - Works completely offline after initial download
-- 🔧 **Simple integration** - Pythonic interface handles all complexity
+- 🔧 **Simple integration** - Simple and user-friendly interface handles all complexity
 
 **[View complete documentation →](https://docs.tradinghours.com/python-library/)**
 
-
-### Two Modes of Operation
+## Two Modes of Operation
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
 ### 📦 Package Mode
-**Use as a Python library**
+**Use as a Python package**
 
 ```bash
 pip install tradinghours
+tradinghours import
+```
+```python
+from tradinghours import Market
+Market.get('US.NYSE')
 ```
 
 Perfect for:
@@ -58,7 +62,7 @@ Perfect for:
 - Data analysis & backtesting  
 - Trading algorithms
 
-**[📖 Documentation →](https://docs.tradinghours.com/python-library/importing-data)**
+**[📖 Documentation →](https://docs.tradinghours.com/python-library/package-mode/getting-started)**
 
 </td>
 <td width="50%" valign="top">
@@ -70,13 +74,17 @@ Perfect for:
 pip install tradinghours[server]
 tradinghours serve
 ```
+```bash
+>> curl http://127.0.0.1:8000/markets/US.NYSE
+{"fin_id":"US.NYSE","exchange_name":"New York...
+```
 
 Perfect for:
 - Microservices architecture
-- Multi-language teams
-- Legacy system integration
+- Multi-language infrastructure
+- Private on-premise hosting
 
-**[📖 Documentation →](https://docs.tradinghours.com/python-library/server-mode)**
+**[📖 Documentation →](https://docs.tradinghours.com/python-library/server-mode/getting-started)**
 
 </td>
 </tr>
