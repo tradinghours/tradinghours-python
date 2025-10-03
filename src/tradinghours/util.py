@@ -1,4 +1,4 @@
-import re, time, logging
+import re, time, json
 from contextlib import contextmanager
 from threading import Thread, Event
 from pathlib import Path
@@ -11,7 +11,7 @@ from .exceptions import MissingTzdata
 from .config import main_config
 
 tprefix = main_config.get("package-mode", "table_prefix")
-
+cache_file = Path(main_config.get("internal", "store_dir")) / "th_cache.json"
 
 @contextmanager
 def timed_action(message: str):
@@ -143,3 +143,13 @@ def check_if_tzdata_required_and_up_to_date():
 
     return True
 
+def get_th_cache():
+    try:
+        with open(cache_file, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def set_th_cache(cache):
+    with open(cache_file, "w") as f:
+        json.dump(cache, f)
