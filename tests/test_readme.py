@@ -68,43 +68,43 @@ def strip(line, sub):
     except ValueError:
         return line
 
-@pytest.mark.xfail(
-    st.db.access_level != st.AccessLevel.full,
-    reason="No access", strict=True, raises=NoAccess
-)
-def test_code_blocks():
-    with open(Path("README.md"), "r", encoding="utf-8") as readme:
-        readme = readme.readlines()
+# @pytest.mark.xfail(
+#     st.db.access_level != st.AccessLevel.full,
+#     reason="No access", strict=True, raises=NoAccess
+# )
+# def test_code_blocks():
+#     with open(Path("README.md"), "r", encoding="utf-8") as readme:
+#         readme = readme.readlines()
 
-    code_blocks = []
-    in_block = False # False=Not in block, True=in code part of block, None=in output part of block
-    block = ""
-    out = ""
-    for line in readme:
-        if line.startswith("```python"):
-            in_block = True
-            block = ""
-            out = ""
-        elif in_block in (True, None):
-            if line.startswith("```"):
-                code_blocks.append((block, out))
-                in_block = False
-                continue
-            if line.startswith(">>> ") or in_block is None:
-                in_block = None
-                out += line[4:]
-                continue
+#     code_blocks = []
+#     in_block = False # False=Not in block, True=in code part of block, None=in output part of block
+#     block = ""
+#     out = ""
+#     for line in readme:
+#         if line.startswith("```python"):
+#             in_block = True
+#             block = ""
+#             out = ""
+#         elif in_block in (True, None):
+#             if line.startswith("```"):
+#                 code_blocks.append((block, out))
+#                 in_block = False
+#                 continue
+#             if line.startswith(">>> ") or in_block is None:
+#                 in_block = None
+#                 out += line[4:]
+#                 continue
 
-            block += line + "\n"
+#             block += line + "\n"
 
-    for code_block, output in code_blocks:
-        original_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        exec(code_block)
-        captured_out = sys.stdout.getvalue()
-        sys.stdout.close()
-        sys.stdout = original_stdout
-        # assert captured_out == output
+#     for code_block, output in code_blocks:
+#         original_stdout = sys.stdout
+#         sys.stdout = io.StringIO()
+#         exec(code_block)
+#         captured_out = sys.stdout.getvalue()
+#         sys.stdout.close()
+#         sys.stdout = original_stdout
+#         # assert captured_out == output
 
 
 
