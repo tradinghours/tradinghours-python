@@ -1,4 +1,4 @@
-## new_release
+## 0.5.0 (2025-09-29)
 Changes:
   * New 'server mode' allowing to run the package as a server.
   * This changes the configuration of the package, please consult the README.md
