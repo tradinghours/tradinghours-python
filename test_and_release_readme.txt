@@ -14,6 +14,7 @@ There are 3 steps involved to go from a development branch, which can have any n
 Before PR against `main`:
  * __init__.__version__ must be incremented
  * release_log.txt needs to be updated
+   * the new release section should get the header: '## new_release', release.yml looks for that.
 
 
 ## tests.yml

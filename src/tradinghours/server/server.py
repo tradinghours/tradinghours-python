@@ -400,6 +400,8 @@ def run_server(
         'workers': uvicorn_workers,
         'worker_class': 'uvicorn.workers.UvicornWorker',
         'loglevel': log_level,
+        'timeout': 120,
+        'graceful_timeout': 30,
         'capture_output': True,
         'enable_stdio_inheritance': True,
         'accesslog': None,

@@ -53,6 +53,10 @@ class Market(BaseModel):
         The first available date is the 1st day of
         the month of the first holiday of the given market.
         """
+        cached = db.cache_get("Market.first_last_available_date", self.fin_id)
+        if cached:
+            return dt.date.fromisoformat(cached[0])
+        
         table = MarketHoliday.table()
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id
@@ -70,6 +74,10 @@ class Market(BaseModel):
         The last available date is the last day of the month
         of the last available holiday of the given market.
         """
+        cached = db.cache_get("Market.first_last_available_date", self.fin_id)
+        if cached:
+            return dt.date.fromisoformat(cached[1])
+        
         table = MarketHoliday.table()
         result = db.query(table).filter(
             table.c.fin_id == self.fin_id

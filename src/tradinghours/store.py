@@ -1,4 +1,6 @@
+from itertools import groupby
 import os, csv, json, codecs
+import calendar
 import datetime as dt
 from pathlib import Path
 from sqlalchemy import (
@@ -23,10 +25,10 @@ from enum import Enum
 
 from .config import main_config, default_settings
 from .client import get_remote_timestamp as client_get_remote_timestamp
-from .util import tprefix, tname, clean_name, timed_action
+from .util import get_th_cache, set_th_cache, tprefix, tname, clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
-DEFAULT_DB_PREFIX = "tradinghours_"
+DEFAULT_DB_PREFIX = "tradinghours_" # used for timestamped SQLite databases
 
 # Helper functions for timestamped SQLite databases
 def _is_default_store() -> bool:
@@ -72,6 +74,7 @@ class AccessLevel(Enum):
 
 class _DB:
     main_instance = None
+    _th_cache = get_th_cache()
     _types = {
         "date": (Date, dt.date.fromisoformat),
         "observed": (Boolean, lambda v: v == "OBS"),
@@ -163,16 +166,26 @@ class _DB:
         self.Session = sessionmaker(bind=self.engine)
         self._access_level = None
 
+    def _switch_to_latest_db(self):
+        """Assumes that the database is the default store."""
+        latest_db_path = _find_latest_timestamped_db()
+        new_db_url = f"sqlite:///{latest_db_path}"
+        if new_db_url != self.db_url:
+            self.db_url = new_db_url
+            if hasattr(self, "_session"):
+                self._session.close()
+                delattr(self, "_session")
+            self._set_engine()
+
+        self.update_metadata()            
+        self.cache_set()
+
     def switch_to_latest_db(self):
         if _is_default_store():
-            latest_db_path = _find_latest_timestamped_db()
-            new_db_url = f"sqlite:///{latest_db_path}"
-            if new_db_url != self.db_url:
-                self.db_url = new_db_url
-                if hasattr(self, "_session"):
-                    self._session.close()
-                    delattr(self, "_session")
-                self._set_engine()
+            self._switch_to_latest_db()
+        else:
+            print("Not using default store, cannot switch to latest db")
+
 
     def table(self, table_name: str) -> Table:
         try:
@@ -299,6 +312,40 @@ class _DB:
         ).scalar()
         return num
 
+    def get_market_first_last_available_date(self) -> dict[str, list[str]]:
+        table = db.table("holidays")
+        result = self.query(
+            table.c.fin_id,
+            func.min(table.c.date).label('first_date'),
+            func.max(table.c.date).label('last_date')
+        ).group_by(table.c.fin_id).all()
+        
+        output = {}
+        for row in result:
+            last_date = row.last_date
+            _, num_days_in_month = calendar.monthrange(last_date.year, last_date.month)
+            last_date_adjusted = last_date.replace(day=num_days_in_month)
+            
+            output[row.fin_id] = [
+                row.first_date.replace(day=1).isoformat(),
+                last_date_adjusted.isoformat()
+            ]
+        
+        return output
+
+    def cache_get(self, value, fin_id):
+        return self._th_cache.get(value, {}).get(fin_id, [])
+
+    @classmethod
+    def cache_set(cls, cache=None):
+        if cache is None:
+            first_last = cls.main_instance.get_market_first_last_available_date()
+            cache = {
+                "Market.first_last_available_date": first_last
+            }
+        cls._th_cache = cache
+        set_th_cache(cls._th_cache)
+        
 ########################################################
 # Singleton db instance used across the entire project #
 ########################################################
@@ -440,13 +487,13 @@ class Writer:
         )
         self.db.update_metadata()
 
-    def _finalize_timestamped_db(self):
-        """Finalize the timestamped database setup and cleanup old databases."""        
+    def _finalize_db_setup(self):
+        """Finalize the timestamped database setup and cleanup old databases."""   
         if _is_default_store():
-            # make the main db instance point to the latest timestamped database
-            db.switch_to_latest_db()
-            db.update_metadata()            
+            db._switch_to_latest_db()
             _cleanup_old_timestamped_dbs()
+        else:
+            db.cache_set({})
 
 
     def _ingest_all(self, change_message):
@@ -487,9 +534,8 @@ class Writer:
 
         self.create_admin(access_level, last_9_admin_records)
         
-        # Finalize the timestamped database setup
-        self._finalize_timestamped_db()
-        
+        self._finalize_db_setup()
+
 
     def ingest_all(self) -> bool:       
         self.db = db

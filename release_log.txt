@@ -1,5 +1,11 @@
 ## new_release
 Changes:
+  * Readme update
+  * Caching of Market.first- and last_available_date for better performance
+
+
+## 0.5.0 (2025-09-29)
+Changes:
   * New 'server mode' allowing to run the package as a server.
   * This changes the configuration of the package, please consult the README.md
 
