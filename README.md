@@ -41,12 +41,12 @@ Our global research team collects and verifies trading hours and market holidays
 
 ## Two Modes of Operation
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
 ### 📦 Package Mode
 **Use as a Python package**
+
+<p align="center">
+  <img src="https://docs.tradinghours.com/demos/th-python-demo.gif" alt="TradingHours Package Mode Demo" width="800">
+</p>
 
 ```bash
 pip install tradinghours
@@ -64,11 +64,14 @@ Perfect for:
 
 **[📖 Documentation →](https://docs.tradinghours.com/python-library/package-mode/getting-started)**
 
-</td>
-<td width="50%" valign="top">
+---
 
 ### 🚀 Server Mode
 **Run as REST API server**
+
+<p align="center">
+  <img src="https://docs.tradinghours.com/demos/th-server-demo.gif" alt="TradingHours Server Mode Demo" width="800">
+</p>
 
 ```bash
 pip install tradinghours[server]
@@ -86,10 +89,6 @@ Perfect for:
 
 **[📖 Documentation →](https://docs.tradinghours.com/python-library/server-mode/getting-started)**
 
-</td>
-</tr>
-</table>
-
 ## Requirements
 
 - **Python**: 3.9 or higher
@@ -98,7 +97,7 @@ Perfect for:
 
 ## Alternative: Web API
 
-Prefer not to install a Python library? Use our [REST API](https://docs.tradinghours.com/3.x/introduction) instead.
+Prefer not to install a Python library? Use our [REST API](https://docs.tradinghours.com/3.x/introduction), access the data on the [Snowflake Marketplace](https://app.snowflake.com/marketplace/listing/GZTSZ1CSMLC), or [get in touch](https://www.tradinghours.com/contact) with us for more information.
 
 ## License
 
