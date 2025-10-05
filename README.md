@@ -43,11 +43,6 @@ Our global research team collects and verifies trading hours and market holidays
 
 ### 📦 Package Mode
 **Use as a Python package**
-
-<p align="center">
-  <img src="https://docs.tradinghours.com/demos/th-python-demo.gif" alt="TradingHours Package Mode Demo" width="800">
-</p>
-
 ```bash
 pip install tradinghours
 tradinghours import
@@ -68,11 +63,6 @@ Perfect for:
 
 ### 🚀 Server Mode
 **Run as REST API server**
-
-<p align="center">
-  <img src="https://docs.tradinghours.com/demos/th-server-demo.gif" alt="TradingHours Server Mode Demo" width="800">
-</p>
-
 ```bash
 pip install tradinghours[server]
 tradinghours serve
