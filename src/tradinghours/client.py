@@ -95,7 +95,6 @@ def download():
 
     except TokenError:
         raise
-    # TODO: think about cleaner error handling (e.g: not a zipfile)
     except Exception as e:
         raise
 
