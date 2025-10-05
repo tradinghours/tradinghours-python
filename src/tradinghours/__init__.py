@@ -1,6 +1,6 @@
 """TradingHours Library"""
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 from .config import main_config as _main_config
 

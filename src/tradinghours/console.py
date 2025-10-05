@@ -106,7 +106,12 @@ def run_import(reset=False, force=False, quiet=False):
 def auto_update():
     while True:
         time.sleep(60)
-        run_import(quiet=True)
+        try:
+            run_import(quiet=True)
+        except Exception as e:
+            print(f"ERROR: Failed to auto-update: {e}")
+            print(traceback.format_exc())
+            continue
 
 
 def run_serve(server_config, no_auto_update=False):

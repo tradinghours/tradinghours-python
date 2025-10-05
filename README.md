@@ -3,8 +3,8 @@
   <h1>TradingHours.com Python Library</h1>
 
   <p>
-    <a href="https://badge.fury.io/py/tradinghours">
-      <img src="https://badge.fury.io/py/tradinghours.svg" alt="PyPI version">
+    <a href="https://pypi.org/project/tradinghours/">
+      <img src="https://img.shields.io/pypi/v/tradinghours?color=green" alt="PyPI version">
     </a>
     <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-green" alt="Python versions">
     <img src="https://github.com/tradinghours/tradinghours-python/actions/workflows/release.yml/badge.svg?branch=main" alt="GitHub Actions">
@@ -43,11 +43,6 @@ Our global research team collects and verifies trading hours and market holidays
 
 ### 📦 Package Mode
 **Use as a Python package**
-
-<p align="center">
-  <img src="https://docs.tradinghours.com/demos/th-python-demo.gif" alt="TradingHours Package Mode Demo" width="800">
-</p>
-
 ```bash
 pip install tradinghours
 tradinghours import
@@ -68,11 +63,6 @@ Perfect for:
 
 ### 🚀 Server Mode
 **Run as REST API server**
-
-<p align="center">
-  <img src="https://docs.tradinghours.com/demos/th-server-demo.gif" alt="TradingHours Server Mode Demo" width="800">
-</p>
-
 ```bash
 pip install tradinghours[server]
 tradinghours serve

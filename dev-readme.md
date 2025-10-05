@@ -61,7 +61,7 @@ When done, don't forget to shut it down:
 docker compose down
 ```
 
-## CI/CD Workflow
+## Release Process
 
 ### Overview
 
@@ -81,6 +81,13 @@ The CI/CD process uses GitHub Actions to automate testing and releasing the proj
 3. **Automatic Release:**
    - Merging with `main` triggers the `release.yml` workflow.
    - This will push to PyPI and create a release tag on GitHub.
+
+4. **Post Release:**
+   - If there were any changes to the server mode's schema:
+     - run the server mode (`tradinghours serve`) and pull the openapi.json file.
+     - In the docs.tradinghours.com repo, replace the public/th-python-server/openapi.json file with the new one.
+     - Commit and push the changes to main.
+   
 
 ## GitHub Actions Workflows
 

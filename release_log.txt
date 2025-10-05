@@ -1,5 +1,10 @@
 ## new_release
 Changes:
+  * updated readme
+  * applied error handling to auto-update feature in server mode
+
+## 0.5.1 (2025-10-03)
+Changes:
   * Readme update
   * Caching of Market.first- and last_available_date for better performance
 
