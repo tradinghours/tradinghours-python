@@ -32,34 +32,7 @@ pip install -e .[dev]
 pytest
 ```
 
-### Running with a Database
-
-If you want to run it with a MySQL or Postgres database, create a `tradinghours.ini` file in the current directory with the connection string:
-
-```ini
-[package-mode]
-db_url = mysql+pymysql://test_user:test_password@localhost:3306/test_db
-```
-
-Then, install the appropriate dependencies:
-
-```bash
-pip install -e .[mysql]  # or pip install -e .[postgres]
-```
-
-If you don't have one of these databases available, you can run a Docker container defined in `docker-compose.yml`:
-
-```bash
-docker compose up mysql -d  # for MySQL
-# or
-docker compose up postgres -d  # for PostgreSQL
-```
-
-When done, don't forget to shut it down:
-
-```bash
-docker compose down
-```
+The library uses SQLite as the default database, which requires no additional setup.
 
 ## Release Process
 

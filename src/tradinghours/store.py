@@ -33,7 +33,7 @@ DEFAULT_DB_PREFIX = "tradinghours_" # used for timestamped SQLite databases
 # Helper functions for timestamped SQLite databases
 def _is_default_store() -> bool:
     """Check if the database URL is the default SQLite database."""
-    return not main_config.get("package-mode", "db_url")
+    return True  # Always use default store (SQLite)
 
 def _find_timestamped_dbs() -> list[Path]:
     """Find all timestamped database files."""
@@ -107,18 +107,6 @@ class _DB:
     }
 
     @classmethod
-    def set_no_unicode(cls):
-        """
-        MySQL databases may not be able to handle the full unicode set by default. So if a
-        mysql db is used and the ingestion fails, it is attempted again with the following
-        conversion, which replaces unicode characters with '?'.
-        """
-        cls._default_type = (
-            Text,
-            lambda s: str(s).encode("ascii", "replace").decode("ascii")
-        )
-
-    @classmethod
     def get_type(cls, col_name):
         return cls._types.get(col_name, cls._default_type)[0]
 
@@ -135,28 +123,13 @@ class _DB:
 
         return converter(value) if value else None
 
-    def __init__(self, db_url=None):
-        if db_url is not None:
-            self.db_url = db_url
-
-        elif _is_default_store():
-            latest_db_path = _find_latest_timestamped_db()
-            self.db_url = f"sqlite:///{latest_db_path}"
-        else:
-            self.db_url = main_config.get("package-mode", "db_url")
-
+    def __init__(self):
+        latest_db_path = _find_latest_timestamped_db()
+        self.db_url = f"sqlite:///{latest_db_path}"
         self._set_engine()
         
     def _set_engine(self):
-        try:
-            self.engine = create_engine(str(self.db_url))
-        except ModuleNotFoundError as e:
-            raise ModuleNotFoundError(
-                "You seem to be missing the required dependencies to interact with your chosen database. "
-                "Please run `pip install tradinghours[mysql]` or `pip install tradinghours[postgres]` if "
-                "you are trying to access mysql or postgres, respectively. Consult the docs for more information."
-            ) from e
-
+        self.engine = create_engine(str(self.db_url))
         self.metadata = MetaData()
         try:
             self.update_metadata()
@@ -181,10 +154,7 @@ class _DB:
         self.cache_set()
 
     def switch_to_latest_db(self):
-        if _is_default_store():
-            self._switch_to_latest_db()
-        else:
-            print("Not using default store, cannot switch to latest db")
+        self._switch_to_latest_db()
 
 
     def table(self, table_name: str) -> Table:
@@ -538,25 +508,16 @@ class Writer:
 
 
     def ingest_all(self) -> bool:       
-        self.db = db
-        if _is_default_store():
-            self.db = _DB(db_url="sqlite:///" + str(_create_timestamped_db_path()))
+        # Create a new timestamped database for this import
+        new_db_path = _create_timestamped_db_path()
+        self.db = _DB()
+        self.db.db_url = f"sqlite:///{new_db_path}"
+        self.db._set_engine()
 
-        with timed_action("Ingesting") as (change_message, start_time):
-            try:
-                self._ingest_all(change_message)
-                return True
-            except Exception as e:
-                if self.db.engine.dialect.name != "mysql" or "Incorrect string value" not in str(e):
-                    raise
-
-        # Deal with the problem that MySQL may not be able to
-        # handle the full unicode set and then try again
-        print("\nHandling unicode problem, warning will follow")
-        self.db.set_no_unicode()
         with timed_action("Ingesting") as (change_message, start_time):
             self._ingest_all(change_message)
-        return False
+        
+        return True
 
 
 

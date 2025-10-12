@@ -44,11 +44,6 @@ class BaseModel:
         _fields = []
         for key, value in data.items():
             if key != "id":
-                if key == "observed":
-                    # deal with the fact that MySQL doesn't have a boolean
-                    # field and the value is going to be 0 or 1 because we
-                    # are using sqlalchemy's Core API
-                    value = bool(value)
                 setattr(self, key, value)
                 self._data[key] = value
                 _fields.append(key)

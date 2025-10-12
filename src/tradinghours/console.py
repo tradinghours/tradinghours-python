@@ -1,4 +1,4 @@
-import argparse, warnings, time, threading
+import argparse, time, threading
 import traceback
 
 from . import __version__
@@ -84,23 +84,15 @@ def run_status(extended=False):
 
 
 def run_import(reset=False, force=False, quiet=False):
-    show_warning = False
     if reset:
-        show_warning = not Writer().ingest_all()
+        Writer().ingest_all()
 
     elif force or db.needs_download():
         client_download()
-        show_warning = not Writer().ingest_all()
+        Writer().ingest_all()
 
     elif not quiet:
         print("Local data is up-to-date.")
-
-    if show_warning:
-        warnings.warn(
-            "\n\nWarning:\nYou seem to be using a MySQL database that is not configured "
-            "to handle the full unicode set. Unicode characters have been replaced with "
-            "'?'. Consult the MySQL documentation for your version to enable this feature."
-        )
 
 
 def auto_update():
