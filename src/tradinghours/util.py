@@ -10,7 +10,6 @@ import requests, warnings
 from .exceptions import MissingTzdata
 from .config import main_config
 
-tprefix = main_config.get("package-mode", "table_prefix")
 cache_file = Path(main_config.get("internal", "store_dir")) / "th_cache.json"
 
 @contextmanager
@@ -53,9 +52,6 @@ def timed_action(message: str):
     thread.join()
     print(f" ({elapsed:.3f}s)", flush=True)
 
-
-def tname(table_name):
-    return f"{tprefix}{table_name}"
 
 def clean_name(name):
     name = name.lower().replace('"', '').replace("finid", "fin_id")

@@ -37,6 +37,10 @@ class TradingHoursError(Exception):
     def __str__(self):
         return self.detail
 
+class ConfigError(TradingHoursError):
+    """When the config file is invalid"""
+
+    pass
 
 class ClientError(TradingHoursError):
     """When an error occurs accessing remote HTTP server"""

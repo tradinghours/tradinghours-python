@@ -1,6 +1,7 @@
 from itertools import groupby
 import os, csv, json, codecs
 import calendar
+from collections import namedtuple
 import datetime as dt
 from pathlib import Path
 from sqlalchemy import (
@@ -24,9 +25,8 @@ import functools
 from enum import Enum
 
 from .config import main_config, default_settings
-from .sources import get_data_source
-from .client import get_remote_timestamp as client_get_remote_timestamp
-from .util import get_th_cache, set_th_cache, tprefix, tname, clean_name, timed_action
+from .client import get_data_source
+from .util import get_th_cache, set_th_cache, clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
 DEFAULT_DB_PREFIX = "tradinghours_" # used for timestamped SQLite databases
@@ -160,7 +160,7 @@ class _DB:
 
     def table(self, table_name: str) -> Table:
         try:
-            return self.metadata.tables[tname(table_name)]
+            return self.metadata.tables[table_name]
         except KeyError:
             # using self._access_level instead of property to avoid an infinite recursion
             # when running on a new database without an access_level. If ._access_level is None,
@@ -180,7 +180,7 @@ class _DB:
         if getattr(self, "_failed_to_access", True):
             raise DBError("Could not access database")
 
-        if tname("admin") not in self.metadata.tables:
+        if "admin" not in self.metadata.tables:
             raise DBError("Database not prepared. Did you run `tradinghours import`?")
 
     def reset_session(self):
@@ -211,7 +211,7 @@ class _DB:
     def get_local_data_info(self):
         # admin table is not present when `tradinghours import`
         # is run for the first time on a given database
-        if tname("admin") not in self.metadata.tables:
+        if "admin" not in self.metadata.tables:
             return
 
         table = self.table("admin")
@@ -223,7 +223,11 @@ class _DB:
                     table.c["id"].desc()
             ).limit(1).scalar()
             if result:
-                return result.replace(tzinfo=dt.timezone.utc), result.version_identifier
+                LocalDataInfo = namedtuple("LocalDataInfo", ["download_timestamp", "version_identifier"])
+                return LocalDataInfo(
+                    result.download_timestamp.replace(tzinfo=dt.timezone.utc),
+                    result.version_identifier
+                )
     
     @property
     def access_level(self) -> AccessLevel:
@@ -261,23 +265,17 @@ class _DB:
         return new_method
 
     def needs_download(self):
-        """Check if data needs to be downloaded using ETag-based change detection."""        
+        """Check if data needs to be downloaded using version-based change detection."""        
         try:
             # Get the data source and check for changes
             data_source = get_data_source()
-            local_etag = self.get_local_etag()
-            has_changes, _ = data_source.check_for_changes(local_etag)
+            local_data_info = self.get_local_data_info()
+            stored_version = local_data_info[1] if local_data_info else None
+            has_changes, _ = data_source.check_for_changes(stored_version)
             return has_changes
         except Exception as e:
-            # If check fails, fall back to timestamp-based detection
-            print(f"Warning: ETag check failed, falling back to timestamp: {e}")
-            if local := self.get_local_timestamp():
-                try:
-                    remote_timestamp = client_get_remote_timestamp()
-                    return remote_timestamp > local
-                except:
-                    # If timestamp check also fails, assume needs download
-                    return True
+            # If check fails, assume needs download
+            print(f"Warning: Version check failed: {e}")
             return True
 
     def update_metadata(self):
@@ -349,7 +347,7 @@ class Writer:
     def prepare_ingestion(self):
         """Preserves the last 9 records from the thstore_admin table,
         drops the table, recreates it, and re-inserts the 9 records."""
-        table_name = tname("admin")
+        table_name = "admin"
         last_9_records = []
         if table_name not in self.db.metadata.tables:
             return last_9_records
@@ -375,16 +373,14 @@ class Writer:
         return last_9_records
 
     def drop_th_tables(self):
-        """Drops all tables from the database that start with 'thstore_'."""
+        """Drops all tables from the database."""
         # Iterate over all tables in the metadata
         for table_name in self.db.metadata.tables:
-            if table_name.startswith(tprefix):
-                table = self.db.metadata.tables[table_name]
-                table.drop(self.db.engine)
+            table = self.db.metadata.tables[table_name]
+            table.drop(self.db.engine)
 
         # Clear the metadata cache after dropping tables
         self.db.update_metadata()
-        # print(f"Dropped all tables starting with {tprefix}.")
 
     def create_table_from_csv(self, file_path, table_name):
         """Creates a SQL table dynamically from a CSV file."""
@@ -446,12 +442,12 @@ class Writer:
         table.create(self.db.engine)
         self.db.execute(table.insert(), batch)
 
-    def create_admin(self, access_level, last_9_records, version_identifier=None):
+    def create_admin(self, access_level, last_9_records, version_identifier):
         """
         version_identifier could be ETag or mtime, depending on the data source.
         """
         table = Table(
-            tname("admin"),
+            "admin",
             self.db.metadata,
             Column('id', Integer, primary_key=True),
             Column('access_level', String(255), nullable=False),
@@ -483,7 +479,7 @@ class Writer:
             db.cache_set({})
 
 
-    def _ingest_all(self, change_message, version_identifier=None):
+    def _ingest_all(self, change_message, version_identifier):
         """Iterates over CSV files in the remote directory and ingests them."""
         # Set up timestamped database if needed        
         self.db.reset_session()
@@ -498,12 +494,12 @@ class Writer:
             if csv_file.endswith('.csv'):
                 file_path = csv_dir / csv_file
                 table_name = os.path.splitext(csv_file)[0]
-                table_name = tname(clean_name(table_name))
+                table_name = clean_name(table_name)
                 change_message(f"  {table_name}")
                 self.create_table_from_csv(file_path, table_name)
 
         for json_file in ("covered_markets", "covered_currencies"):
-            table_name = tname(json_file)
+            table_name = json_file
             change_message(f"  {table_name}")
             self.create_table_from_json(
                 self.remote / f"{json_file}.json",
@@ -519,12 +515,12 @@ class Writer:
         else:
             access_level = AccessLevel.full
 
-        self.create_admin(access_level, last_9_admin_records, version_identifier=version_identifier)
+        self.create_admin(access_level, last_9_admin_records, version_identifier)
         
         self._finalize_db_setup()
 
 
-    def ingest_all(self, version_identifier=None) -> bool:       
+    def ingest_all(self, version_identifier) -> bool:       
         # Create a new timestamped database for this import
         new_db_path = _create_timestamped_db_path()
         self.db = _DB()
@@ -532,7 +528,7 @@ class Writer:
         self.db._set_engine()
 
         with timed_action("Ingesting") as (change_message, start_time):
-            self._ingest_all(change_message, version_identifier=version_identifier)
+            self._ingest_all(change_message, version_identifier)
         
         return True
 

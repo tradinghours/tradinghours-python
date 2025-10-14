@@ -5,8 +5,7 @@ from . import __version__
 from .config import print_help
 from .store import Writer, db
 from .client import (
-    download as client_download,
-    get_remote_timestamp as client_get_remote_timestamp,
+    data_download,
     timed_action
 )
 # server import handled in `run_serve` to keep its dependencies optional
@@ -51,11 +50,11 @@ def create_parser():
 
 def run_status(extended=False):   
     db.ready()
-    with timed_action("Collecting timestamps"):
-        remote_timestamp = client_get_remote_timestamp()
-        local_timestamp = db.get_local_timestamp()
+    with timed_action("Collecting data info"):
+        local_data_info = db.get_local_data_info()
+        local_timestamp = local_data_info.download_timestamp if local_data_info else None
+
     print("TradingHours Data Status:")
-    print("  Remote Timestamp:  ", remote_timestamp.ctime())
     print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
     print()
     if extended:
@@ -85,12 +84,12 @@ def run_status(extended=False):
 
 def run_import(reset=False, force=False, quiet=False):
     if reset:
-        version_identifier = client_download()
-        Writer().ingest_all(version_identifier=version_identifier)
+        version_identifier = data_download()
+        Writer().ingest_all(version_identifier)
 
     elif force or db.needs_download():
-        version_identifier = client_download()
-        Writer().ingest_all(version_identifier=version_identifier)
+        version_identifier = data_download()
+        Writer().ingest_all(version_identifier)
 
     elif not quiet:
         print("Local data is up-to-date.")

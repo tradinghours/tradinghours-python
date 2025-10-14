@@ -36,6 +36,9 @@ dev = [
     'httpx',  # Required for FastAPI TestClient
     'fastapi',
 ]
+s3 = [
+    'boto3'
+]
 server = [
     'fastapi',
     'uvicorn[standard]',
