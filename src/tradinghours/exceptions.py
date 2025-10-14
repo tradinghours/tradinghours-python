@@ -134,8 +134,10 @@ class InvalidType(TradingHoursError, TypeError):
     """
     pass
 
+
 class InvalidValue(TradingHoursError, ValueError):
     """
     Raised when the value is invalid
     """
     pass
+

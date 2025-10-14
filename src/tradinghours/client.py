@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
+from typing import Tuple, Optional
 
 from .config import main_config
 from .util import timed_action
@@ -31,30 +32,20 @@ def get_response(path):
     return response
 
 
-def download_zip_file(path="download"):
-    response = get_response(path)
-    if response.status == 200:
-        with tempfile.NamedTemporaryFile() as temp_file:
-            shutil.copyfileobj(response, temp_file)
-            temp_file.flush()
-            temp_file.seek(0)
-
-            # clear out the directory to make sure no old csv files
-            # are present if the access level is reduced
-            for path in os.listdir(ROOT):
-                path = ROOT / path
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                else:
-                    os.remove(path)
-
-            with zipfile.ZipFile(temp_file, "r") as zip_ref:
-                zip_ref.extractall(ROOT)
-        return True
-    elif response.status == 202:
-        return False
-
-    raise ClientError("Error getting server response")
+def extract_zip_to_root(zip_path: Path) -> None:
+    """Extract zip file to ROOT directory, clearing it first."""
+    # Clear out the directory to make sure no old csv files
+    # are present if the access level is reduced
+    for path in os.listdir(ROOT):
+        path = ROOT / path
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
+    
+    # Extract zip file
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(ROOT)
 
 
 def download_covered_markets():
@@ -71,38 +62,44 @@ def download_covered_currencies():
         json.dump(markets, covered_currencies)
 
 
-def download():
+def download() -> Tuple[Optional[str]]:
     """
-    Downloads zip file from tradinghours and unzips it into the
-    folder set in main_config.internal.remote_dir
+    Downloads zip file from data source and unzips it into the
+    folder set in main_config.internal.remote_dir.
+    
+    Returns:
+        Tuple of (version_identifier) for change tracking
     """
+    from .sources import get_data_source
+    
     try:
+        # Get configured data source
+        data_source = get_data_source()
+        source_url = main_config.get("data", "source", fallback="")
+        if not source_url:
+            source_url = f"{BASE_URL}download"
+        
         with timed_action("Downloading") as (change_message, start_time):
-            waited = False
-            while True:
-                downloaded = download_zip_file()
-                if downloaded:
-                    break
-                if (time.time() - start_time) > 120:
-                    raise ClientError("Failed downloading data, please try again.")
-
-                change_message("Generating (~ 1min)")
-                time.sleep(5 if waited else 30)
-                waited = True
+            # Download the zip file
+            zip_path, version_identifier = data_source.download(ROOT)
+            
+            # Extract it
+            extract_zip_to_root(zip_path)
+            
+            # Clean up temp file
+            try:
+                os.unlink(zip_path)
+            except:
+                pass
 
         download_covered_markets()
         download_covered_currencies()
+        
+        return version_identifier
 
     except TokenError:
         raise
     except Exception as e:
         raise
 
-
-def get_remote_timestamp() -> datetime.datetime:
-    response = get_response("last-updated")
-    data = json.load(response)
-    last_updated = data["last_updated"]
-    timestamp = datetime.datetime.fromisoformat(last_updated)
-    return timestamp
-
+    

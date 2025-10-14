@@ -10,7 +10,6 @@ os.makedirs(DEFAULT_STORE_DIR, exist_ok=True)
 # Define default settings in this dictionary
 default_settings = {
     "internal": {
-        "base_url": "https://api.tradinghours.com/v3/",
         "store_dir": DEFAULT_STORE_DIR,
         "remote_dir": DEFAULT_STORE_DIR / "remote",
         "mode": "package"
@@ -18,8 +17,8 @@ default_settings = {
     "auth": {
         "token": "",
     },
-    "package-mode": {
-        "table_prefix": "thstore_",
+    "data": {
+        "source": "https://api.tradinghours.com/v4/download",
     },
     "server-mode": {
         "allowed_hosts": "*",

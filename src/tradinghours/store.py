@@ -24,6 +24,7 @@ import functools
 from enum import Enum
 
 from .config import main_config, default_settings
+from .sources import get_data_source
 from .client import get_remote_timestamp as client_get_remote_timestamp
 from .util import get_th_cache, set_th_cache, tprefix, tname, clean_name, timed_action
 from .exceptions import DBError, NoAccess
@@ -207,7 +208,7 @@ class _DB:
         with self.session() as s:
             return s.query(*query)
 
-    def get_local_timestamp(self):
+    def get_local_data_info(self):
         # admin table is not present when `tradinghours import`
         # is run for the first time on a given database
         if tname("admin") not in self.metadata.tables:
@@ -216,12 +217,14 @@ class _DB:
         table = self.table("admin")
         with self.session() as s:
             result = s.query(
-                table.c["download_timestamp"]).order_by(
+                table.c["download_timestamp"],
+                table.c["version_identifier"]
+            ).order_by(
                     table.c["id"].desc()
             ).limit(1).scalar()
             if result:
-                return result.replace(tzinfo=dt.timezone.utc)
-
+                return result.replace(tzinfo=dt.timezone.utc), result.version_identifier
+    
     @property
     def access_level(self) -> AccessLevel:
         if self._access_level is None:
@@ -258,10 +261,24 @@ class _DB:
         return new_method
 
     def needs_download(self):
-        if local := self.get_local_timestamp():
-            remote_timestamp = client_get_remote_timestamp()
-            return remote_timestamp > local
-        return True
+        """Check if data needs to be downloaded using ETag-based change detection."""        
+        try:
+            # Get the data source and check for changes
+            data_source = get_data_source()
+            local_etag = self.get_local_etag()
+            has_changes, _ = data_source.check_for_changes(local_etag)
+            return has_changes
+        except Exception as e:
+            # If check fails, fall back to timestamp-based detection
+            print(f"Warning: ETag check failed, falling back to timestamp: {e}")
+            if local := self.get_local_timestamp():
+                try:
+                    remote_timestamp = client_get_remote_timestamp()
+                    return remote_timestamp > local
+                except:
+                    # If timestamp check also fails, assume needs download
+                    return True
+            return True
 
     def update_metadata(self):
         self.metadata.clear()
@@ -429,30 +446,30 @@ class Writer:
         table.create(self.db.engine)
         self.db.execute(table.insert(), batch)
 
-    def create_admin(self, access_level, last_9_records):
-        version_file = self.remote / "VERSION.txt"
-        timestamp_format = "Generated at %a, %d %b %Y %H:%M:%S %z"
-        content = version_file.read_text()
-        line = content.splitlines()[0]
-        data_timestamp = dt.datetime.strptime(line, timestamp_format)
-
+    def create_admin(self, access_level, last_9_records, version_identifier=None):
+        """
+        version_identifier could be ETag or mtime, depending on the data source.
+        """
         table = Table(
             tname("admin"),
             self.db.metadata,
             Column('id', Integer, primary_key=True),
-            Column('data_timestamp', DateTime, nullable=False),
             Column('access_level', String(255), nullable=False),
             Column('download_timestamp', DateTime, nullable=False),
+            Column('version_identifier', String(255), nullable=True),
         )
         table.create(self.db.engine)
         if last_9_records:
-            self.db.execute(table.insert(), last_9_records)
+            try:
+                self.db.execute(table.insert(), last_9_records)
+            except:
+                pass
 
         self.db.execute(
             table.insert().values(
-                data_timestamp=data_timestamp,
                 access_level=access_level.value,
-                download_timestamp=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+                download_timestamp=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None),
+                version_identifier=version_identifier,
             )
         )
         self.db.update_metadata()
@@ -466,7 +483,7 @@ class Writer:
             db.cache_set({})
 
 
-    def _ingest_all(self, change_message):
+    def _ingest_all(self, change_message, version_identifier=None):
         """Iterates over CSV files in the remote directory and ingests them."""
         # Set up timestamped database if needed        
         self.db.reset_session()
@@ -502,12 +519,12 @@ class Writer:
         else:
             access_level = AccessLevel.full
 
-        self.create_admin(access_level, last_9_admin_records)
+        self.create_admin(access_level, last_9_admin_records, version_identifier=version_identifier)
         
         self._finalize_db_setup()
 
 
-    def ingest_all(self) -> bool:       
+    def ingest_all(self, version_identifier=None) -> bool:       
         # Create a new timestamped database for this import
         new_db_path = _create_timestamped_db_path()
         self.db = _DB()
@@ -515,7 +532,7 @@ class Writer:
         self.db._set_engine()
 
         with timed_action("Ingesting") as (change_message, start_time):
-            self._ingest_all(change_message)
+            self._ingest_all(change_message, version_identifier=version_identifier)
         
         return True
 

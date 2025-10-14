@@ -85,11 +85,12 @@ def run_status(extended=False):
 
 def run_import(reset=False, force=False, quiet=False):
     if reset:
-        Writer().ingest_all()
+        version_identifier = client_download()
+        Writer().ingest_all(version_identifier=version_identifier)
 
     elif force or db.needs_download():
-        client_download()
-        Writer().ingest_all()
+        version_identifier = client_download()
+        Writer().ingest_all(version_identifier=version_identifier)
 
     elif not quiet:
         print("Local data is up-to-date.")
