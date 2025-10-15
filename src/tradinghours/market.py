@@ -327,19 +327,6 @@ class Market(BaseModel):
             return False
 
     @classmethod
-    def is_covered(cls, finid: str) -> bool:
-        """
-        Returns True or False showing if tradinghours provides data for the Market.
-        This differs from is_available because is_covered does not mean that the user
-        has access to it under their current plan.
-        """
-        table = db.table("covered_markets")
-        found = db.query(table).filter(
-            table.c.fin_id == finid
-        ).one_or_none()
-        return found is not None
-
-    @classmethod
     def _get_by_finid(cls, finid:str, following=None) -> Union[None, tuple]:
         found = db.query(cls.table()).filter(
             cls.table().c.fin_id == finid

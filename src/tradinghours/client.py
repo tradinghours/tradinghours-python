@@ -249,9 +249,6 @@ def data_download() -> Tuple[Optional[str]]:
     with timed_action("Downloading") as (change_message, start_time):
         # Download the zip file
         version_identifier = data_source.get()
-        
-    download_covered_markets()
-    download_covered_currencies()
     
     return version_identifier
 

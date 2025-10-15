@@ -286,13 +286,6 @@ class _DB:
         self.metadata.reflect(bind=self.engine)
         self._failed_to_access = False
 
-    def get_num_covered(self) -> tuple[int, int]:
-        table = db.table("covered_markets")
-        num_markets = self.query(func.count()).select_from(table).scalar()
-        table = db.table("covered_currencies")
-        num_currencies = self.query(func.count()).select_from(table).scalar()
-        return num_markets, num_currencies
-
     def get_num_permanently_closed(self) -> int:
         table = db.table("markets")
         num = self.query(func.count()).filter(
@@ -500,14 +493,6 @@ class Writer:
                 table_name = clean_name(table_name)
                 change_message(f"  {table_name}")
                 self.create_table_from_csv(file_path, table_name)
-
-        for json_file in ("covered_markets", "covered_currencies"):
-            table_name = json_file
-            change_message(f"  {table_name}")
-            self.create_table_from_json(
-                self.remote / f"{json_file}.json",
-                table_name
-            )
 
         self.db.update_metadata()
 

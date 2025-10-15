@@ -101,6 +101,3 @@ class CurrencyHolidayResponse(BaseResponseModel):
 class IsAvailableResponse(BaseResponseModel):
     is_available: bool
 
-class IsCoveredResponse(BaseResponseModel):
-    is_covered: bool
-

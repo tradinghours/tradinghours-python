@@ -50,20 +50,6 @@ class Currency(BaseModel):
 
     @classmethod
     @db.check_access
-    def is_covered(cls, code:str) -> bool:
-        """
-        Returns True or False showing if tradinghours provides data for the Currency.
-        This differs from is_available because is_covered does not mean that the user
-        has access to it under their current plan.
-        """
-        table = db.table("covered_currencies")
-        found = db.query(table).filter(
-            table.c.currency_code == code
-        ).one_or_none()
-        return found is not None
-
-    @classmethod
-    @db.check_access
     def get(cls, code: str) -> "Currency":
         validate_str_arg("code", code)
         result = db.query(cls.table()).filter(

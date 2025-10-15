@@ -62,7 +62,6 @@ def run_status(extended=False):
     if extended:
         if local_timestamp:
             with timed_action("Reading local data"):
-                num_markets, num_currencies = db.get_num_covered()
                 num_permanently_closed = db.get_num_permanently_closed()
                 try:
                     num_all_currencies = len(list(Currency.list_all()))
@@ -71,8 +70,8 @@ def run_status(extended=False):
                 num_all_markets = len(list(Market.list_all()))
                 num_all_markets -= num_permanently_closed
 
-            print(f"  Currencies count:  {num_all_currencies:4} available out of {num_currencies} total")
-            print(f"  Markets count:     {num_all_markets:4} available out of {num_markets} total")
+            print(f"  Currencies count:  {num_all_currencies:4} available")
+            print(f"  Markets count:     {num_all_markets:4} available")
             if num_permanently_closed:
                 print()
                 print("Notes:")

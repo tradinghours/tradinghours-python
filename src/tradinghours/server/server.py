@@ -32,8 +32,7 @@ from .responses import (
     MarketStatusResponse,
     CurrencyResponse,
     CurrencyHolidayResponse,
-    IsAvailableResponse,
-    IsCoveredResponse
+    IsAvailableResponse
 )
 
 # Configure logging
@@ -130,13 +129,11 @@ async def health_check(db=Depends(get_db)):
 async def api_info(db=Depends(get_db)):
     """API information and statistics."""
     try:
-        num_markets, num_currencies = db.get_num_covered()
-        local_timestamp = db.get_local_timestamp()
+        local_data_info = db.get_local_data_info()
+        local_timestamp = local_data_info.download_timestamp if local_data_info else None
         
         return {
             "api_version": __version__,
-            "total_markets": num_markets,
-            "total_currencies": num_currencies,
             "last_data_update": local_timestamp.isoformat() if local_timestamp else None,
             "access_level": db.access_level.value if db.access_level else None
         }
@@ -239,20 +236,6 @@ async def check_market_available(identifier: str, db=Depends(get_db)):
     logger.info(f"Checked availability for market {identifier}: {is_available}")
     return {"is_available": is_available}
 
-@app.get("/markets/{identifier}/is_covered", summary="Check if market is covered", response_model=IsCoveredResponse)
-async def check_market_covered(identifier: str, db=Depends(get_db)):
-    """Check if market is covered by TradingHours data."""
-    if "." in identifier:
-        finid = identifier
-    else:
-        # It's a MIC, we need to get the finid first
-        market = Market.get_by_mic(identifier, follow=False)
-        finid = market.fin_id
-    is_covered = Market.is_covered(finid)
-    logger.info(f"Checked coverage for market {identifier} (finid: {finid}): {is_covered}")
-    return {"is_covered": is_covered}
-
-
 @app.get("/markets/finid/{finid}", summary="Get market by FinID", response_model=MarketResponse)
 async def get_market_by_finid(
     finid: str,
@@ -309,14 +292,6 @@ async def check_currency_available(code: str, db=Depends(get_db)):
     is_available = Currency.is_available(code)
     logger.info(f"Checked availability for currency {code}: {is_available}")
     return {"is_available": is_available}
-
-@app.get("/currencies/{code}/is_covered", summary="Check if currency is covered", response_model=IsCoveredResponse)
-async def check_currency_covered(code: str, db=Depends(get_db)):
-    """Check if currency is covered by TradingHours data."""
-    is_covered = Currency.is_covered(code)
-    logger.info(f"Checked coverage for currency {code}: {is_covered}")
-    return {"is_covered": is_covered}
-
 
 class GunicornApplication:
     """Custom Gunicorn application for programmatic server startup."""
