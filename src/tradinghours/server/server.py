@@ -3,6 +3,8 @@ import platform
 import sys, time, traceback
 import logging
 import datetime as dt
+import asyncio
+from contextlib import asynccontextmanager
 from typing import Optional, List
 from pathlib import Path
 
@@ -366,13 +368,12 @@ def run_server(
         logger.info(f"Starting TradingHours API on http://{host}:{port}")
     
 
-    uvicorn_workers = main_config.getint("server-mode", "uvicorn_workers") or 1
     log_level = (main_config.get("server-mode", "log_level") or "DEBUG").upper()
 
-    # Use Gunicorn for production with multiple workers
+    # Use single worker for database consistency
     options = {
         'bind': bind,
-        'workers': uvicorn_workers,
+        'workers': 1,  # Enforce single worker
         'worker_class': 'uvicorn.workers.UvicornWorker',
         'loglevel': log_level,
         'timeout': 120,

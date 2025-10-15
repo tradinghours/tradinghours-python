@@ -25,7 +25,6 @@ import functools
 from enum import Enum
 
 from .config import main_config, default_settings
-from .client import get_data_source
 from .util import get_th_cache, set_th_cache, clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
@@ -266,20 +265,6 @@ class _DB:
             return method(*args, **kwargs)
 
         return new_method
-
-    def needs_download(self):
-        """Check if data needs to be downloaded using version-based change detection."""        
-        try:
-            # Get the data source and check for changes
-            data_source = get_data_source()
-            local_data_info = self.get_local_data_info()
-            stored_version = local_data_info.version_identifier if local_data_info else None
-            new_version = data_source.check_for_changes(stored_version)
-            return new_version
-        except Exception as e:
-            # If check fails, assume needs download
-            print(f"Warning: Version check failed: {e}")
-            return True
 
     def update_metadata(self):
         self.metadata.clear()

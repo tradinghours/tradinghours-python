@@ -21,12 +21,12 @@ default_settings = {
         "source": "https://api.tradinghours.com/v4/download",
     },
     "server-mode": {
+        "auto_import_frequency": 60 * 6, # minutes
         "allowed_hosts": "*",
         "allowed_origins": "*",
         "log_folder": "tradinghours_server_logs",
         "log_days_to_keep": 7,
         "log_level": "DEBUG",
-        "uvicorn_workers": 1,
     },
     "extra": {
         "check_tzdata": True,
@@ -41,7 +41,6 @@ main_config.read("tradinghours.ini")
 # Handle auth token - prioritize environment variable
 token = os.getenv("TRADINGHOURS_TOKEN", main_config.get("auth", "token", fallback=""))
 main_config.set("auth", "token", token)
-
 
 def print_help(text):
     """Print formatted help text."""

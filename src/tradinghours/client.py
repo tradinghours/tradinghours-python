@@ -9,7 +9,8 @@ from typing import Tuple, Optional, Union
 from . import __version__
 from .config import main_config
 from .util import timed_action
-from .exceptions import ClientError, TokenError, FileNotFoundError, TradingHoursError, ConfigError
+from .exceptions import ClientError, TokenError, TradingHoursError, ConfigError, NoVersionIdentifierFoundError
+from .store import db
 
 # Check for boto3 availability
 try:
@@ -47,9 +48,29 @@ class DataSource(ABC):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(REMOTE_DIR)
 
+
+    def needs_download(self) -> bool:
+        """Check if data needs to be downloaded using version-based change detection."""        
+        try:
+            local_data_info = db.get_local_data_info()
+            local_version = local_data_info.version_identifier if local_data_info else None
+            if local_version is None:
+                return True
+
+            remote_version = self.get_remote_version()
+            if remote_version is None or remote_version != local_version:
+                return True
+
+            return False
+        except Exception as e:
+            return True
+
+
+                
     @abstractmethod
-    def check_for_changes(self, stored_version: Optional[str] = None) -> Optional[str]:
+    def get_remote_version(self) -> Optional[str]:
         pass
+
     @abstractmethod
     def get(self) -> Optional[str]:
         pass
@@ -66,45 +87,32 @@ class HTTPDataSource(DataSource):
             if not self.token:
                 raise TokenError("Token is missing or invalid")
 
-    def _make_request(self, method: str = "GET", if_none_match: Optional[str] = None) -> object:
+    def _make_request(self, method: str = "GET") -> object:
         """Make an HTTP request with appropriate headers."""
         request = Request(self.url, method=method)
         print("making request", self.url, method)
         request.add_header("User-Agent", f"tradinghours-python/{__version__}")        
         if self.token:
             request.add_header("Authorization", f"Bearer {self.token}")
-        if if_none_match:
-            request.add_header("If-None-Match", if_none_match)
-        
         try:
             return self.opener.open(request)
         except HTTPError as error:
-            if error.code == 304:
-                # Not modified - this is actually expected for HEAD If-None-Match requests
-                return False
             if error.code in (401, 403):
                 raise TokenError("Token is missing or invalid")
-            if error.code == 404:
-                if method == "HEAD":
-                    return False
-                raise ClientError(f"Resource not found at {self.url}")
             raise ClientError(f"Error getting server response: {error}") from error
     
-    def check_for_changes(self, stored_version: Optional[str] = None) -> Optional[str]:
+    def get_remote_version(self) -> Optional[str]:
         """Check for changes using ETag or Last-Modified header."""
         try:
-            response = self._make_request(method="HEAD", if_none_match=stored_version)
-            if response is False:
-                return None
-            
+            print("getting remote version identifier", self.url)
+            response = self._make_request(method="HEAD")
             etag = response.headers.get('ETag') or response.headers.get('etag')
             if etag:
-                etag = etag.strip().strip('"')
-                return etag if etag != stored_version else None
-            
+                return etag.strip().strip('"')
+
             last_modified = response.headers.get('Last-Modified') or response.headers.get('last-modified')
             if last_modified:
-                return last_modified if last_modified != stored_version else None
+                return last_modified
 
         except Exception as e:
             return None
@@ -112,13 +120,21 @@ class HTTPDataSource(DataSource):
     def get(self) -> Optional[str]:
         """Download data file and extract it."""
         response = self._make_request(method="GET")
+
         # Get ETag or Last-Modified for tracking (making it support both for proprietary APIs)
-        etag = response.headers.get('ETag') or response.headers.get('etag')
-        if etag:
-            version_identifier = etag.strip().strip('"')
-        else:
-            version_identifier = response.headers.get('Last-Modified') or response.headers.get('last-modified')
-        
+        try:
+            etag = response.headers.get('ETag') or response.headers.get('etag')
+            if etag:
+                version_identifier = etag.strip().strip('"')
+            else:
+                version_identifier = response.headers.get('Last-Modified') or response.headers.get('last-modified')
+            if version_identifier is None:
+                raise NoVersionIdentifierFoundError()
+        except NoVersionIdentifierFoundError as e:
+            version_identifier = self.get_remote_version()
+            if version_identifier is None:
+                raise
+
         # Download to temporary file
         with tempfile.NamedTemporaryFile(suffix='.zip') as temp_file:
             shutil.copyfileobj(response, temp_file)
@@ -145,22 +161,18 @@ class FileDataSource(DataSource):
         if not self.file_path.exists():
             raise ClientError(f"File not found: {self.file_path}")
     
-    def check_for_changes(self, stored_version: Optional[str] = None) -> Optional[str]:
+    def get_remote_version(self) -> Optional[str]:
         """Check for changes using file modification time."""
         try:
             mtime = os.path.getmtime(self.file_path)
-            mtime_str = str(mtime)
-            if mtime_str != stored_version:
-                return mtime_str
+            return str(mtime)
         except Exception as e:
             return None
     
     def get(self) -> Optional[str]:
         """Copy file and return path with mtime."""
-        mtime = os.path.getmtime(self.file_path)
-        mtime_str = str(mtime)
         self.extract_zip_to_remote_dir(Path(self.file_path))
-        return mtime_str
+        return self.get_remote_version()
 
 
 class S3DataSource(DataSource):
@@ -175,7 +187,6 @@ class S3DataSource(DataSource):
         parsed = urlparse(url)
         self.bucket = parsed.netloc
         self.key = parsed.path.lstrip('/')
-        
         if not self.bucket or not self.key:
             raise TradingHoursError(
                 f"Invalid S3 URL: {url}, please use the S3 URI in the format s3://bucket/key"
@@ -183,22 +194,21 @@ class S3DataSource(DataSource):
         
         self.s3_client = boto3.client('s3')
     
-    def check_for_changes(self, stored_version: Optional[str] = None) -> Optional[str]:
+    def get_remote_version(self) -> Optional[str]:
         """Check for changes using S3 ETag."""
         try:
             response = self.s3_client.head_object(Bucket=self.bucket, Key=self.key)
-            etag = response.get('ETag', '').strip('"')
-            if not stored_version:
-                return etag
-            if etag != stored_version.strip('"'):
-                return etag
-            
-        except self.s3_client.exceptions.ClientError as e:
-            if e.response['Error']['Code'] != '304':
-                raise
+            etag = response.get('ETag') or response.get('etag')
+            if etag:
+                return etag.strip().strip('"')
+            last_modified = response.get('LastModified') or response.get('last-modified')
+            if last_modified:
+                return last_modified
+        except Exception as e:
+            return None
         
     
-    def get(self) -> Tuple[Path, Optional[str]]:
+    def get(self) -> Optional[str]:
         """Download from S3 and return path with ETag.
         Gets ETag from the response of the download request, no extra HEAD needed.
         """
@@ -208,7 +218,8 @@ class S3DataSource(DataSource):
             temp_path = temp_file.name
             etag = response.get('ETag', '').strip('"')
             self.extract_zip_to_remote_dir(Path(temp_path))
-            return etag
+
+        return etag
 
 
 

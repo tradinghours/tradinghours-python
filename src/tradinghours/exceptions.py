@@ -71,6 +71,14 @@ class FileNotFoundError(ClientError):
         )
 
 
+class NoVersionIdentifierFoundError(TradingHoursError):
+    """When no version identifier is found"""
+
+    def build_help_message(self):
+        return (
+            "No version identifier found"
+        )
+
 class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
 

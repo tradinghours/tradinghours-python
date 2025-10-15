@@ -11,7 +11,8 @@ from .client import (
 # server import handled in `run_serve` to keep its dependencies optional
 from .currency import Currency
 from .market import Market
-from .exceptions import TradingHoursError, NoAccess
+from .exceptions import TradingHoursError, NoAccess, ConfigError
+from .config import main_config
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
@@ -43,7 +44,7 @@ def create_parser():
     serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
     serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
                              help="Log level (default: info)")
-    serve_parser.add_argument("--no-auto-update", action="store_true", help="Do not check for data updates every minute")
+    serve_parser.add_argument("--no-auto-import", action="store_true", help="Do not auto-import data")
 
     return parser
 
@@ -96,9 +97,9 @@ def run_import(reset=False, force=False, quiet=False):
         print("Local data is up-to-date.")
 
 
-def auto_update():
+def auto_import(frequency):
     while True:
-        time.sleep(60)
+        time.sleep(frequency * 60) # minutes to seconds
         try:
             run_import(quiet=True)
         except Exception as e:
@@ -107,14 +108,19 @@ def auto_update():
             continue
 
 
-def run_serve(server_config, no_auto_update=False):
+def run_serve(server_config, no_auto_import=False):
     """Run the API server."""
     from .server import run_server
     try:
-        if not no_auto_update:
-            print("Auto-updating...")
+        if not no_auto_import:
+            try:
+                auto_import_frequency = main_config.getint("server-mode", "auto_import_frequency")
+            except ValueError:
+                raise ConfigError("auto_import_frequency must be an integer")
+
+            print("Auto-importing...")
             run_import(quiet=True)
-            threading.Thread(target=auto_update, daemon=True).start()
+            threading.Thread(target=auto_import, args=(auto_import_frequency,), daemon=True).start()
 
         run_server(
             **server_config,
@@ -143,7 +149,7 @@ def main():
                 "port": args.port,
                 "uds": args.uds,
             }
-            run_serve(server_config, no_auto_update=args.no_auto_update)
+            run_serve(server_config, no_auto_import=args.no_auto_import)
 
     # Handle generic errors gracefully
     except Exception as error:
