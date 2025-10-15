@@ -53,9 +53,11 @@ def run_status(extended=False):
     with timed_action("Collecting data info"):
         local_data_info = db.get_local_data_info()
         local_timestamp = local_data_info.download_timestamp if local_data_info else None
+        local_version = local_data_info.version_identifier if local_data_info else None
 
     print("TradingHours Data Status:")
-    print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
+    print("  Downloaded at:   ", local_timestamp and local_timestamp.ctime())
+    print("  Version:         ", local_version)
     print()
     if extended:
         if local_timestamp:

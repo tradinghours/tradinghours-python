@@ -3,9 +3,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse, unquote
-from urllib.request import Request, urlopen
-from typing import Tuple, Optional
+from urllib.request import Request, urlopen, HTTPRedirectHandler, build_opener
+from typing import Tuple, Optional, Union
 
+from . import __version__
 from .config import main_config
 from .util import timed_action
 from .exceptions import ClientError, TokenError, FileNotFoundError, TradingHoursError, ConfigError
@@ -19,38 +20,38 @@ else:
     AWS_AVAILABLE = True
 
 TOKEN = main_config.get("auth", "token")
-ROOT = Path(main_config.get("internal", "remote_dir"))
-ROOT.mkdir(parents=True, exist_ok=True)
+REMOTE_DIR = Path(main_config.get("internal", "remote_dir"))
+REMOTE_DIR.mkdir(parents=True, exist_ok=True)
 
-
-# ============================================================================
-# Data Source Abstraction
-# ============================================================================
+class StripAuthOnS3Redirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Strip Authorization when redirecting to S3 (any domain, really)
+        if urlparse(req.full_url).netloc != urlparse(newurl).netloc:
+            headers = {h: v for h, v in headers.items() if h.lower() != "authorization"}
+            return Request(newurl, headers=headers, method=req.get_method())
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 class DataSource(ABC):
-    """Abstract base class for data sources."""
-    
+    @staticmethod
+    def extract_zip_to_remote_dir(zip_path: Path) -> None:
+        """Extract zip file to REMOTE_DIR directory, clearing it first."""
+        # Clear out the directory to make sure no old csv files
+        # are present if the access level is reduced
+        for path in os.listdir(REMOTE_DIR):
+            path = REMOTE_DIR / path
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+        # Extract zip file
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(REMOTE_DIR)
+
     @abstractmethod
     def check_for_changes(self, stored_version: Optional[str] = None) -> Optional[str]:
-        # TODO: what if data source doesn't support change tracking?
-        """
-        Check if the data source has changes.
-        
-        Args:
-            stored_version: Previously stored ETag or mtime
-            
-        Returns:
-            - new_version: New ETag/mtime value, or None if unchanged
-        """
         pass
-    
     @abstractmethod
     def get(self) -> Optional[str]:
-        """
-        Download the data file.
-        Returns:
-            - version | None: ETag or mtime value for change tracking, or None if unchanged   
-        """
         pass
 
 
@@ -58,41 +59,42 @@ class HTTPDataSource(DataSource):
     """Data source that downloads from HTTP/HTTPS URLs."""
     
     def __init__(self, url: str):
+        self.opener = build_opener(StripAuthOnS3Redirect)
         self.url = url
         if "tradinghours.com" in url:
-            self.token = main_config.get("auth", "token")
+            self.token = main_config.get("auth", "token", fallback=None) 
             if not self.token:
                 raise TokenError("Token is missing or invalid")
-        else:
-            self.token = None
-    
+
     def _make_request(self, method: str = "GET", if_none_match: Optional[str] = None) -> object:
         """Make an HTTP request with appropriate headers."""
-        request = Request(self.url)
-        request.get_method = lambda: method
-        request.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")        
+        request = Request(self.url, method=method)
+        print("making request", self.url, method)
+        request.add_header("User-Agent", f"tradinghours-python/{__version__}")        
         if self.token:
             request.add_header("Authorization", f"Bearer {self.token}")
         if if_none_match:
             request.add_header("If-None-Match", if_none_match)
         
         try:
-            return urlopen(request)
+            return self.opener.open(request)
         except HTTPError as error:
             if error.code == 304:
-                # Not modified - this is actually expected for HEAD requests
-                return error
+                # Not modified - this is actually expected for HEAD If-None-Match requests
+                return False
             if error.code in (401, 403):
                 raise TokenError("Token is missing or invalid")
             if error.code == 404:
-                raise ClientError(f"File not found at {self.url}")
+                if method == "HEAD":
+                    return False
+                raise ClientError(f"Resource not found at {self.url}")
             raise ClientError(f"Error getting server response: {error}") from error
     
     def check_for_changes(self, stored_version: Optional[str] = None) -> Optional[str]:
         """Check for changes using ETag or Last-Modified header."""
         try:
             response = self._make_request(method="HEAD", if_none_match=stored_version)
-            if hasattr(response, 'code') and response.code == 304:
+            if response is False:
                 return None
             
             etag = response.headers.get('ETag') or response.headers.get('etag')
@@ -110,7 +112,6 @@ class HTTPDataSource(DataSource):
     def get(self) -> Optional[str]:
         """Download data file and extract it."""
         response = self._make_request(method="GET")
-        
         # Get ETag or Last-Modified for tracking (making it support both for proprietary APIs)
         etag = response.headers.get('ETag') or response.headers.get('etag')
         if etag:
@@ -122,7 +123,7 @@ class HTTPDataSource(DataSource):
         with tempfile.NamedTemporaryFile(suffix='.zip') as temp_file:
             shutil.copyfileobj(response, temp_file)
             temp_file.flush()
-            extract_zip_to_root(Path(temp_file.name))
+            self.extract_zip_to_remote_dir(Path(temp_file.name))
         
         return version_identifier
 
@@ -158,7 +159,7 @@ class FileDataSource(DataSource):
         """Copy file and return path with mtime."""
         mtime = os.path.getmtime(self.file_path)
         mtime_str = str(mtime)
-        extract_zip_to_root(self.file_path)
+        self.extract_zip_to_remote_dir(Path(self.file_path))
         return mtime_str
 
 
@@ -206,12 +207,12 @@ class S3DataSource(DataSource):
             shutil.copyfileobj(response['Body'], temp_file)
             temp_path = temp_file.name
             etag = response.get('ETag', '').strip('"')
-            extract_zip_to_root(Path(temp_path))
+            self.extract_zip_to_remote_dir(Path(temp_path))
             return etag
 
 
 
-def get_data_source() -> DataSource:
+def get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
     source_url = main_config.get("data", "source") # should be there by default
     if not source_url: # use default v4 API
         raise ConfigError("Config option [data].source is empty.")
@@ -232,73 +233,6 @@ def get_data_source() -> DataSource:
             f"Unsupported data source or format: {source_url}. "
             f"Make sure source starts with one of the following: http://, https://, file://, or s3://"
         )
-
-
-# ============================================================================
-# Legacy API Helper (kept for backwards compatibility)
-# ============================================================================
-
-def get_response(path):
-    """Helper function for legacy v3/v4 API calls."""
-    base_url = main_config.get("data", "source")
-    # Extract base URL without /download
-    if 'markets' in path or 'currencies' in path:
-        if 'tradinghours.com' in base_url:
-            base_url = base_url.replace('/v4/download', 'v3')
-        else:
-            # cannot get covered_markets or covered_currencies
-            return None
-
-    url = urljoin(base_url + '/', path)
-    request = Request(url)
-    request.add_header("Authorization", f"Bearer {TOKEN}")
-    request.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-    try:
-        response = urlopen(request)
-    except HTTPError as error:
-        if error.code in (401, 403):
-            raise TokenError("Token is missing or invalid")
-        if error.code == 404:
-            raise FileNotFoundError("Error getting server response", inner=error)
-        raise ClientError("Error getting server response", inner=error)
-
-    return response
-
-
-def extract_zip_to_root(zip_path: Path) -> None:
-    """Extract zip file to ROOT directory, clearing it first."""
-    # Clear out the directory to make sure no old csv files
-    # are present if the access level is reduced
-    for path in os.listdir(ROOT):
-        path = ROOT / path
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        else:
-            os.remove(path)
-    
-    # Extract zip file
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(ROOT)
-
-# TODO: how to handle this for non-tradinghours.com APIs?
-def download_covered_markets():
-    response = get_response("markets?group=all")
-    if response is None:
-        markets = []
-    else:
-        markets = json.load(response).get("data", [])
-    with open(ROOT / "covered_markets.json", "w") as covered_markets:
-        json.dump(markets, covered_markets)
-
-# TODO: how to handle this for non-tradinghours.com APIs?
-def download_covered_currencies():
-    response = get_response("currencies")
-    if response is None:
-        currencies = []
-    else:
-        currencies = json.load(response).get("data", [])
-    with open(ROOT / "covered_currencies.json", "w") as covered_currencies:
-        json.dump(currencies, covered_currencies)
 
 
 def data_download() -> Tuple[Optional[str]]:

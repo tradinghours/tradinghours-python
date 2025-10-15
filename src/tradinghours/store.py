@@ -213,6 +213,9 @@ class _DB:
         # is run for the first time on a given database
         if "admin" not in self.metadata.tables:
             return
+        if "version_identifier" not in self.metadata.tables["admin"].columns:
+            # this is to migrate to new set up with version_identifier column
+            return
 
         table = self.table("admin")
         with self.session() as s:
@@ -221,7 +224,7 @@ class _DB:
                 table.c["version_identifier"]
             ).order_by(
                     table.c["id"].desc()
-            ).limit(1).scalar()
+            ).limit(1).first()
             if result:
                 LocalDataInfo = namedtuple("LocalDataInfo", ["download_timestamp", "version_identifier"])
                 return LocalDataInfo(
@@ -270,9 +273,9 @@ class _DB:
             # Get the data source and check for changes
             data_source = get_data_source()
             local_data_info = self.get_local_data_info()
-            stored_version = local_data_info[1] if local_data_info else None
-            has_changes, _ = data_source.check_for_changes(stored_version)
-            return has_changes
+            stored_version = local_data_info.version_identifier if local_data_info else None
+            new_version = data_source.check_for_changes(stored_version)
+            return new_version
         except Exception as e:
             # If check fails, assume needs download
             print(f"Warning: Version check failed: {e}")
