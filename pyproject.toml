@@ -35,13 +35,10 @@ dev = [
     'pytest-mock',
     'httpx',  # Required for FastAPI TestClient
     'fastapi',
+    'boto3'
 ]
-mysql = [
-    'pymysql',
-    'cryptography'
-]
-postgres = [
-    'psycopg2-binary'
+s3 = [
+    'boto3'
 ]
 server = [
     'fastapi',

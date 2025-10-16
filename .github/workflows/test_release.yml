@@ -79,7 +79,11 @@ jobs:
 
       - name: run all tests
         run: |          
-          pip install pytest pytest-mock httpx fastapi
+          # not installing with -e ".[dev]" because:
+          #  1) it is pulled from pip so "-e ." doesn't make sense
+          #  2) I want the above python -c test to run with the default installation 
+
+          pip install pytest pytest-mock httpx fastapi boto3
 
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
 

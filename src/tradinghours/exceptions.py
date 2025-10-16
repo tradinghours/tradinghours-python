@@ -37,6 +37,10 @@ class TradingHoursError(Exception):
     def __str__(self):
         return self.detail
 
+class ConfigError(TradingHoursError):
+    """When the config file is invalid"""
+
+    pass
 
 class ClientError(TradingHoursError):
     """When an error occurs accessing remote HTTP server"""
@@ -67,6 +71,15 @@ class FileNotFoundError(ClientError):
         )
 
 
+class NoVersionIdentifierFoundError(TradingHoursError):
+    """When no version identifier is found"""
+
+    def build_help_message(self):
+        return (
+            "No version identifier found"
+        )
+
+
 class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
 
@@ -86,20 +99,17 @@ class MissingSqlAlchemyError(TradingHoursError):
 
 class NoAccess(TradingHoursError):
     """
-    Raised when a user attempts accessing a type of data
+    Raised when a user attempts to access a specific method
     that is not available under their current plan.
     """
     pass
 
-
-class NotCovered(TradingHoursError):
+class NotAvailable(TradingHoursError):
     """
     Raised when a user attempts to access a specific data item
-     that is not covered by Tradinghours but the type of data
-     (e.g.: Currencies) are available under their current plan.
+    that is not available.
     """
     pass
-
 
 class MICDoesNotExist(TradingHoursError):
     """
@@ -134,8 +144,10 @@ class InvalidType(TradingHoursError, TypeError):
     """
     pass
 
+
 class InvalidValue(TradingHoursError, ValueError):
     """
     Raised when the value is invalid
     """
     pass
+

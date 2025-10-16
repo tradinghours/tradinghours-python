@@ -32,34 +32,50 @@ pip install -e .[dev]
 pytest
 ```
 
-### Running with a Database
+The library uses SQLite as the default database, which requires no additional setup.
 
-If you want to run it with a MySQL or Postgres database, create a `tradinghours.ini` file in the current directory with the connection string:
+### Configuring Data Sources
+
+By default, the library downloads data from the TradingHours.com API (v4 endpoint). You can configure alternative data sources by creating a `tradinghours.ini` file:
 
 ```ini
-[package-mode]
-db_url = mysql+pymysql://test_user:test_password@localhost:3306/test_db
-```
-
-Then, install the appropriate dependencies:
-
-```bash
-pip install -e .[mysql]  # or pip install -e .[postgres]
-```
-
-If you don't have one of these databases available, you can run a Docker container defined in `docker-compose.yml`:
-
-```bash
-docker compose up mysql -d  # for MySQL
+[data]
+source = file:///path/to/data.zip
 # or
-docker compose up postgres -d  # for PostgreSQL
+source = s3://bucket/path/to/data.zip
+# or
+source = https://example.com/data.zip
 ```
 
-When done, don't forget to shut it down:
+#### Supported Data Sources
 
-```bash
-docker compose down
-```
+1. **Default (v4 API)**: Leave `source` empty or unset
+   - Automatically uses your API token
+   - Efficient ETag-based change detection
+   - Downloads latest data from TradingHours.com
+
+2. **Local File**: `file:///absolute/path/to/data.zip`
+   - Uses modification time (mtime) for change detection
+   - Works cross-platform (Windows/Unix)
+   - Useful for offline development or testing
+
+3. **Custom HTTPS**: `https://example.com/data.zip`
+   - Uses ETag or Last-Modified headers for change detection
+   - Falls back to always downloading if headers unavailable
+
+4. **S3**: `s3://bucket/key/data.zip` (requires boto3)
+   - Install with: `pip install boto3`
+   - Uses S3 ETag for change detection
+   - Requires AWS credentials configured
+
+#### Change Detection
+
+The library automatically detects data changes using:
+- **ETag** for HTTP/HTTPS and S3 sources
+- **mtime** (modification time) for file:// sources
+- Falls back to timestamp comparison if ETag unavailable
+
+This ensures efficient updates - data is only downloaded when it has actually changed.
 
 ## Release Process
 
