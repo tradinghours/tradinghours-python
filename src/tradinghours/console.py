@@ -34,11 +34,13 @@ def create_parser():
     import_parser.add_argument("--reset", action="store_true", help="Re-ingest data, without downloading. (Resets the database)")
 
     # "serve" subcommand
+    log_level_choices = ["debug", "info", "warning", "error"]
+    log_level_choices += [level.upper() for level in log_level_choices]
     serve_parser = subparsers.add_parser("serve", help="Start API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to (default: 8000)")
     serve_parser.add_argument("--uds", help="Unix domain socket path (overrides host/port)")
-    serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
+    serve_parser.add_argument("--log-level", choices=log_level_choices, default="info",
                              help="Log level (default: info)")
 
     return parser

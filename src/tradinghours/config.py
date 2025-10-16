@@ -21,6 +21,8 @@ default_settings = {
     },
     "data": {
         "source": "https://api.tradinghours.com/v4/download",
+        "aws_access_key_id": "",
+        "aws_secret_access_key": "",
     },
     "server-mode": {
         "auto_import_frequency": 60 * 6, # minutes; set to 0 to disable auto-import

@@ -185,7 +185,21 @@ class S3DataSource(DataSource):
                 f"Invalid S3 URL: {url}, please use the S3 URI in the format s3://bucket/key"
             )
         
-        self.s3_client = boto3.client('s3')
+        # Read AWS credentials from config if set
+        aws_access_key_id = main_config.get("data", "aws_access_key_id", fallback="")
+        aws_secret_access_key = main_config.get("data", "aws_secret_access_key", fallback="")
+        if aws_access_key_id and aws_secret_access_key:
+            self.s3_client = boto3.client(
+                's3',
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key
+            )
+        elif (aws_access_key_id and not aws_secret_access_key) or (not aws_access_key_id and aws_secret_access_key):
+            raise ConfigError(
+                "both or none of aws_access_key_id and aws_secret_access_key must be set"
+            )
+        else:
+            self.s3_client = boto3.client('s3')
     
     def get_remote_version(self) -> Optional[str]:
         """Check for changes using S3 ETag."""

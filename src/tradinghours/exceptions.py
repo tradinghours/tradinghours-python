@@ -79,6 +79,7 @@ class NoVersionIdentifierFoundError(TradingHoursError):
             "No version identifier found"
         )
 
+
 class MissingDefinitionError(TradingHoursError):
     """When a season definition is not found"""
 
@@ -98,20 +99,17 @@ class MissingSqlAlchemyError(TradingHoursError):
 
 class NoAccess(TradingHoursError):
     """
-    Raised when a user attempts accessing a type of data
+    Raised when a user attempts to access a specific method
     that is not available under their current plan.
     """
     pass
 
-
-class NotCovered(TradingHoursError):
+class NotAvailable(TradingHoursError):
     """
     Raised when a user attempts to access a specific data item
-     that is not covered by Tradinghours but the type of data
-     (e.g.: Currencies) are available under their current plan.
+    that is not available.
     """
     pass
-
 
 class MICDoesNotExist(TradingHoursError):
     """

@@ -4,7 +4,7 @@ import datetime as dt
 from .validate import validate_range_args, validate_date_arg, validate_str_arg
 from .models import BaseModel, CurrencyHoliday
 from .store import db
-from .exceptions import NotCovered, NoAccess
+from .exceptions import NotAvailable
 
 class Currency(BaseModel):
     _table = "currencies"
@@ -45,7 +45,7 @@ class Currency(BaseModel):
         try:
             cls.get(code)
             return True
-        except (NoAccess, NotCovered):
+        except (NotAvailable):
             return False
 
     @classmethod
@@ -55,15 +55,9 @@ class Currency(BaseModel):
         result = db.query(cls.table()).filter(
             cls.table().c.currency_code == code
         ).one_or_none()
-        if result:
-            return cls(result)
-
-        if cls.is_covered(code):
-            raise NoAccess(
-                f"\n\nThe currency '{code}' is supported but not available on your current plan."
-                f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
+        if result is None:
+            raise NotAvailable(
+                f"The currency '{code}' is either mistyped, not supported by TradingHours, or you do not have permission to access this currency. Please contact support@tradinghours.com for more information or requesting a new currency to be covered."
             )
-        # if no result found, raise NotCovered
-        raise NotCovered(
-            f"The currency '{code}' is currently not available."
-        )
+
+        return cls(result)
