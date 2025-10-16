@@ -35,6 +35,7 @@ dev = [
     'pytest-mock',
     'httpx',  # Required for FastAPI TestClient
     'fastapi',
+    'boto3'
 ]
 s3 = [
     'boto3'
