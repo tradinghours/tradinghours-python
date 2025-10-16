@@ -2,14 +2,14 @@ import argparse
 import traceback
 
 from . import __version__
-from .config import print_help
+from .config import print_help, main_config
+from .util import timed_action
 from .store import Writer, db
 from .client import data_source
 # server import handled in `run_serve` to keep its dependencies optional
 from .currency import Currency
 from .market import Market
 from .exceptions import TradingHoursError, NoAccess
-from .config import main_config
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
