@@ -145,13 +145,8 @@ class FileDataSource(DataSource):
     
     def __init__(self, url: str):
         super().__init__(url)
-        parsed = urlparse(url)
-        path = unquote(parsed.path) # unix vs windows path
-        
-        # On Windows, file:///C:/path becomes /C:/path, need to remove leading /
-        if os.name == 'nt' and path.startswith('/') and len(path) > 2 and path[2] == ':':
-            path = path[1:]
-        
+        path = url.split("file://")[1]
+        path = unquote(path)
         self.file_path = Path(path)
         if not self.file_path.exists():
             raise ClientError(f"File not found: {self.file_path}")
