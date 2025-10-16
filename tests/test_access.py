@@ -51,7 +51,7 @@ def test_raises_no_access():
             list(nyse.generate_phases("2024-09-12", "2024-09-13"))
 
 
-def test_raise_not_available():
+def test_raises_not_available():
     """
     NoAccess should be raised when a method is not available under the current plan.
     NotAvailable should be raised when a currency or market is not available.
@@ -74,11 +74,13 @@ def test_raise_not_available():
     else:
         with pytest.raises(ex.NoAccess):
             Currency.get("NOTCOVERED")
-        assert Currency.is_available("NOTCOVERED") is False
+        with pytest.raises(ex.NoAccess):
+            Currency.is_available("NOTCOVERED")
 
         with pytest.raises(ex.NoAccess):
             Currency.get("EUR")
-        assert Currency.is_available("EUR") is False
+        with pytest.raises(ex.NoAccess):
+            Currency.is_available("EUR")
 
 
 

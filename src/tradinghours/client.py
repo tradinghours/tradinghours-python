@@ -37,7 +37,7 @@ class DataSource(ABC):
         self.source_url = url
 
     @staticmethod
-    def extract_zip_to_remote_dir(zip_path: Path) -> None:
+    def extract_zip_to_remote_dir(zip_path: Path, delete: bool = True) -> None:
         """Extract zip file to REMOTE_DIR directory, clearing it first."""
         # Clear out the directory to make sure no old csv files
         # are present if the access level is reduced
@@ -47,9 +47,13 @@ class DataSource(ABC):
                 shutil.rmtree(path)
             else:
                 os.remove(path)
+
         # Extract zip file
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(REMOTE_DIR)
+
+        if delete:
+            os.remove(zip_path)
 
 
     def needs_download(self) -> bool:
@@ -127,10 +131,11 @@ class HTTPDataSource(DataSource):
             version_identifier = None
 
         # Download to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.zip') as temp_file:
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_file:
             shutil.copyfileobj(response, temp_file)
             temp_file.flush()
-            self.extract_zip_to_remote_dir(Path(temp_file.name))
+
+        self.extract_zip_to_remote_dir(Path(temp_file.name), delete=True)
         
         return version_identifier
 
@@ -163,7 +168,7 @@ class FileDataSource(DataSource):
     
     def get(self) -> Optional[str]:
         """Copy file and return path with mtime."""
-        self.extract_zip_to_remote_dir(Path(self.file_path))
+        self.extract_zip_to_remote_dir(Path(self.file_path), delete=False)
         return self.get_remote_version()
 
 
@@ -216,12 +221,12 @@ class S3DataSource(DataSource):
         """Download from S3 and return ETag.
         Gets ETag from the response of the download reques.
         """
-        with tempfile.NamedTemporaryFile(suffix='.zip') as temp_file:
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_file:
             response = self.s3_client.get_object(Bucket=self.bucket, Key=self.key)
             shutil.copyfileobj(response['Body'], temp_file)
             etag = response.get('ETag', '').strip('"')
-            self.extract_zip_to_remote_dir(Path(temp_file.name))
 
+        self.extract_zip_to_remote_dir(Path(temp_file.name), delete=True)
         return etag
 
 

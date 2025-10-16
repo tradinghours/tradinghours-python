@@ -71,8 +71,6 @@ jobs:
           tradinghours import
           tradinghours status --extended
 
-          # Run tests
-          export API_KEY_LEVEL=${{ matrix.level }}
           pytest tests
 
   python-versions:
