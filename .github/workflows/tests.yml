@@ -24,13 +24,11 @@ jobs:
       - name: Install pytest-cov
         run: pip install pytest-cov
 
-      - name: Set up test data
+      - name: Run Tests with Coverage
         run: |
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
-          tradinghours import 
-
-      - name: Run Tests with Coverage (SQLite)
-        run: pytest --cov=src/ tests
+          tradinghours import
+          pytest --cov=src/ tests 
 
       - name: Report Coverage
         run: |
@@ -59,7 +57,7 @@ jobs:
           pip install pytest pytest-mock httpx fastapi
           pip install -e .
 
-      - name: Set up test data
+      - name: Run Tests
         shell: bash
         run: |
           if [ "${{ matrix.level }}" = "full" ]; then
@@ -74,9 +72,7 @@ jobs:
           tradinghours import
           tradinghours status --extended
 
-      - name: Run New Tests
-        shell: bash
-        run: |
+          # Run tests
           export API_KEY_LEVEL=${{ matrix.level }}
           pytest tests
 
@@ -100,10 +96,8 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
-      - name: Set up test data
+      - name: Run Tests
         run: |
           export TRADINGHOURS_TOKEN=${{ secrets.TEST_KEY }}
           tradinghours import 
-
-      - name: Run Tests
-        run: pytest tests
+          pytest tests
