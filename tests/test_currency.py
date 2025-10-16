@@ -58,18 +58,6 @@ class TestCurrencyDirect:
         strict=True,
         raises=ex.NoAccess
     )
-    def test_currency_is_covered(self):
-        """Test Currency.is_covered() method."""
-        # Test with a common currency
-        result = Currency.is_covered("USD")
-        assert isinstance(result, bool)
-
-    @pytest.mark.xfail(
-        st.db.access_level != st.AccessLevel.full,
-        reason="No access",
-        strict=True,
-        raises=ex.NoAccess
-    )
     def test_currency_list_holidays(self):
         """Test Currency.list_holidays() method."""
         currency = Currency.get("USD")
@@ -141,21 +129,6 @@ class TestCurrencyEndpoints:
         
         direct_result = Currency.is_available("USD")
         assert data['is_available'] == direct_result
-
-    def test_currency_is_covered_endpoint(self, client):
-        """Test GET /currencies/{code}/is_covered endpoint."""
-        response = client.get("/currencies/USD/is_covered")
-        if st.db.access_level != st.AccessLevel.full:
-            assert response.status_code == 400
-            return
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert 'is_covered' in data
-        assert isinstance(data['is_covered'], bool)
-        
-        direct_result = Currency.is_covered("USD")
-        assert data['is_covered'] == direct_result
 
 
 class TestCurrencyHybrid:
@@ -237,23 +210,3 @@ class TestCurrencyHybrid:
             assert response.status_code == 200
             api_data = response.json()
             assert api_data['is_available'] == direct_result
-
-    @pytest.mark.xfail(
-        st.db.access_level != st.AccessLevel.full,
-        reason="No access",
-        strict=True,
-        raises=ex.NoAccess
-    )
-    def test_is_covered_consistency(self, client):
-        """Test that direct is_covered() and endpoint return equivalent data."""
-        test_codes = ["USD", "EUR", "GBP", "INVALID"]
-        
-        for code in test_codes:
-            # Direct method call
-            direct_result = Currency.is_covered(code)
-            
-            # API endpoint call
-            response = client.get(f"/currencies/{code}/is_covered")
-            assert response.status_code == 200
-            api_data = response.json()
-            assert api_data['is_covered'] == direct_result

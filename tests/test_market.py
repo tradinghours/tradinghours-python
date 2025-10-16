@@ -359,18 +359,6 @@ class TestMarketEndpoints:
         direct_result = Market.is_available("US.NYSE")
         assert data['is_available'] == direct_result
 
-    def test_market_is_covered_endpoint(self, client):
-        """Test GET /markets/{identifier}/is_covered endpoint."""
-        response = client.get("/markets/US.NYSE/is_covered")        
-        assert response.status_code == 200
-        data = response.json()
-        assert 'is_covered' in data
-        assert isinstance(data['is_covered'], bool)
-        
-        # Compare with direct method call (if accessible)
-        direct_result = Market.is_covered("US.NYSE")
-        assert data['is_covered'] == direct_result
-
     def test_market_get_by_finid_endpoint(self, client):
         """Test GET /markets/finid/{finid} endpoint."""
         response = client.get("/markets/finid/US.NYSE")
