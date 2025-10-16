@@ -1,4 +1,4 @@
-import re, time, json
+import re, time, json, asyncio
 from contextlib import contextmanager
 from threading import Thread, Event
 from pathlib import Path
@@ -10,7 +10,6 @@ import requests, warnings
 from .exceptions import MissingTzdata
 from .config import main_config
 
-tprefix = main_config.get("package-mode", "table_prefix")
 cache_file = Path(main_config.get("internal", "store_dir")) / "th_cache.json"
 
 @contextmanager
@@ -53,9 +52,6 @@ def timed_action(message: str):
     thread.join()
     print(f" ({elapsed:.3f}s)", flush=True)
 
-
-def tname(table_name):
-    return f"{tprefix}{table_name}"
 
 def clean_name(name):
     name = name.lower().replace('"', '').replace("finid", "fin_id")
@@ -153,3 +149,17 @@ def get_th_cache():
 def set_th_cache(cache):
     with open(cache_file, "w") as f:
         json.dump(cache, f)
+
+
+
+async def auto_import_async(frequency_minutes: int):
+    """Background task for periodic data imports."""
+    while True:
+        await asyncio.sleep(frequency_minutes * 60)
+        try:
+            needs_download = await asyncio.to_thread(db.needs_download)
+            if needs_download:
+                version_identifier = await asyncio.to_thread(data_download)
+                await asyncio.to_thread(Writer().ingest_all, version_identifier)
+        except Exception as e:
+            logger.exception(f"Auto-import failed: {e}")

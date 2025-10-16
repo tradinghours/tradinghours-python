@@ -23,7 +23,7 @@ from .validate import (
 )
 from .store import db
 from .util import weekdays_match
-from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
+from .exceptions import NotAvailable, MICDoesNotExist, DateNotAvailable
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -323,40 +323,19 @@ class Market(BaseModel):
         try:
             cls.get(identifier)
             return True
-        except (NoAccess, NotCovered, MICDoesNotExist):
+        except (MICDoesNotExist, NotAvailable):
             return False
 
     @classmethod
-    def is_covered(cls, finid: str) -> bool:
-        """
-        Returns True or False showing if tradinghours provides data for the Market.
-        This differs from is_available because is_covered does not mean that the user
-        has access to it under their current plan.
-        """
-        table = db.table("covered_markets")
-        found = db.query(table).filter(
-            table.c.fin_id == finid
-        ).one_or_none()
-        return found is not None
-
-    @classmethod
-    def _get_by_finid(cls, finid:str, following=None) -> Union[None, tuple]:
+    def _get_by_finid(cls, finid:str) -> Union[None, tuple]:
         found = db.query(cls.table()).filter(
             cls.table().c.fin_id == finid
         ).one_or_none()
-        if found is not None:
-            return found
-
-        # if not found, check if it is covered at all and raise appropriate Exception
-        following = f" (replaced: '{following}')" if following else ""
-        if cls.is_covered(finid):
-            raise NoAccess(
-                f"\n\nThe market '{finid}'{following} is supported but not available on your current plan."
-                f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
+        if found is None:
+            raise NotAvailable(
+                f"The market '{finid}' is either mistyped, not supported by TradingHours, or you do not have permission to access this market. Please contact support@tradinghours.com for more information or requesting a new market to be covered."
             )
-        raise NotCovered(
-            f"The market '{finid}'{following} is currently not available."
-        )
+        return found
 
     @classmethod
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
@@ -364,7 +343,7 @@ class Market(BaseModel):
         found = cls._get_by_finid(finid)
 
         while found and (found_obj := cls(found)).replaced_by and follow:
-            found = cls._get_by_finid(found_obj.replaced_by, following=finid)
+            found = cls._get_by_finid(found_obj.replaced_by)
 
         return found_obj
 

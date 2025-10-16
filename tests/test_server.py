@@ -35,10 +35,6 @@ class TestServerHealth:
         assert response.status_code == 200
         data = response.json()
         assert "api_version" in data
-        assert "total_markets" in data
-        assert "total_currencies" in data
-        assert isinstance(data["total_markets"], int)
-        assert isinstance(data["total_currencies"], int)
 
 
 class TestErrorHandling:

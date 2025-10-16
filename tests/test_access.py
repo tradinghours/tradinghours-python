@@ -8,9 +8,9 @@ from tradinghours import Currency, Market
 def test_access_level():
     tables = st.db.metadata.tables
 
-    if st.tname("schedules") not in tables:
+    if "schedules" not in tables:
         should_be = st.AccessLevel.only_holidays
-    elif st.tname("currencies") not in tables:
+    elif "currencies" not in tables:
         should_be = st.AccessLevel.no_currencies
     else:
         should_be = st.AccessLevel.full
@@ -51,67 +51,36 @@ def test_raises_no_access():
             list(nyse.generate_phases("2024-09-12", "2024-09-13"))
 
 
-def test_raise_not_covered(covered_market, covered_currency):
+def test_raises_not_available():
     """
-    NotCovered should be raised when
-     Market.get(fin_id)
-        not in csvs and not in covered
-
-     (it should raise NoAccess when
-       Market.get(fin_id) not in csvs but in covered)
-
-    I need to add a test value
-
-     Currency.get(code) should raise NotCovered when it is not found
+    NoAccess should be raised when a method is not available under the current plan.
+    NotAvailable should be raised when a currency or market is not available.
     """
-    with pytest.raises(ex.NotCovered):
+    with pytest.raises(ex.NotAvailable):
         Market.get("XX.NOTCOVERED")
-    assert Market.is_available("XX.NOTCOVERED") is False
-    assert Market.is_covered("XX.NOTCOVERED") is False
-
-    with pytest.raises(ex.NoAccess):
-        Market.get(covered_market.fin_id)
-    assert Market.is_available(covered_market.fin_id) is False
-    assert Market.is_covered(covered_market.fin_id) is True
 
     # should raise nothing
     Market.get("US.NYSE")
     assert Market.is_available("US.NYSE") is True
-    assert Market.is_covered("US.NYSE") is True
 
     if st.db.access_level == st.AccessLevel.full:
-        with pytest.raises(ex.NotCovered):
+        with pytest.raises(ex.NotAvailable):
             Currency.get("NOTCOVERED")
         assert Currency.is_available("NOTCOVERED") is False
-        assert Currency.is_covered("NOTCOVERED") is False
-
-        # should raise NoAccess with the covered_currency,
-        # which is not available under the current plan
-        with pytest.raises(ex.NoAccess):
-            Currency.get(covered_currency.currency_code)
-        assert Currency.is_available(covered_currency.currency_code) is False
-        assert Currency.is_covered(covered_currency.currency_code) is True
 
         # should raise nothing
         Currency.get("EUR")
         assert Currency.is_available("EUR") is True
-        assert Currency.is_covered("EUR") is True
-
     else:
         with pytest.raises(ex.NoAccess):
             Currency.get("NOTCOVERED")
-
         with pytest.raises(ex.NoAccess):
-            assert Currency.is_covered(covered_currency.currency_code) is True
-        assert Currency.is_available("NOTCOVERED") is False
+            Currency.is_available("NOTCOVERED")
 
         with pytest.raises(ex.NoAccess):
             Currency.get("EUR")
-        assert Currency.is_available("EUR") is False
-
         with pytest.raises(ex.NoAccess):
-            Currency.is_covered("EUR")
-
+            Currency.is_available("EUR")
 
 
 

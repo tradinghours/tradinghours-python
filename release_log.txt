@@ -1,5 +1,13 @@
 ## new_release
 Changes:
+  * Removed support for alternative databases
+  * Removed support for is_covered
+  * Added `source` config to change where data.zip is pulled from
+  * Added `auto_import_frequency` config to allow more control over auto-import
+  
+
+## 0.5.2 (2025-10-05)
+Changes:
   * updated readme
   * applied error handling to auto-update feature in server mode
 

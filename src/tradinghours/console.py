@@ -1,14 +1,11 @@
-import argparse, warnings, time, threading
+import argparse
 import traceback
 
 from . import __version__
-from .config import print_help
+from .config import print_help, main_config
+from .util import timed_action
 from .store import Writer, db
-from .client import (
-    download as client_download,
-    get_remote_timestamp as client_get_remote_timestamp,
-    timed_action
-)
+from .client import data_source
 # server import handled in `run_serve` to keep its dependencies optional
 from .currency import Currency
 from .market import Market
@@ -37,31 +34,32 @@ def create_parser():
     import_parser.add_argument("--reset", action="store_true", help="Re-ingest data, without downloading. (Resets the database)")
 
     # "serve" subcommand
+    log_level_choices = ["debug", "info", "warning", "error"]
+    log_level_choices += [level.upper() for level in log_level_choices]
     serve_parser = subparsers.add_parser("serve", help="Start API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to (default: 8000)")
     serve_parser.add_argument("--uds", help="Unix domain socket path (overrides host/port)")
-    serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
-    serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
+    serve_parser.add_argument("--log-level", choices=log_level_choices, default="info",
                              help="Log level (default: info)")
-    serve_parser.add_argument("--no-auto-update", action="store_true", help="Do not check for data updates every minute")
 
     return parser
 
 
 def run_status(extended=False):   
     db.ready()
-    with timed_action("Collecting timestamps"):
-        remote_timestamp = client_get_remote_timestamp()
-        local_timestamp = db.get_local_timestamp()
+    with timed_action("Collecting data info"):
+        local_data_info = db.get_local_data_info()
+        local_timestamp = local_data_info.download_timestamp if local_data_info else None
+        local_version = local_data_info.version_identifier if local_data_info else None
+
     print("TradingHours Data Status:")
-    print("  Remote Timestamp:  ", remote_timestamp.ctime())
-    print("  Local Timestamp:   ", local_timestamp and local_timestamp.ctime())
+    print("  Downloaded at:   ", local_timestamp and local_timestamp.ctime())
+    print("  Version:         ", local_version)
     print()
     if extended:
         if local_timestamp:
             with timed_action("Reading local data"):
-                num_markets, num_currencies = db.get_num_covered()
                 num_permanently_closed = db.get_num_permanently_closed()
                 try:
                     num_all_currencies = len(list(Currency.list_all()))
@@ -70,8 +68,8 @@ def run_status(extended=False):
                 num_all_markets = len(list(Market.list_all()))
                 num_all_markets -= num_permanently_closed
 
-            print(f"  Currencies count:  {num_all_currencies:4} available out of {num_currencies} total")
-            print(f"  Markets count:     {num_all_markets:4} available out of {num_markets} total")
+            print(f"  Currencies count:  {num_all_currencies:4} available")
+            print(f"  Markets count:     {num_all_markets:4} available")
             if num_permanently_closed:
                 print()
                 print("Notes:")
@@ -84,44 +82,26 @@ def run_status(extended=False):
 
 
 def run_import(reset=False, force=False, quiet=False):
-    show_warning = False
     if reset:
-        show_warning = not Writer().ingest_all()
+        version_identifier = data_source.download()
+        Writer().ingest_all(version_identifier)
 
-    elif force or db.needs_download():
-        client_download()
-        show_warning = not Writer().ingest_all()
+    elif force or data_source.needs_download():
+        version_identifier = data_source.download()
+        Writer().ingest_all(version_identifier)
 
     elif not quiet:
         print("Local data is up-to-date.")
 
-    if show_warning:
-        warnings.warn(
-            "\n\nWarning:\nYou seem to be using a MySQL database that is not configured "
-            "to handle the full unicode set. Unicode characters have been replaced with "
-            "'?'. Consult the MySQL documentation for your version to enable this feature."
-        )
 
-
-def auto_update():
-    while True:
-        time.sleep(60)
-        try:
-            run_import(quiet=True)
-        except Exception as e:
-            print(f"ERROR: Failed to auto-update: {e}")
-            print(traceback.format_exc())
-            continue
-
-
-def run_serve(server_config, no_auto_update=False):
+def run_serve(server_config):
     """Run the API server."""
     from .server import run_server
     try:
-        if not no_auto_update:
-            print("Auto-updating...")
+        if main_config.getint("server-mode", "auto_import_frequency"):
+            if data_source.get_remote_version() is None:
+                print(f"The `source` {data_source.source_url} does not support HEAD requests or does not return ETags. Pleas ensure that you set the `auto_import_frequency` to an appropriate value in your `tradinghours.ini` file.")
             run_import(quiet=True)
-            threading.Thread(target=auto_update, daemon=True).start()
 
         run_server(
             **server_config,
@@ -150,7 +130,7 @@ def main():
                 "port": args.port,
                 "uds": args.uds,
             }
-            run_serve(server_config, no_auto_update=args.no_auto_update)
+            run_serve(server_config)
 
     # Handle generic errors gracefully
     except Exception as error:
