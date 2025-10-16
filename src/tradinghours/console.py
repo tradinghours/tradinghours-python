@@ -1,17 +1,14 @@
-import argparse, time, threading
+import argparse
 import traceback
 
 from . import __version__
 from .config import print_help
 from .store import Writer, db
-from .client import (
-    data_download,
-    timed_action
-)
+from .client import data_source
 # server import handled in `run_serve` to keep its dependencies optional
 from .currency import Currency
 from .market import Market
-from .exceptions import TradingHoursError, NoAccess, ConfigError
+from .exceptions import TradingHoursError, NoAccess
 from .config import main_config
 
 EXIT_CODE_EXPECTED_ERROR = 1
@@ -41,10 +38,8 @@ def create_parser():
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to (default: 8000)")
     serve_parser.add_argument("--uds", help="Unix domain socket path (overrides host/port)")
-    serve_parser.add_argument("--workers", type=int, default=1, help="Number of worker processes (default: 1)")
     serve_parser.add_argument("--log-level", choices=["debug", "info", "warning", "error"], default="info",
                              help="Log level (default: info)")
-    serve_parser.add_argument("--no-auto-import", action="store_true", help="Do not auto-import data")
 
     return parser
 
@@ -86,41 +81,25 @@ def run_status(extended=False):
 
 def run_import(reset=False, force=False, quiet=False):
     if reset:
-        version_identifier = data_download()
+        version_identifier = data_source.download()
         Writer().ingest_all(version_identifier)
 
-    elif force or db.needs_download():
-        version_identifier = data_download()
+    elif force or data_source.needs_download():
+        version_identifier = data_source.download()
         Writer().ingest_all(version_identifier)
 
     elif not quiet:
         print("Local data is up-to-date.")
 
 
-def auto_import(frequency):
-    while True:
-        time.sleep(frequency * 60) # minutes to seconds
-        try:
-            run_import(quiet=True)
-        except Exception as e:
-            print(f"ERROR: Failed to auto-update: {e}")
-            print(traceback.format_exc())
-            continue
-
-
-def run_serve(server_config, no_auto_import=False):
+def run_serve(server_config):
     """Run the API server."""
     from .server import run_server
     try:
-        if not no_auto_import:
-            try:
-                auto_import_frequency = main_config.getint("server-mode", "auto_import_frequency")
-            except ValueError:
-                raise ConfigError("auto_import_frequency must be an integer")
-
-            print("Auto-importing...")
+        if main_config.getint("server-mode", "auto_import_frequency"):
+            if data_source.get_remote_version() is None:
+                print(f"The `source` {data_source.source_url} does not support HEAD requests or does not return ETags. Pleas ensure that you set the `auto_import_frequency` to an appropriate value in your `tradinghours.ini` file.")
             run_import(quiet=True)
-            threading.Thread(target=auto_import, args=(auto_import_frequency,), daemon=True).start()
 
         run_server(
             **server_config,
@@ -149,7 +128,7 @@ def main():
                 "port": args.port,
                 "uds": args.uds,
             }
-            run_serve(server_config, no_auto_import=args.no_auto_import)
+            run_serve(server_config)
 
     # Handle generic errors gracefully
     except Exception as error:

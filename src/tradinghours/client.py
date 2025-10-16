@@ -33,6 +33,9 @@ class StripAuthOnS3Redirect(HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 class DataSource(ABC):
+    def __init__(self, url: str):
+        self.source_url = url
+
     @staticmethod
     def extract_zip_to_remote_dir(zip_path: Path) -> None:
         """Extract zip file to REMOTE_DIR directory, clearing it first."""
@@ -65,8 +68,11 @@ class DataSource(ABC):
         except Exception as e:
             return True
 
+    def download(self) -> Optional[str]:
+        with timed_action("Downloading") as (change_message, start_time):
+            version_identifier = self.get()
+        return version_identifier
 
-                
     @abstractmethod
     def get_remote_version(self) -> Optional[str]:
         pass
@@ -80,6 +86,7 @@ class HTTPDataSource(DataSource):
     """Data source that downloads from HTTP/HTTPS URLs."""
     
     def __init__(self, url: str):
+        super().__init__(url)
         self.opener = build_opener(StripAuthOnS3Redirect)
         self.url = url
         if "tradinghours.com" in url:
@@ -90,7 +97,6 @@ class HTTPDataSource(DataSource):
     def _make_request(self, method: str = "GET") -> object:
         """Make an HTTP request with appropriate headers."""
         request = Request(self.url, method=method)
-        print("making request", self.url, method)
         request.add_header("User-Agent", f"tradinghours-python/{__version__}")        
         if self.token:
             request.add_header("Authorization", f"Bearer {self.token}")
@@ -102,38 +108,23 @@ class HTTPDataSource(DataSource):
             raise ClientError(f"Error getting server response: {error}") from error
     
     def get_remote_version(self) -> Optional[str]:
-        """Check for changes using ETag or Last-Modified header."""
+        """Check for changes using ETag."""
         try:
-            print("getting remote version identifier", self.url)
             response = self._make_request(method="HEAD")
             etag = response.headers.get('ETag') or response.headers.get('etag')
             if etag:
                 return etag.strip().strip('"')
-
-            last_modified = response.headers.get('Last-Modified') or response.headers.get('last-modified')
-            if last_modified:
-                return last_modified
-
         except Exception as e:
             return None
     
     def get(self) -> Optional[str]:
         """Download data file and extract it."""
         response = self._make_request(method="GET")
-
-        # Get ETag or Last-Modified for tracking (making it support both for proprietary APIs)
-        try:
-            etag = response.headers.get('ETag') or response.headers.get('etag')
-            if etag:
-                version_identifier = etag.strip().strip('"')
-            else:
-                version_identifier = response.headers.get('Last-Modified') or response.headers.get('last-modified')
-            if version_identifier is None:
-                raise NoVersionIdentifierFoundError()
-        except NoVersionIdentifierFoundError as e:
-            version_identifier = self.get_remote_version()
-            if version_identifier is None:
-                raise
+        etag = response.headers.get('ETag') or response.headers.get('etag')
+        if etag:
+            version_identifier = etag.strip().strip('"')
+        else:
+            version_identifier = None
 
         # Download to temporary file
         with tempfile.NamedTemporaryFile(suffix='.zip') as temp_file:
@@ -148,10 +139,9 @@ class FileDataSource(DataSource):
     """Data source that reads from local filesystem."""
     
     def __init__(self, url: str):
-        # Parse file:// URL to local path
+        super().__init__(url)
         parsed = urlparse(url)
-        # Handle both Unix and Windows paths
-        path = unquote(parsed.path)
+        path = unquote(parsed.path) # unix vs windows path
         
         # On Windows, file:///C:/path becomes /C:/path, need to remove leading /
         if os.name == 'nt' and path.startswith('/') and len(path) > 2 and path[2] == ':':
@@ -165,6 +155,8 @@ class FileDataSource(DataSource):
         """Check for changes using file modification time."""
         try:
             mtime = os.path.getmtime(self.file_path)
+            if not mtime:
+                return None
             return str(mtime)
         except Exception as e:
             return None
@@ -179,6 +171,7 @@ class S3DataSource(DataSource):
     """Data source that downloads from S3 (requires boto3)."""
     
     def __init__(self, url: str):
+        super().__init__(url)
         if not AWS_AVAILABLE:
             raise TradingHoursError(
                 "S3 data source requires boto3. Install with: pip install tradinghours[s3]"
@@ -198,32 +191,28 @@ class S3DataSource(DataSource):
         """Check for changes using S3 ETag."""
         try:
             response = self.s3_client.head_object(Bucket=self.bucket, Key=self.key)
-            etag = response.get('ETag') or response.get('etag')
+            etag = response.get('ETag')
             if etag:
                 return etag.strip().strip('"')
-            last_modified = response.get('LastModified') or response.get('last-modified')
-            if last_modified:
-                return last_modified
         except Exception as e:
             return None
         
     
     def get(self) -> Optional[str]:
-        """Download from S3 and return path with ETag.
-        Gets ETag from the response of the download request, no extra HEAD needed.
+        """Download from S3 and return ETag.
+        Gets ETag from the response of the download reques.
         """
         with tempfile.NamedTemporaryFile(suffix='.zip') as temp_file:
             response = self.s3_client.get_object(Bucket=self.bucket, Key=self.key)
             shutil.copyfileobj(response['Body'], temp_file)
-            temp_path = temp_file.name
             etag = response.get('ETag', '').strip('"')
-            self.extract_zip_to_remote_dir(Path(temp_path))
+            self.extract_zip_to_remote_dir(Path(temp_file.name))
 
         return etag
 
 
 
-def get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
+def _get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
     source_url = main_config.get("data", "source") # should be there by default
     if not source_url: # use default v4 API
         raise ConfigError("Config option [data].source is empty.")
@@ -246,20 +235,4 @@ def get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
         )
 
 
-def data_download() -> Tuple[Optional[str]]:
-    """
-    Downloads zip file from data source and unzips it into the
-    folder set in main_config.internal.remote_dir.
-    
-    Returns:
-        Tuple of (version_identifier) for change tracking
-    """
-    # Get configured data source
-    data_source = get_data_source()
-    
-    with timed_action("Downloading") as (change_message, start_time):
-        # Download the zip file
-        version_identifier = data_source.get()
-    
-    return version_identifier
-
+data_source = _get_data_source()

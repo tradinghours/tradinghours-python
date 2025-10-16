@@ -22,10 +22,12 @@ except ImportError as e:
 from ..market import Market
 from ..currency import Currency
 from ..store import db
-from ..exceptions import TradingHoursError
+from ..exceptions import TradingHoursError, ConfigError
 from ..config import main_config
+from ..console import run_import
 from .. import __version__
 from .util import setup_root_logger, LogCapture
+
 from .responses import (
     MarketResponse,
     MarketHolidayResponse,
@@ -47,6 +49,35 @@ original_stderr = sys.stderr
 sys.stdout = LogCapture(original_stdout, "stdout")
 sys.stderr = LogCapture(original_stderr, "stderr")
 
+# Background task management
+background_tasks = set()
+
+async def auto_import_async():
+    frequency_minutes = main_config.getint("server-mode", "auto_import_frequency")
+    while True:
+        await asyncio.sleep(frequency_minutes * 60)
+        try:
+            await asyncio.to_thread(run_import, quiet=True)
+        except Exception as e:
+            logger.exception(f"Auto-import failed: {e}")
+    
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan - startup and shutdown."""
+    # Startup
+    if main_config.getint("server-mode", "auto_import_frequency"):
+        task = asyncio.create_task(auto_import_async())
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+    
+    yield
+    
+    # Shutdown
+    if background_tasks:
+        for task in background_tasks:
+            task.cancel()
+        await asyncio.gather(*background_tasks, return_exceptions=True)
+
 # Create FastAPI app
 app = FastAPI(
     title="TradingHours API",
@@ -54,7 +85,8 @@ app = FastAPI(
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    lifespan=lifespan
 )
 
 # Custom logging middleware for access logs
@@ -356,6 +388,7 @@ def run_server(
         host: Host to bind to
         port: Port to bind to  
         uds: Unix domain socket path (overrides host/port)
+        no_auto_import: Disable auto-import background task
     """
     if uds:
         bind = f"unix:{uds}"

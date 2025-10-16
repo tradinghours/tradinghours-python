@@ -1,4 +1,4 @@
-import re, time, json
+import re, time, json, asyncio
 from contextlib import contextmanager
 from threading import Thread, Event
 from pathlib import Path
@@ -149,3 +149,17 @@ def get_th_cache():
 def set_th_cache(cache):
     with open(cache_file, "w") as f:
         json.dump(cache, f)
+
+
+
+async def auto_import_async(frequency_minutes: int):
+    """Background task for periodic data imports."""
+    while True:
+        await asyncio.sleep(frequency_minutes * 60)
+        try:
+            needs_download = await asyncio.to_thread(db.needs_download)
+            if needs_download:
+                version_identifier = await asyncio.to_thread(data_download)
+                await asyncio.to_thread(Writer().ingest_all, version_identifier)
+        except Exception as e:
+            logger.exception(f"Auto-import failed: {e}")
