@@ -412,7 +412,8 @@ class Writer:
         self.db.update_metadata()
 
     def _prepare_columns(self):
-        # Ensure columns exist, add them if they don't
+        """Ensure columns exist and create optimal indexes."""
+        # Ensure holidays_min/max_date columns exist
         for col_name in ['holidays_min_date', 'holidays_max_date']:
             if col_name not in self.db.table("markets").c:
                 # Add the column using raw SQL
@@ -421,6 +422,46 @@ class Writer:
                     f'ALTER TABLE markets ADD COLUMN {col_name} {col_type}'
                 )
         self.db.update_metadata()
+        
+        # Create indexes for optimal query performance
+        indexes_to_create = [
+            # Markets: index for fin_id lookups (NOT a primary key)
+            ("idx_markets_fin_id", "markets", ["fin_id"]),
+            
+            # Holidays: composite index for fin_id + date range queries
+            ("idx_holidays_fin_id_date", "holidays", ["fin_id", "date"]),
+            
+            # Schedules: composite covering index with ALL order_by columns for list_schedules()
+            ("idx_schedules_full", "schedules", ["fin_id", "schedule_group", "in_force_start_date", "season_start", "start", "end"]),
+            
+            # Currency: index for currency_code lookups
+            ("idx_currency_code", "currencies", ["code"]),
+
+            # Currency holidays: composite index for currency_code + date range
+            ("idx_currency_holidays_code_date", "currency_holidays", ["currency_code", "date"]),
+            
+            # MIC mapping: index for MIC lookups
+            ("idx_mic_mapping_mic", "mic_mapping", ["mic"]),
+            
+            # Season definitions: composite unique index
+            ("idx_season_definitions_season_year", "season_definitions", ["season", "year"]),
+        ]
+        
+        # Create each index if it doesn't exist
+        for idx_name, table_name, columns in indexes_to_create:
+            try:
+                # Check if table exists
+                if table_name not in self.db.metadata.tables:
+                    continue
+                    
+                # Create index using raw SQL (SQLite ignores IF NOT EXISTS gracefully)
+                cols_str = ", ".join(columns)
+                self.db.engine.execute(
+                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name} ({cols_str})"
+                )
+            except Exception:
+                # Index might already exist or table doesn't exist
+                pass
 
 
 
