@@ -59,7 +59,7 @@ def test_market_available_dates(fin_id):
             table.c.fin_id == fin_id
         ).order_by(
             table.c.date
-        ).first().date.replace(day=1)
+        ).first().date
 
     last_should_be = st.db.query(table).filter(
             table.c.fin_id == fin_id
@@ -191,7 +191,7 @@ def test_stress_market():
     for market in Market.list_all():
         first = market.holidays_min_date
         last = market.holidays_max_date
-        assert isinstance(first, dt.date)
+        assert isinstance(first, dt.date) # cannot be None since we use a default
         assert isinstance(last, dt.date)
         assert first <= last
 

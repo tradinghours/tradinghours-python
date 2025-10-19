@@ -16,7 +16,9 @@ from sqlalchemy import (
     Time,
     Date,
     Boolean,
-    Text
+    Text,
+    text,
+    bindparam
 )
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
@@ -418,8 +420,8 @@ class Writer:
             if col_name not in self.db.table("markets").c:
                 # Add the column using raw SQL
                 col_type = 'DATE'
-                self.db.engine.execute(
-                    f'ALTER TABLE markets ADD COLUMN {col_name} {col_type}'
+                self.db.execute(
+                    text(f'ALTER TABLE markets ADD COLUMN {col_name} {col_type}')
                 )
         self.db.update_metadata()
         
@@ -456,8 +458,8 @@ class Writer:
                     
                 # Create index using raw SQL (SQLite ignores IF NOT EXISTS gracefully)
                 cols_str = ", ".join(columns)
-                self.db.engine.execute(
-                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name} ({cols_str})"
+                self.db.execute(
+                    text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name} ({cols_str})")
                 )
             except Exception:
                 # Index might already exist or table doesn't exist
@@ -470,14 +472,14 @@ class Writer:
         holidays_table = self.db.table("holidays")
         markets_table = self.db.table("markets")
         
-        # Get min/max dates for each fin_id
+        # Get min/max dates for each fin_id that has holidays
         result = self.db.query(
             holidays_table.c.fin_id,
             func.min(holidays_table.c.date).label('holidays_min_date'),
             func.max(holidays_table.c.date).label('holidays_max_date')
         ).group_by(holidays_table.c.fin_id).all()
         
-        # Prepare bulk update data
+        # Prepare bulk update data for markets with holidays
         updates = [
             {
                 'fin_id_key': row.fin_id,
@@ -487,15 +489,28 @@ class Writer:
             for row in result
         ]
         
-        # Perform bulk update
+        # Perform bulk update for markets with actual holidays
         if updates:
             stmt = markets_table.update().where(
-                markets_table.c.fin_id == func.bindparam('fin_id_key')
+                markets_table.c.fin_id == bindparam('fin_id_key')
             ).values(
-                holidays_min_date=func.bindparam('holidays_min_date'),
-                holidays_max_date=func.bindparam('holidays_max_date')
+                holidays_min_date=bindparam('holidays_min_date'),
+                holidays_max_date=bindparam('holidays_max_date')
             )
             self.db.execute(stmt, updates)
+        
+        # Set defaults only for markets without holidays (where dates are still NULL)
+        default_min_date = dt.date(2000, 1, 1)
+        default_max_date = dt.date(dt.datetime.now().year + 5, 12, 31)
+        
+        self.db.execute(
+            markets_table.update()
+            .where(markets_table.c.holidays_min_date.is_(None))
+            .values(
+                holidays_min_date=default_min_date,
+                holidays_max_date=default_max_date
+            )
+        )
 
     def _finalize_db_setup(self):
         """Finalize the timestamped database setup and cleanup old databases."""
