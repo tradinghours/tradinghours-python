@@ -46,60 +46,17 @@ class Market(BaseModel):
         self.memo = self._data["memo"]
         self.permanently_closed = self._data["permanently_closed"]
         self.replaced_by = self._data["replaced_by"]
-
-    @property
-    def first_available_date(self):
-        """
-        The first available date is the 1st day of
-        the month of the first holiday of the given market.
-        """
-        cached = db.cache_get("Market.first_last_available_date", self.fin_id)
-        if cached:
-            return dt.date.fromisoformat(cached[0])
-        
-        table = MarketHoliday.table()
-        result = db.query(table).filter(
-            table.c.fin_id == self.fin_id
-        ).order_by(
-            table.c.date
-        ).first()
-
-        if result is None:
-            return dt.date(2000, 1, 1)
-        return result.date.replace(day=1)
-
-    @property
-    def last_available_date(self):
-        """
-        The last available date is the last day of the month
-        of the last available holiday of the given market.
-        """
-        cached = db.cache_get("Market.first_last_available_date", self.fin_id)
-        if cached:
-            return dt.date.fromisoformat(cached[1])
-        
-        table = MarketHoliday.table()
-        result = db.query(table).filter(
-            table.c.fin_id == self.fin_id
-        ).order_by(
-            table.c.date.desc()
-        ).first()
-
-        if result is None:
-            return dt.date(dt.datetime.now().date().year + 5, 12, 31)
-        
-        date = result.date
-        _, num_days_in_month = calendar.monthrange(date.year, date.month)
-        return date.replace(day=num_days_in_month)
+        self.holidays_min_date = self._data["holidays_min_date"]
+        self.holidays_max_date = self._data["holidays_max_date"]
 
     def _in_range(self, *dates) -> None:
-        first, last = self.first_available_date, self.last_available_date
+        first, last = self.holidays_min_date, self.holidays_max_date
         if not all(
             first <= date <= last for date in dates
         ):
             raise DateNotAvailable("the requested data is outside of the available dates for this "
-                                   "Market. You can use the properties `first_available_date` and "
-                                   "`last_available_date` to stay within bounds.")
+                                   "Market. You can use the fields `holidays_min_date` and "
+                                   "`holidays_max_date` to stay within bounds.")
 
     @property
     def country_code(self):
@@ -177,7 +134,7 @@ class Market(BaseModel):
         phase_types_dict = PhaseType.as_dict()
 
         # Get required global data
-        offset_start = max(start - dt.timedelta(days=MAX_OFFSET_DAYS), self.first_available_date)
+        offset_start = max(start - dt.timedelta(days=MAX_OFFSET_DAYS), self.holidays_min_date)
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
         if _for_status:
@@ -383,7 +340,7 @@ class Market(BaseModel):
         date = datetime.date()
         self._in_range(date)
         # arbitrarily extending end so that there are definitely following phases
-        end = min(date + dt.timedelta(days=5), self.last_available_date)
+        end = min(date + dt.timedelta(days=5), self.holidays_max_date)
 
         current, nxt = [], []
         is_primary = False

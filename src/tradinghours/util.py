@@ -10,8 +10,6 @@ import requests, warnings
 from .exceptions import MissingTzdata
 from .config import main_config
 
-cache_file = Path(main_config.get("internal", "store_dir")) / "th_cache.json"
-
 @contextmanager
 def timed_action(message: str):
     start = time.time()
@@ -138,19 +136,6 @@ def check_if_tzdata_required_and_up_to_date():
             return None
 
     return True
-
-def get_th_cache():
-    try:
-        with open(cache_file, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def set_th_cache(cache):
-    with open(cache_file, "w") as f:
-        json.dump(cache, f)
-
-
 
 async def auto_import_async(frequency_minutes: int):
     """Background task for periodic data imports."""
