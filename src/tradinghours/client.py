@@ -20,7 +20,7 @@ except ImportError:
 else:
     AWS_AVAILABLE = True
 
-TOKEN = main_config.get("auth", "token")
+TOKEN = main_config.get("data", "token")
 REMOTE_DIR = Path(main_config.get("internal", "remote_dir"))
 REMOTE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -94,7 +94,7 @@ class HTTPDataSource(DataSource):
         self.opener = build_opener(StripAuthOnS3Redirect)
         self.url = url
         if "tradinghours.com" in url:
-            self.token = main_config.get("auth", "token", fallback=None) 
+            self.token = main_config.get("data", "token", fallback=None) 
             if not self.token:
                 raise TokenError("Token is missing or invalid")
 
