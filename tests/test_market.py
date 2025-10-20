@@ -59,18 +59,15 @@ def test_market_available_dates(fin_id):
             table.c.fin_id == fin_id
         ).order_by(
             table.c.date
-        ).first().date.replace(day=1)
+        ).first().date
 
     last_should_be = st.db.query(table).filter(
             table.c.fin_id == fin_id
         ).order_by(
             table.c.date.desc()
         ).first().date
-    _, num_days_in_month = calendar.monthrange(last_should_be.year, last_should_be.month)
-    last_should_be = last_should_be.replace(day=num_days_in_month)
-
-    assert market.first_available_date == first_should_be
-    assert market.last_available_date == last_should_be
+    assert market.holidays_min_date == first_should_be
+    assert market.holidays_max_date == last_should_be
 
     if st.db.access_level != st.AccessLevel.only_holidays:
         with pytest.raises(DateNotAvailable):
@@ -192,10 +189,10 @@ def test_market_status(fin_id, datetime, expected):
 @pytest.mark.slow
 def test_stress_market():
     for market in Market.list_all():
-        first = market.first_available_date
-        last = market.last_available_date
-        assert isinstance(first, dt.date) and first.day == 1
-        assert isinstance(last, dt.date) and last.day == calendar.monthrange(last.year, last.month)[1]
+        first = market.holidays_min_date
+        last = market.holidays_max_date
+        assert isinstance(first, dt.date) # cannot be None since we use a default
+        assert isinstance(last, dt.date)
         assert first <= last
 
         assert str(market) == Market.get_string_format().format(**market.to_dict())
@@ -247,8 +244,8 @@ class TestMarketEndpoints:
         # Compare with direct method call
         direct_result = Market.get("US.NYSE")
         direct_dict = direct_result.to_dict()
-        direct_dict["first_available_date"] = str(direct_dict["first_available_date"])
-        direct_dict["last_available_date"] = str(direct_dict["last_available_date"])
+        direct_dict["holidays_min_date"] = str(direct_dict["holidays_min_date"])
+        direct_dict["holidays_max_date"] = str(direct_dict["holidays_max_date"])
         assert data == direct_dict
 
     def test_get_market_by_mic_endpoint(self, client):
@@ -422,8 +419,8 @@ class TestMarketHybrid:
         for identifier in test_identifiers:
             direct_market = Market.get(identifier)
             direct_dict = direct_market.to_dict()
-            direct_dict["first_available_date"] = str(direct_dict["first_available_date"])
-            direct_dict["last_available_date"] = str(direct_dict["last_available_date"])
+            direct_dict["holidays_min_date"] = str(direct_dict["holidays_min_date"])
+            direct_dict["holidays_max_date"] = str(direct_dict["holidays_max_date"])
             
             # API endpoint call
             response = client.get(f"/markets/{identifier}")

@@ -16,7 +16,9 @@ from sqlalchemy import (
     Time,
     Date,
     Boolean,
-    Text
+    Text,
+    text,
+    bindparam
 )
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
@@ -25,16 +27,12 @@ import functools
 from enum import Enum
 
 from .config import main_config, default_settings
-from .util import get_th_cache, set_th_cache, clean_name, timed_action
+from .util import clean_name, timed_action
 from .exceptions import DBError, NoAccess
 
 DEFAULT_DB_PREFIX = "tradinghours_" # used for timestamped SQLite databases
 
 # Helper functions for timestamped SQLite databases
-def _is_default_store() -> bool:
-    """Check if the database URL is the default SQLite database."""
-    return True  # Always use default store (SQLite)
-
 def _find_timestamped_dbs() -> list[Path]:
     """Find all timestamped database files."""
     directory = Path(main_config.get("internal", "store_dir"))
@@ -74,7 +72,6 @@ class AccessLevel(Enum):
 
 class _DB:
     main_instance = None
-    _th_cache = get_th_cache()
     _types = {
         "date": (Date, dt.date.fromisoformat),
         "observed": (Boolean, lambda v: v == "OBS"),
@@ -150,8 +147,7 @@ class _DB:
                 delattr(self, "_session")
             self._set_engine()
 
-        self.update_metadata()            
-        self.cache_set()
+        self.update_metadata()
 
     def switch_to_latest_db(self):
         self._switch_to_latest_db()
@@ -277,40 +273,6 @@ class _DB:
             table.c.permanently_closed.isnot(None)
         ).scalar()
         return num
-
-    def get_market_first_last_available_date(self) -> dict[str, list[str]]:
-        table = db.table("holidays")
-        result = self.query(
-            table.c.fin_id,
-            func.min(table.c.date).label('first_date'),
-            func.max(table.c.date).label('last_date')
-        ).group_by(table.c.fin_id).all()
-        
-        output = {}
-        for row in result:
-            last_date = row.last_date
-            _, num_days_in_month = calendar.monthrange(last_date.year, last_date.month)
-            last_date_adjusted = last_date.replace(day=num_days_in_month)
-            
-            output[row.fin_id] = [
-                row.first_date.replace(day=1).isoformat(),
-                last_date_adjusted.isoformat()
-            ]
-        
-        return output
-
-    def cache_get(self, value, fin_id):
-        return self._th_cache.get(value, {}).get(fin_id, [])
-
-    @classmethod
-    def cache_set(cls, cache=None):
-        if cache is None:
-            first_last = cls.main_instance.get_market_first_last_available_date()
-            cache = {
-                "Market.first_last_available_date": first_last
-            }
-        cls._th_cache = cache
-        set_th_cache(cls._th_cache)
         
 ########################################################
 # Singleton db instance used across the entire project #
@@ -451,14 +413,111 @@ class Writer:
         )
         self.db.update_metadata()
 
-    def _finalize_db_setup(self):
-        """Finalize the timestamped database setup and cleanup old databases."""   
-        if _is_default_store():
-            db._switch_to_latest_db()
-            _cleanup_old_timestamped_dbs()
-        else:
-            db.cache_set({})
+    def _prepare_columns(self):
+        """Ensure columns exist and create optimal indexes."""
+        # Ensure holidays_min/max_date columns exist
+        for col_name in ['holidays_min_date', 'holidays_max_date']:
+            if col_name not in self.db.table("markets").c:
+                # Add the column using raw SQL
+                col_type = 'DATE'
+                self.db.execute(
+                    text(f'ALTER TABLE markets ADD COLUMN {col_name} {col_type}')
+                )
+        self.db.update_metadata()
+        
+        # Create indexes for optimal query performance
+        indexes_to_create = [
+            # Markets: index for fin_id lookups (NOT a primary key)
+            ("idx_markets_fin_id", "markets", ["fin_id"]),
+            
+            # Holidays: composite index for fin_id + date range queries
+            ("idx_holidays_fin_id_date", "holidays", ["fin_id", "date"]),
+            
+            # Schedules: composite covering index with ALL order_by columns for list_schedules()
+            ("idx_schedules_full", "schedules", ["fin_id", "schedule_group", "in_force_start_date", "season_start", "start", "end"]),
+            
+            # Currency: index for currency_code lookups
+            ("idx_currency_code", "currencies", ["code"]),
 
+            # Currency holidays: composite index for currency_code + date range
+            ("idx_currency_holidays_code_date", "currency_holidays", ["currency_code", "date"]),
+            
+            # MIC mapping: index for MIC lookups
+            ("idx_mic_mapping_mic", "mic_mapping", ["mic"]),
+            
+            # Season definitions: composite unique index
+            ("idx_season_definitions_season_year", "season_definitions", ["season", "year"]),
+        ]
+        
+        # Create each index if it doesn't exist
+        for idx_name, table_name, columns in indexes_to_create:
+            try:
+                # Check if table exists
+                if table_name not in self.db.metadata.tables:
+                    continue
+                    
+                # Create index using raw SQL (SQLite ignores IF NOT EXISTS gracefully)
+                cols_str = ", ".join(columns)
+                self.db.execute(
+                    text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name} ({cols_str})")
+                )
+            except Exception:
+                # Index might already exist or table doesn't exist
+                pass
+
+
+
+    def _set_min_max_holiday_dates(self):
+        """Calculate and set holidays_min_date and holidays_max_date for each market."""
+        holidays_table = self.db.table("holidays")
+        markets_table = self.db.table("markets")
+        
+        # Get min/max dates for each fin_id that has holidays
+        result = self.db.query(
+            holidays_table.c.fin_id,
+            func.min(holidays_table.c.date).label('holidays_min_date'),
+            func.max(holidays_table.c.date).label('holidays_max_date')
+        ).group_by(holidays_table.c.fin_id).all()
+        
+        # Prepare bulk update data for markets with holidays
+        updates = [
+            {
+                'fin_id_key': row.fin_id,
+                'holidays_min_date': row.holidays_min_date,
+                'holidays_max_date': row.holidays_max_date
+            }
+            for row in result
+        ]
+        
+        # Perform bulk update for markets with actual holidays
+        if updates:
+            stmt = markets_table.update().where(
+                markets_table.c.fin_id == bindparam('fin_id_key')
+            ).values(
+                holidays_min_date=bindparam('holidays_min_date'),
+                holidays_max_date=bindparam('holidays_max_date')
+            )
+            self.db.execute(stmt, updates)
+        
+        # Set defaults only for markets without holidays (where dates are still NULL)
+        default_min_date = dt.date(2000, 1, 1)
+        default_max_date = dt.date(dt.datetime.now().year + 5, 12, 31)
+        
+        self.db.execute(
+            markets_table.update()
+            .where(markets_table.c.holidays_min_date.is_(None))
+            .values(
+                holidays_min_date=default_min_date,
+                holidays_max_date=default_max_date
+            )
+        )
+
+    def _finalize_db_setup(self):
+        """Finalize the timestamped database setup and cleanup old databases."""
+        self._prepare_columns()
+        self._set_min_max_holiday_dates()
+        db._switch_to_latest_db()
+        _cleanup_old_timestamped_dbs()
 
     def _ingest_all(self, change_message, version_identifier):
         """Iterates over CSV files in the remote directory and ingests them."""
@@ -491,7 +550,6 @@ class Writer:
         self.create_admin(access_level, last_9_admin_records, version_identifier)
         
         self._finalize_db_setup()
-
 
     def ingest_all(self, version_identifier) -> bool:       
         # Create a new timestamped database for this import

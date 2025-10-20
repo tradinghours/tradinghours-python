@@ -16,16 +16,14 @@ default_settings = {
         "remote_dir": DEFAULT_STORE_DIR / "remote",
         "mode": "package"
     },
-    "auth": {
-        "token": "",
-    },
     "data": {
+        "token": "",
         "source": "https://api.tradinghours.com/v4/download",
         "aws_access_key_id": "",
         "aws_secret_access_key": "",
     },
     "server-mode": {
-        "auto_import_frequency": 60 * 6, # minutes; set to 0 to disable auto-import
+        "auto_import_frequency": 60 * 6, # in minutes; set to 0 to disable auto-import
         "allowed_hosts": "*",
         "allowed_origins": "*",
         "log_folder": "tradinghours_server_logs",
@@ -42,9 +40,9 @@ main_config = configparser.ConfigParser()
 main_config.read_dict(default_settings)
 main_config.read("tradinghours.ini")
 
-# Handle auth token - prioritize environment variable
-token = os.getenv("TRADINGHOURS_TOKEN", main_config.get("auth", "token", fallback=""))
-main_config.set("auth", "token", token)
+# Handle data token - prioritize environment variable
+token = os.getenv("TRADINGHOURS_TOKEN", main_config.get("data", "token", fallback=""))
+main_config.set("data", "token", token)
 
 try:
     assert main_config.getint("server-mode", "auto_import_frequency") >= 0
