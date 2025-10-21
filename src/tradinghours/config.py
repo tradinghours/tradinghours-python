@@ -3,6 +3,8 @@ import configparser
 from pathlib import Path
 from textwrap import wrap
 
+from .exceptions import ConfigError
+
 PROJECT_PATH = Path(__file__).parent
 DEFAULT_STORE_DIR = PROJECT_PATH / "store_dir"
 os.makedirs(DEFAULT_STORE_DIR, exist_ok=True)
@@ -10,25 +12,23 @@ os.makedirs(DEFAULT_STORE_DIR, exist_ok=True)
 # Define default settings in this dictionary
 default_settings = {
     "internal": {
-        "base_url": "https://api.tradinghours.com/v3/",
         "store_dir": DEFAULT_STORE_DIR,
         "remote_dir": DEFAULT_STORE_DIR / "remote",
         "mode": "package"
     },
-    "auth": {
+    "data": {
         "token": "",
-    },
-    "package-mode": {
-        "db_url": "",
-        "table_prefix": "thstore_",
+        "source": "https://api.tradinghours.com/v4/download",
+        "aws_access_key_id": "",
+        "aws_secret_access_key": "",
     },
     "server-mode": {
+        "auto_import_frequency": 60 * 6, # in minutes; set to 0 to disable auto-import
         "allowed_hosts": "*",
         "allowed_origins": "*",
         "log_folder": "tradinghours_server_logs",
         "log_days_to_keep": 7,
         "log_level": "DEBUG",
-        "uvicorn_workers": 1,
     },
     "extra": {
         "check_tzdata": True,
@@ -40,15 +40,16 @@ main_config = configparser.ConfigParser()
 main_config.read_dict(default_settings)
 main_config.read("tradinghours.ini")
 
-# Handle auth token - prioritize environment variable
-token = os.getenv("TRADINGHOURS_TOKEN", main_config.get("auth", "token", fallback=""))
-main_config.set("auth", "token", token)
+# Handle data token - prioritize environment variable
+token = os.getenv("TRADINGHOURS_TOKEN", main_config.get("data", "token", fallback=""))
+main_config.set("data", "token", token)
 
-# Handle database URL - prioritize environment variable
-db_url = os.getenv("TH_DB_URL", main_config.get("package-mode", "db_url", fallback=""))
-main_config.set("package-mode", "db_url", db_url)
-
-
+try:
+    assert main_config.getint("server-mode", "auto_import_frequency") >= 0
+except (ValueError, AssertionError) as e:
+    raise ConfigError(
+        f"auto_import_frequency must be an integer >= 0 representing minutes. Set to 0 to disable auto-import."
+    ) from e
 
 def print_help(text):
     """Print formatted help text."""
@@ -58,48 +59,8 @@ def print_help(text):
     print()
 
 
-def _validate_server_mode_config():
-    """
-    Validate that server mode is not using custom package-mode settings.
-    Server mode must use the default SQLite database.
-    """    
-    # Check for environment variable override
-    if os.getenv("TH_DB_URL"):
-        error_msg = "ERROR: Server mode cannot use the TH_DB_URL environment variable."
-        help_msg = (
-            "Server mode must use the default SQLite database. "
-            "Please unset the TH_DB_URL environment variable when using server mode, "
-            "or use package mode instead of server mode for custom database configurations."
-        )
-        print(error_msg)
-        print_help(help_msg)
-        sys.exit(1)
-    
-    # Get the current settings from the final config (after all processing)
-    current_db_url = main_config.get("package-mode", "db_url")    
-    current_table_prefix = main_config.get("package-mode", "table_prefix")
-    default_table_prefix = default_settings["package-mode"]["table_prefix"]
-
-    # Check if either setting has been customized from defaults
-    custom_db = current_db_url != ""
-    custom_prefix = current_table_prefix != default_table_prefix
-    
-    if custom_db or custom_prefix:
-        error_msg = "ERROR: Server mode cannot use custom [package-mode] settings."
-        help_msg = (
-            "Server mode must use the default SQLite database. "
-            "Please remove the [package-mode] section from your tradinghours.ini file when using server mode, "
-            "or use package mode instead of server mode for custom database configurations."
-        )
-        
-        print(error_msg)
-        print_help(help_msg)
-        sys.exit(1)
-
-
 try:
     if sys.argv[1] == "serve":
-        _validate_server_mode_config()
         main_config.set("internal", "mode", "server")
 except IndexError:
     pass

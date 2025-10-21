@@ -22,8 +22,8 @@ class MarketResponse(BaseResponseModel):
     permanently_closed: Optional[date] = None
     replaced_by: Optional[str] = None   
     country_code: Optional[str] = None
-    first_available_date: Optional[date] = None
-    last_available_date: Optional[date] = None
+    holidays_min_date: Optional[date] = None
+    holidays_max_date: Optional[date] = None
     
 class MarketHolidayResponse(BaseResponseModel):
     fin_id: str
@@ -100,7 +100,4 @@ class CurrencyHolidayResponse(BaseResponseModel):
 
 class IsAvailableResponse(BaseResponseModel):
     is_available: bool
-
-class IsCoveredResponse(BaseResponseModel):
-    is_covered: bool
 

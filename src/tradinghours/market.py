@@ -23,7 +23,7 @@ from .validate import (
 )
 from .store import db
 from .util import weekdays_match
-from .exceptions import NoAccess, NotCovered, MICDoesNotExist, DateNotAvailable
+from .exceptions import NotAvailable, MICDoesNotExist, DateNotAvailable
 
 # Arbitrary max offset days for TradingHours data
 MAX_OFFSET_DAYS = 2
@@ -46,60 +46,17 @@ class Market(BaseModel):
         self.memo = self._data["memo"]
         self.permanently_closed = self._data["permanently_closed"]
         self.replaced_by = self._data["replaced_by"]
-
-    @property
-    def first_available_date(self):
-        """
-        The first available date is the 1st day of
-        the month of the first holiday of the given market.
-        """
-        cached = db.cache_get("Market.first_last_available_date", self.fin_id)
-        if cached:
-            return dt.date.fromisoformat(cached[0])
-        
-        table = MarketHoliday.table()
-        result = db.query(table).filter(
-            table.c.fin_id == self.fin_id
-        ).order_by(
-            table.c.date
-        ).first()
-
-        if result is None:
-            return dt.date(2000, 1, 1)
-        return result.date.replace(day=1)
-
-    @property
-    def last_available_date(self):
-        """
-        The last available date is the last day of the month
-        of the last available holiday of the given market.
-        """
-        cached = db.cache_get("Market.first_last_available_date", self.fin_id)
-        if cached:
-            return dt.date.fromisoformat(cached[1])
-        
-        table = MarketHoliday.table()
-        result = db.query(table).filter(
-            table.c.fin_id == self.fin_id
-        ).order_by(
-            table.c.date.desc()
-        ).first()
-
-        if result is None:
-            return dt.date(dt.datetime.now().date().year + 5, 12, 31)
-        
-        date = result.date
-        _, num_days_in_month = calendar.monthrange(date.year, date.month)
-        return date.replace(day=num_days_in_month)
+        self.holidays_min_date = self._data["holidays_min_date"]
+        self.holidays_max_date = self._data["holidays_max_date"]
 
     def _in_range(self, *dates) -> None:
-        first, last = self.first_available_date, self.last_available_date
+        first, last = self.holidays_min_date, self.holidays_max_date
         if not all(
             first <= date <= last for date in dates
         ):
             raise DateNotAvailable("the requested data is outside of the available dates for this "
-                                   "Market. You can use the properties `first_available_date` and "
-                                   "`last_available_date` to stay within bounds.")
+                                   "Market. You can use the fields `holidays_min_date` and "
+                                   "`holidays_max_date` to stay within bounds.")
 
     @property
     def country_code(self):
@@ -177,7 +134,7 @@ class Market(BaseModel):
         phase_types_dict = PhaseType.as_dict()
 
         # Get required global data
-        offset_start = max(start - dt.timedelta(days=MAX_OFFSET_DAYS), self.first_available_date)
+        offset_start = max(start - dt.timedelta(days=MAX_OFFSET_DAYS), self.holidays_min_date)
         all_schedules = self.list_schedules()
         holidays = self.list_holidays(offset_start, end, as_dict=True)
         if _for_status:
@@ -323,40 +280,19 @@ class Market(BaseModel):
         try:
             cls.get(identifier)
             return True
-        except (NoAccess, NotCovered, MICDoesNotExist):
+        except (MICDoesNotExist, NotAvailable):
             return False
 
     @classmethod
-    def is_covered(cls, finid: str) -> bool:
-        """
-        Returns True or False showing if tradinghours provides data for the Market.
-        This differs from is_available because is_covered does not mean that the user
-        has access to it under their current plan.
-        """
-        table = db.table("covered_markets")
-        found = db.query(table).filter(
-            table.c.fin_id == finid
-        ).one_or_none()
-        return found is not None
-
-    @classmethod
-    def _get_by_finid(cls, finid:str, following=None) -> Union[None, tuple]:
+    def _get_by_finid(cls, finid:str) -> Union[None, tuple]:
         found = db.query(cls.table()).filter(
             cls.table().c.fin_id == finid
         ).one_or_none()
-        if found is not None:
-            return found
-
-        # if not found, check if it is covered at all and raise appropriate Exception
-        following = f" (replaced: '{following}')" if following else ""
-        if cls.is_covered(finid):
-            raise NoAccess(
-                f"\n\nThe market '{finid}'{following} is supported but not available on your current plan."
-                f"\nPlease learn more or contact sales at https://www.tradinghours.com/data"
+        if found is None:
+            raise NotAvailable(
+                f"The market '{finid}' is either mistyped, not supported by TradingHours, or you do not have permission to access this market. Please contact support@tradinghours.com for more information or requesting a new market to be covered."
             )
-        raise NotCovered(
-            f"The market '{finid}'{following} is currently not available."
-        )
+        return found
 
     @classmethod
     def get_by_finid(cls, finid: str, follow=True) -> Union[None, "Market"]:
@@ -364,7 +300,7 @@ class Market(BaseModel):
         found = cls._get_by_finid(finid)
 
         while found and (found_obj := cls(found)).replaced_by and follow:
-            found = cls._get_by_finid(found_obj.replaced_by, following=finid)
+            found = cls._get_by_finid(found_obj.replaced_by)
 
         return found_obj
 
@@ -404,7 +340,7 @@ class Market(BaseModel):
         date = datetime.date()
         self._in_range(date)
         # arbitrarily extending end so that there are definitely following phases
-        end = min(date + dt.timedelta(days=5), self.last_available_date)
+        end = min(date + dt.timedelta(days=5), self.holidays_max_date)
 
         current, nxt = [], []
         is_primary = False

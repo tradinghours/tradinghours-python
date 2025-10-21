@@ -3,6 +3,8 @@ import platform
 import sys, time, traceback
 import logging
 import datetime as dt
+import asyncio
+from contextlib import asynccontextmanager
 from typing import Optional, List
 from pathlib import Path
 
@@ -20,10 +22,12 @@ except ImportError as e:
 from ..market import Market
 from ..currency import Currency
 from ..store import db
-from ..exceptions import TradingHoursError
+from ..exceptions import TradingHoursError, ConfigError
 from ..config import main_config
+from ..console import run_import
 from .. import __version__
 from .util import setup_root_logger, LogCapture
+
 from .responses import (
     MarketResponse,
     MarketHolidayResponse,
@@ -32,8 +36,7 @@ from .responses import (
     MarketStatusResponse,
     CurrencyResponse,
     CurrencyHolidayResponse,
-    IsAvailableResponse,
-    IsCoveredResponse
+    IsAvailableResponse
 )
 
 # Configure logging
@@ -46,6 +49,35 @@ original_stderr = sys.stderr
 sys.stdout = LogCapture(original_stdout, "stdout")
 sys.stderr = LogCapture(original_stderr, "stderr")
 
+# Background task management
+background_tasks = set()
+
+async def auto_import_async():
+    frequency_minutes = main_config.getint("server-mode", "auto_import_frequency")
+    while True:
+        await asyncio.sleep(frequency_minutes * 60)
+        try:
+            await asyncio.to_thread(run_import, quiet=True)
+        except Exception as e:
+            logger.exception(f"Auto-import failed: {e}")
+    
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan - startup and shutdown."""
+    # Startup
+    if main_config.getint("server-mode", "auto_import_frequency"):
+        task = asyncio.create_task(auto_import_async())
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+    
+    yield
+    
+    # Shutdown
+    if background_tasks:
+        for task in background_tasks:
+            task.cancel()
+        await asyncio.gather(*background_tasks, return_exceptions=True)
+
 # Create FastAPI app
 app = FastAPI(
     title="TradingHours API",
@@ -53,7 +85,8 @@ app = FastAPI(
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    lifespan=lifespan
 )
 
 # Custom logging middleware for access logs
@@ -130,13 +163,11 @@ async def health_check(db=Depends(get_db)):
 async def api_info(db=Depends(get_db)):
     """API information and statistics."""
     try:
-        num_markets, num_currencies = db.get_num_covered()
-        local_timestamp = db.get_local_timestamp()
+        local_data_info = db.get_local_data_info()
+        local_timestamp = local_data_info.download_timestamp if local_data_info else None
         
         return {
             "api_version": __version__,
-            "total_markets": num_markets,
-            "total_currencies": num_currencies,
             "last_data_update": local_timestamp.isoformat() if local_timestamp else None,
             "access_level": db.access_level.value if db.access_level else None
         }
@@ -239,20 +270,6 @@ async def check_market_available(identifier: str, db=Depends(get_db)):
     logger.info(f"Checked availability for market {identifier}: {is_available}")
     return {"is_available": is_available}
 
-@app.get("/markets/{identifier}/is_covered", summary="Check if market is covered", response_model=IsCoveredResponse)
-async def check_market_covered(identifier: str, db=Depends(get_db)):
-    """Check if market is covered by TradingHours data."""
-    if "." in identifier:
-        finid = identifier
-    else:
-        # It's a MIC, we need to get the finid first
-        market = Market.get_by_mic(identifier, follow=False)
-        finid = market.fin_id
-    is_covered = Market.is_covered(finid)
-    logger.info(f"Checked coverage for market {identifier} (finid: {finid}): {is_covered}")
-    return {"is_covered": is_covered}
-
-
 @app.get("/markets/finid/{finid}", summary="Get market by FinID", response_model=MarketResponse)
 async def get_market_by_finid(
     finid: str,
@@ -309,14 +326,6 @@ async def check_currency_available(code: str, db=Depends(get_db)):
     is_available = Currency.is_available(code)
     logger.info(f"Checked availability for currency {code}: {is_available}")
     return {"is_available": is_available}
-
-@app.get("/currencies/{code}/is_covered", summary="Check if currency is covered", response_model=IsCoveredResponse)
-async def check_currency_covered(code: str, db=Depends(get_db)):
-    """Check if currency is covered by TradingHours data."""
-    is_covered = Currency.is_covered(code)
-    logger.info(f"Checked coverage for currency {code}: {is_covered}")
-    return {"is_covered": is_covered}
-
 
 class GunicornApplication:
     """Custom Gunicorn application for programmatic server startup."""
@@ -379,6 +388,7 @@ def run_server(
         host: Host to bind to
         port: Port to bind to  
         uds: Unix domain socket path (overrides host/port)
+        no_auto_import: Disable auto-import background task
     """
     if uds:
         bind = f"unix:{uds}"
@@ -391,13 +401,12 @@ def run_server(
         logger.info(f"Starting TradingHours API on http://{host}:{port}")
     
 
-    uvicorn_workers = main_config.getint("server-mode", "uvicorn_workers") or 1
     log_level = (main_config.get("server-mode", "log_level") or "DEBUG").upper()
 
-    # Use Gunicorn for production with multiple workers
+    # Use single worker for database consistency
     options = {
         'bind': bind,
-        'workers': uvicorn_workers,
+        'workers': 1,  # Enforce single worker
         'worker_class': 'uvicorn.workers.UvicornWorker',
         'loglevel': log_level,
         'timeout': 120,
