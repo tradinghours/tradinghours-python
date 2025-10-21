@@ -1,4 +1,4 @@
-## new_release
+## 0.6.0 (2025-10-21)
 Changes:
   * Removed support for alternative databases
   * Removed support for is_covered
