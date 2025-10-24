@@ -1,7 +1,6 @@
 """Production-ready FastAPI server for TradingHours API."""
 import platform
 import sys, time, traceback
-import logging
 import datetime as dt
 import asyncio
 from contextlib import asynccontextmanager
@@ -23,10 +22,9 @@ from ..market import Market
 from ..currency import Currency
 from ..store import db
 from ..exceptions import TradingHoursError, ConfigError
-from ..config import main_config
+from ..config import main_config, get_logger
 from ..console import run_import
 from .. import __version__
-from .util import setup_root_logger, LogCapture
 
 from .responses import (
     MarketResponse,
@@ -40,14 +38,7 @@ from .responses import (
 )
 
 # Configure logging
-setup_root_logger()
-logger = logging.getLogger("th.server")
-
-# Capture stdout/stderr to also log to our files
-original_stdout = sys.stdout
-original_stderr = sys.stderr
-sys.stdout = LogCapture(original_stdout, "stdout")
-sys.stderr = LogCapture(original_stderr, "stderr")
+logger = get_logger(__name__)
 
 # Background task management
 background_tasks = set()
@@ -414,7 +405,7 @@ def run_server(
         'capture_output': True,
         'enable_stdio_inheritance': True,
         'accesslog': None,
-        'errorlog': '-'      # Log to stderr, captured by our LogCapture
+        'errorlog': '-'      # Log to stderr
     }
     
     if platform.system() == 'Windows':
@@ -423,7 +414,8 @@ def run_server(
         try:
             uvicorn.run(app, host=host, port=port, workers=1, log_level=log_level.lower())
         except Exception as e:
-            print(traceback.format_exc())
+            logger.error(f"Failed to start server: {e}")
+            logger.error(traceback.format_exc())
             raise
     else:
         # Use existing gunicorn logic on Unix

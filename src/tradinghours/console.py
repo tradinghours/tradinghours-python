@@ -10,6 +10,9 @@ from .client import data_source
 from .currency import Currency
 from .market import Market
 from .exceptions import TradingHoursError, NoAccess
+from .config import print_help, main_config, get_logger
+
+logger = get_logger(__name__)
 
 EXIT_CODE_EXPECTED_ERROR = 1
 EXIT_CODE_UNKNOWN_ERROR = 2
@@ -40,9 +43,6 @@ def create_parser():
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to (default: 8000)")
     serve_parser.add_argument("--uds", help="Unix domain socket path (overrides host/port)")
-    serve_parser.add_argument("--log-level", choices=log_level_choices, default="info",
-                             help="Log level (default: info)")
-
     return parser
 
 
@@ -53,10 +53,10 @@ def run_status(extended=False):
         local_timestamp = local_data_info.download_timestamp if local_data_info else None
         local_version = local_data_info.version_identifier if local_data_info else None
 
-    print("TradingHours Data Status:")
-    print("  Downloaded at:   ", local_timestamp and local_timestamp.ctime())
-    print("  Version:         ", local_version)
-    print()
+    logger.info("TradingHours Data Status:")
+    logger.info(f"  Downloaded at:   {local_timestamp and local_timestamp.ctime()}")
+    logger.info(f"  Version:         {local_version}")
+    logger.info("")
     if extended:
         if local_timestamp:
             with timed_action("Reading local data"):
@@ -68,17 +68,17 @@ def run_status(extended=False):
                 num_all_markets = len(list(Market.list_all()))
                 num_all_markets -= num_permanently_closed
 
-            print(f"  Currencies count:  {num_all_currencies:4} available")
-            print(f"  Markets count:     {num_all_markets:4} available")
+            logger.info(f"  Currencies count:  {num_all_currencies:4} available")
+            logger.info(f"  Markets count:     {num_all_markets:4} available")
             if num_permanently_closed:
-                print()
-                print("Notes:")
-                print(
+                logger.info("")
+                logger.info("Notes:")
+                logger.info(
                     f"  {num_permanently_closed} permanently closed markets are available but excluded from the totals above.\n"
                     f"  For access to additional markets, please contact us at <sales@tradinghours.com>."
                 )
         else:
-            print("No local data to show extended information")
+            logger.info("No local data to show extended information")
 
 
 def run_import(reset=False, force=False, quiet=False):
@@ -91,7 +91,7 @@ def run_import(reset=False, force=False, quiet=False):
         Writer().ingest_all(version_identifier)
 
     elif not quiet:
-        print("Local data is up-to-date.")
+        logger.info("Local data is up-to-date.")
 
 
 def run_serve(server_config):
@@ -100,18 +100,18 @@ def run_serve(server_config):
     try:
         if main_config.getint("server-mode", "auto_import_frequency"):
             if data_source.get_remote_version() is None:
-                print(f"The `source` {data_source.source_url} does not support HEAD requests or does not return ETags. Pleas ensure that you set the `auto_import_frequency` to an appropriate value in your `tradinghours.ini` file.")
+                logger.warning(f"The `source` {data_source.source_url} does not support HEAD requests or does not return ETags. Please ensure that you set the `auto_import_frequency` to an appropriate value in your `tradinghours.ini` file.")
             run_import(quiet=True)
 
         run_server(
             **server_config,
         )
     except ImportError as e:
-        print("ERROR: Server dependencies not installed.")
+        logger.error("ERROR: Server dependencies not installed.")
         print_help("To use the server feature, install with: pip install tradinghours[server]")
         exit(EXIT_CODE_EXPECTED_ERROR)
     except Exception as e:
-        print(f"ERROR: Failed to start server: {e}")
+        logger.error(f"ERROR: Failed to start server: {e}")
         exit(EXIT_CODE_UNKNOWN_ERROR)
 
 
@@ -136,13 +136,13 @@ def main():
     except Exception as error:
         # TradingHours errors with help messages are simpler
         if isinstance(error, TradingHoursError) and error.help_message:
-            print("ERROR:", error.detail)
+            logger.error(f"ERROR: {error.detail}")
             print_help(error.help_message)
             exit(EXIT_CODE_EXPECTED_ERROR)
 
         # Other errors will generate a traceback dump
         error_message = f"ERROR: {error}"
-        print(error_message)
+        logger.error(error_message)
 
         try:
             # Try saving extra information to local file
@@ -159,7 +159,7 @@ def main():
                 "support@tradinghours.com.",
             )
         except Exception as error:
-            print("Failed saving debug information.", error)
+            logger.error("Failed saving debug information.", error)
         finally:
             exit(EXIT_CODE_UNKNOWN_ERROR)
 
