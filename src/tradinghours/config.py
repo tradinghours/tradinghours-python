@@ -29,8 +29,7 @@ default_settings = {
     },
     "data": {
         "token": "",
-        # "source": "https://api.tradinghours.com/v4/download",
-        "source": "",
+        "source": "https://api.tradinghours.com/v4/download",
         "aws_access_key_id": "",
         "aws_secret_access_key": "",
     },
