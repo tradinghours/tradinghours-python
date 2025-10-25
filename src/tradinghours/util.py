@@ -14,15 +14,15 @@ from .config import main_config, get_logger
 logger = get_logger(__name__)
 
 
-def is_cli_mode():
+def is_package_mode():
     """Check if we're running from CLI vs programmatic usage."""
-    return sys.argv[0].endswith('tradinghours') or 'tradinghours' in sys.argv[0]
+    return main_config.get("internal", "mode") == "package"
 
 @contextmanager
 def timed_action(message: str):
     start = time.time()
     
-    if is_cli_mode():
+    if is_package_mode():
         # Use the old dot-printing behavior for CLI
         print(f"{message}...", end="", flush=True)
         
@@ -162,7 +162,8 @@ def check_if_tzdata_required_and_up_to_date():
 async def auto_import_async(frequency_minutes: int):
     """Background task for periodic data imports."""
     from .store import Writer
-    from .client import data_source
+    from .client import get_data_source
+    data_source = get_data_source()
     
     while True:
         await asyncio.sleep(frequency_minutes * 60)

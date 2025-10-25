@@ -38,7 +38,7 @@ from .responses import (
 )
 
 # Configure logging
-logger = get_logger(__name__)
+logger = get_logger("tradinghours.server")
 
 # Background task management
 background_tasks = set()
