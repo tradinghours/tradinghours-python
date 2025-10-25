@@ -93,11 +93,15 @@ async def log_requests(request: Request, call_next):
         status_code = response.status_code
     except Exception as e:
         process_time = time.time() - start_time
-        logger.exception(
-            f"{client_ip} - {method} {url} - ERROR - {process_time:.3f}s - {type(e).__name__}: {str(e)}"
-        )
         if isinstance(e, TradingHoursError):
+            logger.warning(
+                f"{client_ip} - {method} {url} - ERROR - {process_time:.3f}s - {type(e).__name__}: {str(e)}"
+            )
             return JSONResponse(status_code=400, content={"message": str(e)})
+        else:
+            logger.warning(
+                f"{client_ip} - {method} {url} - ERROR - {process_time:.3f}s - {type(e).__name__}: {str(e)}"
+            )
             
         try:
             log_folder = Path(main_config.get("server-mode", "log_folder")).absolute()

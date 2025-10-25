@@ -29,7 +29,8 @@ default_settings = {
     },
     "data": {
         "token": "",
-        "source": "https://api.tradinghours.com/v4/download",
+        # "source": "https://api.tradinghours.com/v4/download",
+        "source": "",
         "aws_access_key_id": "",
         "aws_secret_access_key": "",
     },
@@ -39,7 +40,7 @@ default_settings = {
         "allowed_origins": "*",
         "log_folder": "tradinghours_server_logs",
         "log_days_to_keep": 7,
-        "log_level": "DEBUG",
+        "log_level": "INFO",
     },
     "extra": {
         "check_tzdata": True,
