@@ -1,3 +1,9 @@
+## new_release
+Changes:
+  * made `token` used in Authorization header of any http source
+  * cleaned up logging configuration
+
+
 ## 0.6.0 (2025-10-21)
 Changes:
   * Removed support for alternative databases
