@@ -52,10 +52,22 @@ def run_status(extended=False):
         local_data_info = db.get_local_data_info()
         local_timestamp = local_data_info.download_timestamp if local_data_info else None
         local_version = local_data_info.version_identifier if local_data_info else None
+        
+        data_source = get_data_source()
+        needs_update = data_source.needs_download()
+        if not needs_update:
+            version_status = "✗"
+        else:
+            remote_version = data_source.get_remote_version()
+            if remote_version is not None:
+                version_status = f"✓ ({remote_version})"
+            else:
+                version_status = "? (Unable to detect remote version)"
 
     logger.info("TradingHours Data Status:")
     logger.info(f"  Downloaded at:   {local_timestamp and local_timestamp.ctime()}")
     logger.info(f"  Version:         {local_version}")
+    logger.info(f"  New Version Available: {version_status}")
     logger.info("")
     if extended:
         if local_timestamp:
