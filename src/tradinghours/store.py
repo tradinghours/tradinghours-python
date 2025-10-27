@@ -251,7 +251,7 @@ class _DB:
          to check whether the user has access to the data requested.
         """
         method_name = method.__qualname__
-        
+
         @functools.wraps(method)
         def new_method(*args, **kwargs):
             if cls.main_instance.access_level not in cls._access[method_name]:
@@ -267,7 +267,7 @@ class _DB:
         self._failed_to_access = False
 
     def get_num_permanently_closed(self) -> int:
-        table = db.table("markets")
+        table = self.table("markets")
         num = self.query(func.count()).filter(
             table.c.permanently_closed.isnot(None)
         ).scalar()
