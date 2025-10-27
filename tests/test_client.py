@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, Mock
 from urllib.request import HTTPError
 
-from tradinghours.client import HTTPDataSource, FileDataSource, S3DataSource, data_source
+from tradinghours.client import HTTPDataSource, FileDataSource, S3DataSource, get_data_source
 from tradinghours.exceptions import TokenError, ClientError, TradingHoursError, ConfigError
 
 
@@ -25,11 +25,12 @@ class TestHTTPDataSource:
         with pytest.raises(TokenError):
             HTTPDataSource("https://api.tradinghours.com/v4/download")
     
-    def test_initialization_with_custom_url(self):
-        """Test that HTTPDataSource works with custom URLs without token."""
+    def test_initialization_with_custom_url(self, mocker):
+        """Test that HTTPDataSource works with custom URLs (token optional)."""
+        mocker.patch("tradinghours.client.main_config.get", return_value=None)
         source = HTTPDataSource("https://example.com/data.zip")
         assert source.url == "https://example.com/data.zip"
-        assert not hasattr(source, 'token') or source.token is None
+        assert source.token is None
     
     def test_get_remote_version_with_etag(self, mocker):
         """Test get_remote_version returns ETag when available."""
@@ -60,7 +61,7 @@ class TestHTTPDataSource:
     def test_make_request_with_token(self, mocker):
         """Test that _make_request includes Authorization header with token."""
         mocker.patch("tradinghours.client.main_config.get", return_value="test_token")
-        source = HTTPDataSource("https://api.tradinghours.com/v4/download")
+        source = HTTPDataSource("https://some.other.com/v4/download")
         
         mock_opener = Mock()
         mock_response = Mock()
@@ -229,15 +230,35 @@ class TestS3DataSource:
         )
 
 
-class TestDataSourceSingleton:
-    """Test the module-level data_source singleton."""
+class TestGetDataSource:
+    """Test the get_data_source factory function."""
     
-    def test_data_source_exists(self):
-        """Test that data_source is initialized."""
-        assert data_source is not None
-        assert hasattr(data_source, 'needs_download')
-        assert hasattr(data_source, 'download')
-        assert hasattr(data_source, 'get_remote_version')
+    def test_get_data_source_returns_http_source(self, mocker):
+        """Test that get_data_source returns HTTPDataSource for HTTP URLs."""
+        def mock_config_get(section, key, fallback=None):
+            if section == "data" and key == "source":
+                return "https://example.com/data.zip"
+            elif section == "data" and key == "token":
+                return None
+            return fallback
+        
+        mocker.patch("tradinghours.client.main_config.get", side_effect=mock_config_get)
+        source = get_data_source()
+        assert isinstance(source, HTTPDataSource)
+        assert hasattr(source, 'needs_download')
+        assert hasattr(source, 'download')
+        assert hasattr(source, 'get_remote_version')
+    
+    def test_get_data_source_raises_on_empty_source(self, mocker):
+        """Test that get_data_source raises ConfigError when source is empty."""
+        def mock_config_get(section, key, fallback=None):
+            if section == "data" and key == "source":
+                return ""
+            return fallback
+        
+        mocker.patch("tradinghours.client.main_config.get", side_effect=mock_config_get)
+        with pytest.raises(ConfigError):
+            get_data_source()
 
 
 class TestDataSourceBaseMethods:

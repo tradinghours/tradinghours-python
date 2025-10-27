@@ -1,4 +1,4 @@
-import re, time, json, asyncio
+import re, time, json, asyncio, sys
 from contextlib import contextmanager
 from threading import Thread, Event
 from pathlib import Path
@@ -8,47 +8,69 @@ import importlib.metadata as metadata
 import requests, warnings
 
 from .exceptions import MissingTzdata
-from .config import main_config
+from .config import main_config, get_logger
+    
+
+logger = get_logger(__name__)
+
+
+def is_package_mode():
+    """Check if we're running from CLI vs programmatic usage."""
+    return main_config.get("internal", "mode") == "package"
 
 @contextmanager
 def timed_action(message: str):
     start = time.time()
-    print(f"{message}...", end="", flush=True)
+    
+    if is_package_mode():
+        # Use the old dot-printing behavior for CLI
+        print(f"{message}...", end="", flush=True)
+        
+        done = False
+        change_message_event = Event()
+        current_message = [message]
+        last_message = [message]
 
-    done = False
-    change_message_event = Event()
-    current_message = [message]
-    last_message = [message]
+        def print_dots():
+            last_check = time.time()
+            while not done:
+                if change_message_event.is_set() and current_message != last_message:
+                    # Move to the next line and print the new message
+                    print(f"\n{current_message[0]}...", end="", flush=True)
+                    last_message[0] = current_message[0]
+                    change_message_event.clear()
 
-    def print_dots():
-        last_check = time.time()
-        while not done:
-            if change_message_event.is_set() and current_message != last_message:
-                # Move to the next line and print the new message
-                print(f"\n{current_message[0]}...", end="", flush=True)
-                last_message[0] = current_message[0]
-                change_message_event.clear()
+                if time.time() - last_check > 1:
+                    print(".", end="", flush=True)
+                    last_check = time.time()
+                time.sleep(0.05)
 
-            if time.time() - last_check > 1:
-                print(".", end="", flush=True)
-                last_check = time.time()
-            time.sleep(0.05)
+        thread = Thread(target=print_dots)
+        thread.daemon = True
+        thread.start()
 
-    thread = Thread(target=print_dots)
-    thread.daemon = True
-    thread.start()
+        # Function to change the message from within the main block
+        def change_message(new_message):
+            current_message[0] = new_message
+            change_message_event.set()
 
-    # Function to change the message from within the main block
-    def change_message(new_message):
-        current_message[0] = new_message
-        change_message_event.set()
+        yield change_message, start
 
-    yield change_message, start
-
-    elapsed = time.time() - start
-    done = True
-    thread.join()
-    print(f" ({elapsed:.3f}s)", flush=True)
+        elapsed = time.time() - start
+        done = True
+        thread.join()
+        print(f" ({elapsed:.3f}s)", flush=True)
+    else:
+        # Just log for programmatic usage (server mode, etc.)
+        logger.info(f"{message}...")
+        
+        def change_message(new_message):
+            logger.info(f"{new_message}...")
+        
+        yield change_message, start
+        
+        elapsed = time.time() - start
+        logger.info(f"{message} completed ({elapsed:.3f}s)")
 
 
 def clean_name(name):
@@ -139,12 +161,16 @@ def check_if_tzdata_required_and_up_to_date():
 
 async def auto_import_async(frequency_minutes: int):
     """Background task for periodic data imports."""
+    from .store import Writer
+    from .client import get_data_source
+    data_source = get_data_source()
+    
     while True:
         await asyncio.sleep(frequency_minutes * 60)
         try:
-            needs_download = await asyncio.to_thread(db.needs_download)
+            needs_download = await asyncio.to_thread(data_source.needs_download)
             if needs_download:
-                version_identifier = await asyncio.to_thread(data_download)
+                version_identifier = await asyncio.to_thread(data_source.download)
                 await asyncio.to_thread(Writer().ingest_all, version_identifier)
         except Exception as e:
             logger.exception(f"Auto-import failed: {e}")

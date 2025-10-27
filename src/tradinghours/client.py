@@ -93,10 +93,9 @@ class HTTPDataSource(DataSource):
         super().__init__(url)
         self.opener = build_opener(StripAuthOnS3Redirect)
         self.url = url
-        if "tradinghours.com" in url:
-            self.token = main_config.get("data", "token", fallback=None) 
-            if not self.token:
-                raise TokenError("Token is missing or invalid")
+        self.token = main_config.get("data", "token", fallback=None) 
+        if "tradinghours.com" in url and not self.token:
+            raise TokenError("Token is missing or invalid")
 
     def _make_request(self, method: str = "GET") -> object:
         """Make an HTTP request with appropriate headers."""
@@ -226,7 +225,7 @@ class S3DataSource(DataSource):
 
 
 
-def _get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
+def get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
     source_url = main_config.get("data", "source") # should be there by default
     if not source_url: # use default v4 API
         raise ConfigError("Config option [data].source is empty.")
@@ -249,4 +248,3 @@ def _get_data_source() -> Union[HTTPDataSource, FileDataSource, S3DataSource]:
         )
 
 
-data_source = _get_data_source()
