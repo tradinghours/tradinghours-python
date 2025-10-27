@@ -251,11 +251,10 @@ class _DB:
          to check whether the user has access to the data requested.
         """
         method_name = method.__qualname__
-        not_has_access = db.access_level not in cls._access[method_name]
-
+        
         @functools.wraps(method)
         def new_method(*args, **kwargs):
-            if not_has_access:
+            if cls.main_instance.access_level not in cls._access[method_name]:
                 raise NoAccess(f"\n\n{method_name} is supported but not available on your current plan."
                                f"\nPlease learn more or contact sales at https://www.tradinghours.com/data")
             return method(*args, **kwargs)
