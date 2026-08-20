@@ -339,8 +339,11 @@ class Market(BaseModel):
 
         date = datetime.date()
         self._in_range(date)
-        # arbitrarily extending end so that there are definitely following phases
-        end = min(date + dt.timedelta(days=5), self.holidays_max_date)
+        # Look ahead so until/next_bell can be set even across weekends.
+        # Do not cap at holidays_max_date: _generate_phases(_for_status=True)
+        # skips the range check, and Regular schedules remain valid after the
+        # last holiday row.
+        end = date + dt.timedelta(days=5)
 
         current, nxt = [], []
         is_primary = False
@@ -375,8 +378,10 @@ class Market(BaseModel):
                 until = sorted(overlapping, key= lambda p: p.start)[0].start
             else:
                 until = current.end
+        elif nxt:
+            until = sorted(nxt, key=lambda p: p.start)[0].start
         else:
-            until = sorted(nxt, key= lambda p: p.start)[0].start
+            until = None
 
         # set next_bell
         if is_primary:
