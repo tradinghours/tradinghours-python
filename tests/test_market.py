@@ -173,7 +173,7 @@ def test_market_available_dates(fin_id):
      ("US.MGEX", fromiso("2024-10-04 00:00", "America/Chicago"),
      {
          "status": "Open",
-         "reason": "Primary Trading Session",
+         "reason": "Primary Trading Session, No Closing Price",
          "until": fromiso("2024-10-04 07:45", "America/Chicago"),
          "next_bell": fromiso("2024-10-04 07:45", "America/Chicago"),
 #          "timezone": "America/New_York",
