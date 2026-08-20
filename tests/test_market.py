@@ -177,7 +177,16 @@ def test_market_available_dates(fin_id):
          "until": fromiso("2024-10-04 07:45", "America/Chicago"),
          "next_bell": fromiso("2024-10-04 07:45", "America/Chicago"),
 #          "timezone": "America/New_York",
-     })
+     }),
+    # After the last session on a Regular Settlement day, look-ahead must
+    # continue past holidays_max_date to the next Sunday reopen.
+    ("US.NYMEX.AGRI.SUGAR11", fromiso("2026-12-31 22:05:42", "UTC"),
+     {
+         "status": "Closed",
+         "reason": "New Year's Day",
+         "until": fromiso("2027-01-03 16:00", "America/Chicago"),
+         "next_bell": fromiso("2027-01-03 17:00", "America/Chicago"),
+     }),
 ])
 def test_market_status(fin_id, datetime, expected):
     market = Market.get(fin_id)
@@ -185,6 +194,30 @@ def test_market_status(fin_id, datetime, expected):
     status = status.to_dict()
     status = {k: status.get(k) for k in expected}
     assert status == expected
+
+
+@pytest.mark.xfail(
+    st.db.access_level == st.AccessLevel.only_holidays,
+    reason="No access",
+    strict=True,
+    raises=NoAccess
+)
+def test_market_status_without_remaining_phases(mocker):
+    """status() must not IndexError when no current or upcoming phase exists."""
+    market = Market.get("US.NYSE")
+    when = fromiso("2023-11-15 18:00", "America/New_York")
+
+    def no_phases(*args, **kwargs):
+        yield {}
+
+    mocker.patch.object(market, "_generate_phases", side_effect=no_phases)
+    status = market.status(when)
+
+    assert status.status == "Closed"
+    assert status.reason is None
+    assert status.until is None
+    assert status.next_bell is None
+    assert status.phase is None
 
 @pytest.mark.slow
 def test_stress_market():
