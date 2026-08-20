@@ -1,3 +1,8 @@
+## new_release
+Changes:
+  * fix IndexError in Market.status() when there is no current or upcoming phase
+
+
 ## 0.6.1 (2025-10-27)
 Changes:
   * made `token` used in Authorization header of any http source
