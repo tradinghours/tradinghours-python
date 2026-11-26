@@ -1,4 +1,4 @@
-## new_release
+## 0.7.0 (2026-11-26)
 Changes:
   * Dropped support for Python 3.9 and 3.10. Requires Python 3.11 or newer, tested through 3.15.
   * generate_phases now returns up to permanently_closed if that is set.
