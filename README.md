@@ -6,7 +6,7 @@
     <a href="https://pypi.org/project/tradinghours/">
       <img src="https://img.shields.io/pypi/v/tradinghours?color=green" alt="PyPI version">
     </a>
-    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-green" alt="Python versions">
+    <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-green" alt="Python versions">
     <img src="https://github.com/tradinghours/tradinghours-python/actions/workflows/release.yml/badge.svg?branch=main" alt="GitHub Actions">
   </p>
 </div>
@@ -81,7 +81,7 @@ Perfect for:
 
 ## Requirements
 
-- **Python**: 3.9 or higher
+- **Python**: 3.11 or higher
 - **Subscription**: Active TradingHours.com subscription ([get a quote](https://www.tradinghours.com/data))
 - **API Token**: Available from [your account page](https://www.tradinghours.com/user/api-tokens)
 

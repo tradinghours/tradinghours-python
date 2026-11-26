@@ -490,3 +490,68 @@ class TestMarketHybrid:
             assert response.status_code == 200
             api_data = response.json()
             assert api_data == direct_dicts
+
+
+def _market_with_range(**overrides):
+    data = {
+        "fin_id": "US.TEST",
+        "exchange_name": "Test Exchange",
+        "market_name": "Test",
+        "security_group": None,
+        "timezone": "America/New_York",
+        "weekend_definition": "Sat-Sun",
+        "mic": "XXXX",
+        "acronym": None,
+        "asset_type": None,
+        "memo": None,
+        "permanently_closed": None,
+        "replaced_by": None,
+        "holidays_min_date": dt.date(2020, 1, 1),
+        "holidays_max_date": dt.date(2026, 5, 5),
+    }
+    data.update(overrides)
+    return Market(data)
+
+
+def test_open_market_stops_at_last_holiday():
+    market = _market_with_range()
+    market._in_range(dt.date(2026, 5, 5))
+    with pytest.raises(DateNotAvailable):
+        market._in_range(dt.date(2026, 5, 6))
+
+
+def test_permanently_closed_market_extends_past_last_holiday():
+    market = _market_with_range(permanently_closed="2026-07-15")
+    assert market.holidays_max_date == dt.date(2026, 5, 5)
+    market._in_range(dt.date(2026, 7, 14))
+    with pytest.raises(DateNotAvailable):
+        market._in_range(dt.date(2026, 7, 15))
+
+
+@pytest.mark.parametrize("closed", [dt.date(2026, 7, 15), dt.datetime(2026, 7, 15)])
+def test_permanently_closed_date_values_are_accepted(closed):
+    market = _market_with_range(permanently_closed=closed)
+    market._in_range(dt.date(2026, 7, 14))
+    with pytest.raises(DateNotAvailable):
+        market._in_range(dt.date(2026, 7, 15))
+
+
+def test_last_trade_day_holiday_keeps_the_same_end():
+    market = _market_with_range(
+        holidays_max_date=dt.date(2026, 7, 14),
+        permanently_closed="2026-07-15",
+    )
+    market._in_range(dt.date(2026, 7, 14))
+    with pytest.raises(DateNotAvailable):
+        market._in_range(dt.date(2026, 7, 15))
+
+
+def test_blank_permanently_closed_stays_on_last_holiday():
+    market = _market_with_range(permanently_closed="")
+    with pytest.raises(DateNotAvailable):
+        market._in_range(dt.date(2026, 5, 6))
+
+
+def test_close_before_last_holiday_does_not_cut_coverage_short():
+    market = _market_with_range(permanently_closed="2026-04-01")
+    market._in_range(dt.date(2026, 5, 5))
