@@ -49,8 +49,30 @@ class Market(BaseModel):
         self.holidays_min_date = self._data["holidays_min_date"]
         self.holidays_max_date = self._data["holidays_max_date"]
 
+    def _coverage_end(self) -> Union[dt.date, None]:
+        """Latest date this market will serve.
+
+        Open markets stop at the last holiday. A permanently closed market
+        stays available through the day before permanently_closed, even when
+        that is later than the last holiday.
+        """
+        last = self.holidays_max_date
+        closed = self.permanently_closed
+        if not closed:
+            return last
+
+        if isinstance(closed, dt.datetime):
+            closed = closed.date()
+        elif not isinstance(closed, dt.date):
+            closed = dt.date.fromisoformat(str(closed)[:10])
+
+        last_trade_day = closed - dt.timedelta(days=1)
+        if last is None or last_trade_day > last:
+            return last_trade_day
+        return last
+
     def _in_range(self, *dates) -> None:
-        first, last = self.holidays_min_date, self.holidays_max_date
+        first, last = self.holidays_min_date, self._coverage_end()
         if not all(
             first <= date <= last for date in dates
         ):
